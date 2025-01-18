@@ -578,6 +578,7 @@ class Simulation(object):
             dt = self.time_step / float(split)
             #print(dt)
             for i in range(0, len(self.objects)):
+                self.objects[i]
                 self.objects[i].update(self, dt)
                 
                 

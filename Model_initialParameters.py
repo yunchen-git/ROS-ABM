@@ -139,14 +139,13 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
         sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=div_set)   #create instance of StemCell class
         
         if i in rand1 or i in rand2:
-            print(i)
             sim_obj.C = 1
             XI.change_C(ID, 1)
             #sim.interC[0].C[i]
 
         sim.add(sim_obj)
         sim.inc_current_ID()
-        sim_obj.set_gradient_source_sink_coeff(H2O2.name, 2.0e-20, 1.8e-20)
+        sim_obj.set_gradient_source_sink_coeff("U", 0.0, 1.9e-20)
 
         # print(f"object self.C: {ID} {sim_obj.C}")                           #StemCell object
         # print(f"XI self.C: {ID} {XI.get_C(ID)}")                            #IntC_Diff object

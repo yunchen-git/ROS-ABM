@@ -12,7 +12,7 @@ if __name__ == '__main__':
     
     ##Set save path for simulations. If you create a new, empty folder 
     ##then everytime you run this code it will make a new Simulation folder
-    path='/Users/huyunchen/Documents/PhD/test'
+    path=os.path.expanduser('~/Documents/PhD/test')
 
     inh_val=[1.0]
     per_inh=[1.0]

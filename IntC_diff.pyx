@@ -67,7 +67,8 @@ class IntC_Diff(object):
         n2=len(division_times)
         
         #set the dimensions in each direction
-        cdef double[:,:] cell_cycle_effect = cvarray(shape=(n1,n2), itemsize=sizeof(double),format="d")
+        #cdef double[:,:] cell_cycle_effect = cvarray(shape=(n1,n2), itemsize=sizeof(double),format="d")
+        cdef np.ndarray[np.int64_t, ndim=2] cell_cycle_effect = np.zeros((n1, n2), dtype=np.int64)
         cdef double[:,:] inhibition = cvarray(shape=(maxCells,2), itemsize=sizeof(double),format="d")
         self.inhibition=inhibition
         

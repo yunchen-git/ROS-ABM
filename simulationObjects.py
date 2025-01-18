@@ -309,7 +309,6 @@ class StemCell(SimulationObject):
             t=sim.time
             # Base rate with oscillation associated with RA dosing
             prob = 0.002+abs(0.001*math.sin((t+1.)/-8.)) #used to be 0.0025 but we need it to take slightly
-
             if(x < prob):
                 #differentiation occurs
                 #print("diff")
@@ -320,7 +319,6 @@ class StemCell(SimulationObject):
                 sim.interC[0].change_state(self.ID,1) #Change state in Intercellular Diffusion Module
             if self.state=="U":
                 #Influence of intercellular concentration on the probability of differentiation    
-
                 x=rand.random()
                 if x<self.influ:
                     #print("C Diff")

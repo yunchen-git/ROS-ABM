@@ -15,7 +15,6 @@ import atexit,gc
 @atexit.register
 def garbage_collect():
     gc.collect()
-
     
 def ZeroPad(maxTime, time):
     """ Zero pads the current number
