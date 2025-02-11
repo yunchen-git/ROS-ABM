@@ -135,7 +135,7 @@ def save_2D_gradient_images(name, save_path, data, axis):
         if axis=="xyv":
             plt.savefig(save_path + "void_" + s +axis + ".png")
         else:
-            new_path = save_path + g.name
+            new_path = save_path + "all_" + g.name
             if not os.path.exists(new_path):
                 os.makedirs(new_path)
             plt.savefig(new_path + "/" + s +axis + ".png")

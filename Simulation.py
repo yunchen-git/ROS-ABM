@@ -480,6 +480,7 @@ class Simulation(object):
         """ Updates the object add and remove queue
         """
         print("Adding " + repr(len(self._objects_to_add)) + " objects...")
+        print("Removing " + repr(len(self._objects_to_remove)) + " objects...")
 ##        print("Removing " + repr(len(self._objects_to_remove)) + " objects...")
         for i in range(0, len(self._objects_to_remove)):
             self.remove(self._objects_to_remove[i])
@@ -573,7 +574,7 @@ class Simulation(object):
         print ("Inter Transport Time: {}".format(t1-t0))
             
         #RUN A FASTER UPDATE LOOP     
-        split = 2
+        split = 1
         for p in range(0, split):
             dt = self.time_step / float(split)
             #print(dt)
@@ -733,7 +734,7 @@ class Simulation(object):
         for i in range(0, len(self.gradients)):
             #make a mask the same size as the gradient
             shp = self.gradients[i].shape()
-            print(f"shp : {shp}")
+            #print(f"shp : {shp}")
             mask = np.zeros(shp)
             for j in range(0, len(self.objects)):
                 agent = self.objects[j]

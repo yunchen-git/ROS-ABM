@@ -51,8 +51,8 @@ def read_network(path, t0, tf):
         print(f"radius {radius}")
 
 def draw_cell_image(network, path, ind, center, radius, scale=1, background=(0,0,0), origin_bottom=False, bound_rad=30, image_name='image'):
-    col_dict={'U': (50, 255, 50),'T': (255, 50, 50),'D': (50, 50, 255)}
-    outline_dict={'U': (0, 0, 0),'T': (0, 0, 0),'D': (0, 0, 0)}
+    col_dict={'U': (50, 255, 50),'T': (255, 50, 50),'D': (50, 50, 255),'A':(200,200,200)}
+    outline_dict={'U': (0, 0, 0),'T': (0, 0, 0),'D': (0, 0, 0),'A':(0,0,0)}
 
     nodes=network.nodes()
     image_C = np.zeros((int(radius)*7, int(radius)*7, 3), dtype=np.uint8)
@@ -181,7 +181,7 @@ def make_txt(name, path):
     print(f'Reference image is: {name}_{format(0,"02")}.png')
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/Test/45.0/'
+    path = '/Users/huyunchen/Documents/PhD/Test/25.0/'
     
     read_network(path, 0, 75)
     #path = f'/Users/andrew/PycharmProjects/pythonABM_CG/outputs/{sys.argv[1]}.0/'

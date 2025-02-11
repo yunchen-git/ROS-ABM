@@ -215,6 +215,7 @@ class IntC_Diff(object):
 
                     C[i,1]=C[i,1]+Peff*vx*nbs[i,j]*(C[j,0]-C[i,0])
                     C[j,1]=C[j,1]+Peff*vx*nbs[i,j]*(C[i,0]-C[j,0])
+
                 prod=vx*dp[ni,0]/(1.+(C[i,0]/dp[ni,1])**dp[ni,2])
                 deg=-vx*dp[ni,3]*C[i,0]
 
