@@ -109,8 +109,8 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     
     grid_dim=130.0                  #Grid dimension (NxNxN), (I'm pretty sure I stopped using this altogether...)
 
-    x = 2000
-    y = 2000
+    x = 2800
+    y = 2800
     z = 30
     ddim=2.0                        #Grid spacing in um
     sync_time=[500,500]             # This isn't used
@@ -144,7 +144,7 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
         #     #sim.interC[0].C[i]
 
         sim.inc_current_ID()
-        sim_obj.set_gradient_source_sink_coeff("U", 0.0, 5.0e-20)
+        sim_obj.set_gradient_source_sink_coeff("H2O2", 0.0, 5.0e-20)
         sim.add(sim_obj)
 
         # print(f"object self.C: {ID} {sim_obj.C}")                           #StemCell object
