@@ -296,29 +296,10 @@ class Simulation(object):
                 state=1
 
             for i in range(len(self.interC)):
-                if self.inhib_type=='AC':
-                    #Change in permeability of cells from addition of gap junction or adenylyl cyclase inhibitor 
-                    if self.time>=self.inhib_time and self.time<=(self.inhib_time+self.inhib_duration):         
-                        self.interC[i].add_cell(sim_object.ID,sim_object.C,state,sim_object.division_timer,1.0,sim_object.inhib_value)
-                    else:
-                        self.interC[i].add_cell(sim_object.ID,sim_object.C,state,sim_object.division_timer,1.0,1.0)
-
-                    if self.time>=self.inhib_time1 and self.time<=(self.inhib_time1+self.inhib_duration):         
-                        self.interC[i].add_cell(sim_object.ID,sim_object.C,state,sim_object.division_timer,1.0,sim_object.inhib_value)
-                    else:
-                        self.interC[i].add_cell(sim_object.ID,sim_object.C,state,sim_object.division_timer,1.0,1.0)
-                elif self.inhib_type=='GJ':
-                    if self.time>=self.inhib_time and self.time<=(self.inhib_time+self.inhib_duration):         
-                        self.interC[i].add_cell(sim_object.ID,sim_object.C,state,sim_object.division_timer,sim_object.inhib_value,1.0)
-                    else:
-                        self.interC[i].add_cell(sim_object.ID,sim_object.C,state,sim_object.division_timer,1.0,1.0)
-
-                    if self.time>=self.inhib_time1 and self.time<=(self.inhib_time1+self.inhib_duration):         
-                        self.interC[i].add_cell(sim_object.ID,sim_object.C,state,sim_object.division_timer,sim_object.inhib_value,1.0)
-                    else:
-                        self.interC[i].add_cell(sim_object.ID,sim_object.C,state,sim_object.division_timer,1.0,1.0)
+                if self.interC[i].name =='cAMP':
+                    self.interC[i].add_cell(sim_object.ID,sim_object.C[self.interC[i].name],state,sim_object.division_timer,1.0,1.0)
                 else:
-                    self.interC[i].add_cell(sim_object.ID,sim_object.C,state,sim_object.division_timer,1.0,1.0)
+                    self.interC[i].add_cell(sim_object.ID,sim_object.C[self.interC[i].name],state,sim_object.division_timer,1.0,1.0)
                 #print(f"sim interC[0] value: {self.interC[i]}")
 
     def inc_current_ID(self):
@@ -569,7 +550,10 @@ class Simulation(object):
         t0=time.time()
         for i in range(len(self.interC)):
             #print(i)    #returns 0
-            self.interC[i].update_C1(nbs2,n,1200)
+            if self.interC[i].name=='cAMP':
+                self.interC[i].update_C1(nbs2,n,1200)
+            #else:
+                #self.interC[i].update_C(nbs2,n,1200)
         t1=time.time()
         print ("Inter Transport Time: {}".format(t1-t0))
             
@@ -579,7 +563,7 @@ class Simulation(object):
             dt = self.time_step / float(split)
             #print(dt)
             for i in range(0, len(self.objects)):
-                self.objects[i]
+                print(self.objects[i])
                 self.objects[i].update(self, dt)
                 
                 
@@ -963,6 +947,7 @@ class Simulation(object):
         self._header.write("," + n_path)
         #Then save the gradient files
         for i in range(0, len(self.gradients)):
+            molecule = self.gradients[i].name
             grad_path = self.gradients[i].save(base_path, repr(self.time))
             self._header.write("," + grad_path)
         self._header.write(",")

@@ -102,6 +102,7 @@ class IntC_Diff(object):
         self.state = state
         C[:,:]=0
         self.C=C
+
     def save(self, base_path, time_stamp):
         """ Saves the gradients to a binary numpy file
             Also outputs a string which represents
@@ -128,8 +129,6 @@ class IntC_Diff(object):
         f.close()
  
         return path
-
-
   
     def add_cell(self,ID,Ci,celltype, div_timer, inhib_gj,inhib_ac):
         cdef double[:,:] C = self.C

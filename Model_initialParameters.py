@@ -71,28 +71,6 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     D_camp=444 ##um^2/sec diffusion coefficient for cyclic AMP Dworkin & Keller 1977 J. Bio Chem
     D_h2o2 = 444 ##um^2/sec diffusion coefficient for H2O2
     
-    # # Read the graph using pickle
-    # with open(os.path.join(os.getcwd(), "Colony.gpickle"), "rb") as f:
-    #     test = pickle.load(f)
-    
-    # # Debugging statements
-    # print(f"Type of net: {type(test)}")
-    # print(f"Type of net.nodes(): {type(test.nodes())}")
-    # #print(network)
-    # #print(network.nodes())
-    
-    # # Inspect the graph's internal state
-    # print(f"Graph nodes: {list(test.nodes(data=True))}")
-    # print(f"Graph edges: {list(test.edges(data=True))}")
-    
-    # # Access nodes using list(net.nodes)
-    # try:
-    #     nodes_list = list(test.nodes(data=False))
-    #     print(f"Nodes list: {nodes_list}")
-    # except Exception as e:
-    #     print(f"Error accessing nodes: {e}")
-    #     return
-    
     cell_path = os.getcwd() + os.sep + 'RA0_4.5.txt'
     cells = np.loadtxt(cell_path, delimiter=',')
     locations = cells[:,1:3]
@@ -116,13 +94,16 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     sync_time=[500,500]             # This isn't used
 
     ## Initializing the intercellular diffusion module
-    XI =IntC_Diff("cAMP",maxCells,D_camp,grid_dim,ddim,Pmax,open_prob,              #create instance of IntC_Diff class
-                  celltype_param,division_times,sync_time)
+    XI = IntC_Diff("cAMP",maxCells,D_camp,grid_dim,ddim,Pmax,open_prob,              #create instance of IntC_Diff class
+                    celltype_param,division_times,sync_time)
     sim.add_interC(XI)
-    #print(f"interC value for sim: {sim.interC[0]}")
+    
+    H2O2i = IntC_Diff("H2O2i",maxCells,D_h2o2,grid_dim,ddim,Pmax,open_prob,              #create instance of IntC_Diff class
+                    celltype_param,division_times,sync_time)
+    sim.add_interC(H2O2i)
 
-    H2O2 = ExtC_Diff("H2O2", D_h2o2, x, y, z, ddim)
-    sim.add_gradient(H2O2)
+    H2O2e = ExtC_Diff("H2O2e", D_h2o2, x, y, z, ddim)
+    sim.add_gradient(H2O2e)
     # dist=range(num)
     # r.shuffle(dist)
     #print(XI.vx)
@@ -144,9 +125,13 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
         #     #sim.interC[0].C[i]
 
         sim.inc_current_ID()
-        sim_obj.set_gradient_source_sink_coeff("H2O2", 0.0, 5.0e-20)
-        sim.add(sim_obj)
+        sim_obj.setC(0.595+0.05*rand.random(),'cAMP')
+        sim_obj.setC(1.0e-9,'H2O2i')
+        #print(f"ID: {ID}, cAMP {sim_obj.C['cAMP']}")
+        sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 5.0e-20)
 
+        sim.add(sim_obj)
+        #print(f"ID: {ID}, cAMP {np.array(sim.interC[0].C[ID])}")
         # print(f"object self.C: {ID} {sim_obj.C}")                           #StemCell object
         # print(f"XI self.C: {ID} {XI.get_C(ID)}")                            #IntC_Diff object
         # #print(f"len sim.interC[0].C: {ID} {len(sim.interC[0].C)}")          #IntC_Diff object

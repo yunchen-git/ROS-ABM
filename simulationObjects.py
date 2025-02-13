@@ -25,7 +25,7 @@ class SimulationObject(object):
         self.location = location
         self.distance=0
         
-        self.C=0.595+0.05*rand.random()
+        self.C={}#0.595+0.05*rand.random()
 
         self.thresCount=0
         self.influ=0
@@ -59,8 +59,8 @@ class SimulationObject(object):
         """
         pass
 
-    def setC(self,C):
-        self.C=C
+    def setC(self,C,name):
+        self.C[name]=C
 
     def update_d(self, sim):
         nbs=sim.network.neighbors(self)
@@ -242,13 +242,14 @@ class StemCell(SimulationObject):
             or divide
         """
         # Store concentration in stem cell object from the intercellular diffusion module
-        self.C=sim.interC[0].get_C(self.ID)
+        for interC in sim.interC:
+            #print(interC.get_C(self.ID))
+            self.C[interC.name]=interC.get_C(self.ID)
         #growth kinetics
         self.division_timer += dt
 
         #you can grow unless you are in the A state meaning apoptosis
         if(self.division_timer >= self.division_time):
-
             n=2
             #get the radius
             radius = self.radius
@@ -258,14 +259,16 @@ class StemCell(SimulationObject):
             #get the ID
             ID = sim.get_ID()
             #Split intracellular concentration between daughter cells
-            splitC=float(self.C)/2
-            sim.interC[0].add_to_dC(self.ID,-splitC)
+            splitC = {key: value / 2 for key, value in self.C.items()}
+            for interC in sim.interC:
+                interC.add_to_dC(self.ID,-splitC[interC.name])
             #Make object, copy over all of the coefficients to the new cells 
             sc = StemCell(location, radius, ID, self.state, inhib_value=self.inhib_value,
                           division_time = self.division_time)
-            sc.setC(splitC)
-
             
+            for key, value in splitC.items():
+                sc.setC(value, key)
+
             #add it to the imsulation
             sim.add_object_to_addition_queue(sc)
             #reset the division time
@@ -274,7 +277,7 @@ class StemCell(SimulationObject):
 
         #STATE DEPENDANT BEHAVIOR
         if(self.state == "A"):
-            self.set_gradient_source_sink_coeff("H2O2", 5e-20, 0)
+            self.set_gradient_source_sink_coeff("H2O2e", 5e-20, 0)
             print(f"removing {self.ID}")
             sim.add_object_to_remnoval_queue(self)
 
@@ -290,14 +293,14 @@ class StemCell(SimulationObject):
         # an elevated intracellular concentration
         threshold=0.74
         #print(self.kth)
-        if self.C>threshold:
+        if self.C['cAMP']>threshold:
             ni=4.
             ki=2.0
             self.thresCount+=1
             tC=self.thresCount
             self.influ= tC**ni/(ki**ni+tC**ni)
             #print(ki)
-        elif self.C<=threshold and self.influ>0:
+        elif self.C['cAMP'] <=threshold and self.influ>0:
             ni=4.
             ki=2.0
             self.thresCount-=1
@@ -322,7 +325,7 @@ class StemCell(SimulationObject):
                 #(currently treated as identical to diff state) 
                 self.state = "T"
                 self.diff="rand"
-                self.set_gradient_source_sink_coeff("H2O2", 0.0, 2.5e-20)
+                self.set_gradient_source_sink_coeff("H2O2e", 0.0, 2.5e-20)
                 sim.interC[0].change_state(self.ID,1) #Change state in Intercellular Diffusion Module
             if self.state=="U":
                 #Influence of intercellular concentration on the probability of differentiation    
@@ -330,11 +333,11 @@ class StemCell(SimulationObject):
                 if x<self.influ:
                     #print("C Diff")
                     self.state="T"
-                    self.set_gradient_source_sink_coeff("H2O2", 0.0, 2.5e-20)
+                    self.set_gradient_source_sink_coeff("H2O2e", 0.0, 2.5e-20)
                     sim.interC[0].change_state(self.ID,1) #Change state in Intercellular Diffusion Module
 
         if self.state=="D" or self.state=="T" or self.state=="U":
-            val = self.get_gradient_value("H2O2")
+            val = self.get_gradient_value("H2O2e")
             x = rand.random()
             prob_extC = (1.0*val)/(0.0001+val)
             #print(prob_extC,x)
@@ -344,12 +347,12 @@ class StemCell(SimulationObject):
                 #Apoptosis
                 self.state = "A"
                 print(f"feroptosis {self.ID}")
-                self.set_gradient_source_sink_coeff("H2O2", 5e-20, 0.0)
+                self.set_gradient_source_sink_coeff("H2O2e", 5e-20, 0.0)
                 sim.interC[0].change_state(self.ID,2)
             if x<0.1 * prob:
                 self.state = "A"
                 print(f"apoptosis {self.ID}")
-                self.set_gradient_source_sink_coeff("H2O2", 5e-20, 0.0)
+                self.set_gradient_source_sink_coeff("H2O2e", 5e-20, 0.0)
                 sim.interC[0].change_state(self.ID,2)
 
 
