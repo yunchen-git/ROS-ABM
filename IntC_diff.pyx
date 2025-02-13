@@ -6,6 +6,7 @@ cdef extern from *:
     #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
     """
 
+import scipy.integrate
 import numpy as np
 cimport numpy as np
 import pickle
@@ -17,6 +18,9 @@ import math
 from cython.view cimport array as cvarray
 from libc.stdlib cimport abs
 #from libc.math cimport fmin
+
+import FBA_ode
+from FBA_ode import model
 
 import gc, atexit
 
@@ -177,63 +181,41 @@ class IntC_Diff(object):
         cdef int i =ID
         C[i,1]=C[i,1]+Cmod
 
-        
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.nonecheck(False)  
-    def update_C(self,cell_nbs,num,te):
-        cdef int dim = num
-        cdef double[:,:] nbs = cell_nbs
+    def update_Cflux(self, n, extraC, te):
         cdef double[:,:] dp = self.deg_prod
         cdef double[:,:] C = self.C
         cdef double[:,:] cce = self.cce
         cdef double[:] p_n =self.p_n
-        
         cdef long[:,:] state = self.state
-        cdef int i,j,ni,nj,mi,mj
-        
-        cdef double t=0.0
-        
-        cdef double tend=te
+        cdef int i, ni
+        cdef int tend=te
         cdef double Pmax=self.Pmax
         cdef double vx=self.vx
         cdef double Peff
-        cdef double dt =self.dt
+        cdef int dt =self.dt
         cdef double prod, deg, qni, qnj
         
-        while t<tend:
-            for i in range(dim):
-                ni =state[i,0]
-                mi=state[j,1]
-                C[i,0]=C[i,0]+C[i,1]
-                C[i,1]=0.0
-                for j in range(i+1,dim):
-                    nj=state[j,0]
-                    mj=state[j,1]
-                    Peff=vx*Pmax*(p_n[ni]*cce[mi,ni])*(p_n[nj]*cce[mj,nj])
+        cdef np.ndarray x0 = np.copy(FBA_ode.get_x0())
+        cdef np.ndarray k = FBA_ode.get_k()
+        # Initialize x0 with extraC and self.C
+        x0[0] = extraC
+        x0[1] = C[n, 0]
+        #print(x0)
+        # Create a time array with the correct number of samples
+        cdef np.ndarray t = np.linspace(0, 3600, 3601)
 
-                    C[i,1]=C[i,1]+Peff*vx*nbs[i,j]*(C[j,0]-C[i,0])
-                    C[j,1]=C[j,1]+Peff*vx*nbs[i,j]*(C[i,0]-C[j,0])
+        # Solve the ODE system
+        cdef np.ndarray result = scipy.integrate.odeint(model, x0, t, args=(k,))
 
-                prod=vx*dp[ni,0]/(1.+(C[i,0]/dp[ni,1])**dp[ni,2])
-                deg=-vx*dp[ni,3]*C[i,0]
+        C[n, 0] = result[-1, 1]
 
-                
-                C[i,0]=C[i,0]+C[i,1]+prod+deg
-                C[i,1]=0.0
-            t=t+dt
-                
-        for i in range(dim):
-            state[i,1]=state[i,1]+1
-
-
- 
-        
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.nonecheck(False)  
     def update_C1(self,cell_nbs,num,te):
-
         cdef int dim = num
         cdef int[:,:] nbs = cell_nbs
         cdef int edges =nbs.shape[0]

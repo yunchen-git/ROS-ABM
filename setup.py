@@ -8,6 +8,7 @@ except ImportError:
 import numpy
 
 from Cython.Build import cythonize
+import numpy as np
 """
 This script is meant to compile the intercellular diffusion module and extracellular diffusion module to C-code. 
 

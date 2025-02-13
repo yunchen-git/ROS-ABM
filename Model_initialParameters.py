@@ -128,7 +128,7 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
         sim_obj.setC(0.595+0.05*rand.random(),'cAMP')
         sim_obj.setC(1.0e-9,'H2O2i')
         #print(f"ID: {ID}, cAMP {sim_obj.C['cAMP']}")
-        sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 5.0e-20)
+        sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 5e-9)
 
         sim.add(sim_obj)
         #print(f"ID: {ID}, cAMP {np.array(sim.interC[0].C[ID])}")

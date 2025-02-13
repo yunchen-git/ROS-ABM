@@ -482,47 +482,12 @@ class Simulation(object):
         """
         Gap Junction inhibition (GJ) or Adenylyl Cyclase inhibition (AC)
         """
-        if self.inhib_type=='GJ':
-            if self.time==self.inhib_time:
-                for i in range(len(agents)):
-                    agent=agents[i]
-                    self.interC[0].change_inhib_GJ(agent.ID,(1.0-agent.inhib_value)/2.)
-            elif self.time==self.inhib_time+1:
-                for i in range(len(agents)):
-                    agent=agents[i]
-                    self.interC[0].change_inhib_GJ(agent.ID,agent.inhib_value)
-            elif self.time==self.inhib_time+self.inhib_duration-1:
-                for i in range(len(agents)):
-                    agent=agents[i]
-                    self.interC[0].change_inhib_GJ(agent.ID,(1.0-agent.inhib_value)/2.)
-            elif self.time==self.inhib_time+self.inhib_duration:
-                for i in range(len(agents)):
-                    agent=agents[i]
-                    self.interC[0].change_inhib_GJ(agent.ID,1.0)
-        elif self.inhib_type=='AC':
-            if self.time==self.inhib_time:
-                for i in range(len(agents)):
-                    agent=agents[i]
-                    self.interC[0].change_inhib_AC(agent.ID,agent.inhib_value)
-            elif self.time==self.inhib_time+self.inhib_duration:
-                for i in range(len(agents)):
-                    agent=agents[i]
-                    self.interC[0].change_inhib_AC(agent.ID,1.0)
-            if self.time==self.inhib_time1:
-                for i in range(len(agents)):
-                    agent=agents[i]
-                    self.interC[0].change_inhib_AC(agent.ID,agent.inhib_value)
-            elif self.time==self.inhib_time1+self.inhib_duration:
-                for i in range(len(agents)):
-                    agent=agents[i]
-                    self.interC[0].change_inhib_AC(agent.ID,1.0) 
- 
+
         #define the sinks and sources
         print("Updating gradients...")
         t0=time.time()
         if(len(self.gradients) > 0):
             sources, sinks = self._define_sinks_and_sources()
-        
         #print(self.objects)
         #update the gradients
         #print(f"gradients length {len(self.gradients)}")
@@ -549,11 +514,19 @@ class Simulation(object):
 
         t0=time.time()
         for i in range(len(self.interC)):
-            #print(i)    #returns 0
             if self.interC[i].name=='cAMP':
                 self.interC[i].update_C1(nbs2,n,1200)
-            #else:
-                #self.interC[i].update_C(nbs2,n,1200)
+            else:
+                for j in range(0, len(self.objects)):
+                    tempC = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
+                    self.interC[i].update_Cflux(j, tempC, 3600)
+                    tempC = self.interC[i].get_C(j)
+                    if tempC < 0:
+                        tempC = abs(tempC)
+                        self.objects[j].set_gradient_source_sink_coeff("H2O2e", 0, tempC)
+                    else:
+                        self.objects[j].set_gradient_source_sink_coeff("H2O2e", tempC, 0)
+                        
         t1=time.time()
         print ("Inter Transport Time: {}".format(t1-t0))
             
@@ -563,7 +536,7 @@ class Simulation(object):
             dt = self.time_step / float(split)
             #print(dt)
             for i in range(0, len(self.objects)):
-                print(self.objects[i])
+                #print(self.objects[i])
                 self.objects[i].update(self, dt)
                 
                 

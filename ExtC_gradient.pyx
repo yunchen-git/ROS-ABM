@@ -48,7 +48,7 @@ class ExtC_Diff(object):
                  outside_c = 0.0, vol_units = 1e-6):
         dx = ddim
         dy = ddim
-        #dz = ddim
+        dz = ddim
 
         # save the unit volume
         self._vol_units = 1e-6
@@ -59,19 +59,19 @@ class ExtC_Diff(object):
         # set the spatial size of the grid
         self._x = float(x)
         self._y = float(y)
-        #self._z = float(z)
+        self._z = float(z)
         # set the spatial resolution of each grid step
         self._dx = float(ddim)
         self._dy = float(ddim)
-        #self._dz = float(ddim)
+        self._dz = float(ddim)
         # solve for the index of the array
         self.x_dim = int(x/dx)
         self.y_dim = int(y/dy)
-        #self.z_dim = int(z/dz)
+        self.z_dim = int(z/dz)
         # solve some more of the spatial constraints
         dx2 = dx * dx
         dy2 = dy * dy
-        #dz2 = dz * dz
+        dz2 = dz * dz
 
         # time step solution
         self.dt = 0.5 / ((D/dx2) + (D/dy2))#+(D/dz2))
@@ -157,15 +157,15 @@ class ExtC_Diff(object):
         #now we know the spatial resolution per grid spacing
         dx = distance[0] / self._dx
         dy = distance[1] / self._dy
-        #dz = distance[2] / self._dz
+        dz = distance[2] / self._dz
 
         #get the center loction
         cx = int(self.x_dim / 2)
         cy = int(self.y_dim / 2)
-        #cz = int(self.z_dim / 2)
+        cz = int(self.z_dim / 2)
 
         #return the x, y, z indicies to add at
-        return cx + dx, cy + dy#, cz + dz
+        return cx + dx, cy + dy #, cz + dz
 
     def get_gradient_value_at_point(self, point):
         """ Will get the gradient value at a specific point. Useful for
@@ -173,7 +173,12 @@ class ExtC_Diff(object):
             Assume the point is a distance vector representing the radius
             of the cell within the strutural aggregate
         """
-        x, y, z = self.get_object_position_on_grid(point)
+        #get the indicies of the point
+        x = int(point[0])
+        y = int(point[1])
+        z = int(point[2])
+        point = [x, y, z]
+        x, y = self.get_object_position_on_grid(point)
         #get the indices
         ix = int(x)
         iy = int(y)
