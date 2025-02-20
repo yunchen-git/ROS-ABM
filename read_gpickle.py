@@ -70,7 +70,7 @@ def draw_cell_image(network, path, ind, center, radius, scale=1, background=(0,0
         # print(node.C)
 
         # Get color based on fixed range for node.C
-        C_value = node.C  # Assuming node.C is a list with one value
+        C_value = node.C['cAMP']  # Assuming node.C is a list with one value
         node_color_rgba = get_color(C_value)
         
         # Convert RGBA to BGR for OpenCV
@@ -181,7 +181,7 @@ def make_txt(name, path):
     print(f'Reference image is: {name}_{format(0,"02")}.png')
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/Test/25.0/'
+    path = '/Users/huyunchen/Documents/PhD/Test/90.0/'
     
     read_network(path, 0, 75)
     #path = f'/Users/andrew/PycharmProjects/pythonABM_CG/outputs/{sys.argv[1]}.0/'

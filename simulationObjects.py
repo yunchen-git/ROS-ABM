@@ -277,7 +277,7 @@ class StemCell(SimulationObject):
 
         #STATE DEPENDANT BEHAVIOR
         if(self.state == "A"):
-            self.set_gradient_source_sink_coeff("H2O2e", 5e-9, 0)
+            #self.set_gradient_source_sink_coeff("H2O2e", 5e-9, 0)
             print(f"removing {self.ID}")
             sim.add_object_to_remnoval_queue(self)
 
@@ -286,7 +286,7 @@ class StemCell(SimulationObject):
             #change the current sytate to D
             self.state = "D"
             self.update_d
-            self.set_gradient_source_sink_coeff("D", 0, 1e-9)
+            #self.set_gradient_source_sink_coeff("D", 0, 1e-9)
             self.division_time = 51 #in hours
 
         #Concentration threshold influencing differentiation; chance to differentiation increases the longer a cell has
@@ -325,7 +325,7 @@ class StemCell(SimulationObject):
                 #(currently treated as identical to diff state) 
                 self.state = "T"
                 self.diff="rand"
-                self.set_gradient_source_sink_coeff("H2O2e", 0.0, 2.5e-9)
+                #self.set_gradient_source_sink_coeff("H2O2e", 0.0, 2.5e-9)
                 sim.interC[0].change_state(self.ID,1) #Change state in Intercellular Diffusion Module
             if self.state=="U":
                 #Influence of intercellular concentration on the probability of differentiation    
@@ -333,26 +333,26 @@ class StemCell(SimulationObject):
                 if x<self.influ:
                     #print("C Diff")
                     self.state="T"
-                    self.set_gradient_source_sink_coeff("H2O2e", 0.0, 2.5e-9)
+                    #self.set_gradient_source_sink_coeff("H2O2e", 0.0, 2.5e-9)
                     sim.interC[0].change_state(self.ID,1) #Change state in Intercellular Diffusion Module
 
         if self.state=="D" or self.state=="T" or self.state=="U":
             val = self.get_gradient_value("H2O2e")
             x = rand.random()
             prob_extC = (1.0*val)/(0.0001+val)
-            print(val, prob_extC,x)
+           # print(val, prob_extC,x)
             t=sim.time
             prob = 0.002+abs(0.001*math.sin((t+1.)/-8.))
             if x<prob_extC:
                 #Apoptosis
                 self.state = "A"
                 print(f"feroptosis {self.ID}")
-                self.set_gradient_source_sink_coeff("H2O2e", 5e-9, 0.0)
+                #self.set_gradient_source_sink_coeff("H2O2e", 5e-9, 0.0)
                 sim.interC[0].change_state(self.ID,2)
             if x<0.1 * prob:
                 self.state = "A"
                 print(f"apoptosis {self.ID}")
-                self.set_gradient_source_sink_coeff("H2O2e", 5e-9, 0.0)
+                #self.set_gradient_source_sink_coeff("H2O2e", 5e-9, 0.0)
                 sim.interC[0].change_state(self.ID,2)
 
 

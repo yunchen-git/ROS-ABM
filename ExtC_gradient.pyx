@@ -208,7 +208,6 @@ class ExtC_Diff(object):
             z0 = iz - 1
             z1 = iz    
         """                 
-            
         #solve for xd, yd
         xd = (abs(x - (ix + .5))) / (x1 - x0)
         yd = (abs(y - (iy + .5))) / (y1 - y0)
@@ -223,6 +222,26 @@ class ExtC_Diff(object):
         #return the predicted value
         return c
     
+    def set_gradient_value_at_point(self, point, value):
+        """ Will set the gradient value at a specific point. Useful for
+            interpolation when the grid size is much bigger than a single cell.
+            Assume the point is a distance vector representing the radius
+            of the cell within the strutural aggregate
+        """
+        #get the indicies of the point
+        x = int(point[0])
+        y = int(point[1])
+        z = int(point[2])
+        point = [x, y, z]
+        x, y = self.get_object_position_on_grid(point)
+
+        #set as int
+        x = int(x)
+        y = int(y)
+
+        #return the predicted value
+        self.Ci[x, y] = value
+    
     def update(self, t_end, sink, source):
         """ Solves the system over using the predetermined time step dt
             until the end time of the simulation is reached.
@@ -234,6 +253,7 @@ class ExtC_Diff(object):
         zeros = np.zeros(self.Ci.shape)
         #print(self.dt)
         while(t <= t_end and diff >= epsilon):
+            print("max self.Ci: ", np.max(self.Ci))
             #solve for the gradients in each direction
             #print("Shape of self._lx:", self._lx.shape)
             l_y = ndimage.convolve(self.Ci, self._ly, mode = "constant",
@@ -247,7 +267,9 @@ class ExtC_Diff(object):
             #MUST BE normalized by unit VOLUME
             temp_sink = (-sink*self.dt) / self._grid_vol
             temp_source = source*self.dt / self._grid_vol
+            #print("self.C 1: ", np.max(self.C))
             self.C += temp_sink + temp_source
+            #print("2: ", np.max(self.C), np.max(self.Ci))
             #get the summed difference
             diff = np.sum(np.abs(self.Ci - self.C))
             #make sure its positive

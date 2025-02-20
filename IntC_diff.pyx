@@ -163,14 +163,17 @@ class IntC_Diff(object):
         cdef int i =ID
         cdef int ct = celltype
         state[i,0]=ct
+
     def change_C(self,ID,Cnew):
         cdef double[:,:] C = self.C
         cdef int i =ID
         C[i,0]=Cnew
+
     def change_inhib_GJ(self,ID,inhib_value):
         cdef double[:,:] inh = self.inhibition
         cdef int i =ID
         inh[i,0]=inhib_value
+        
     def change_inhib_AC(self,ID,inhib_value):
         cdef double[:,:] inh = self.inhibition
         cdef int i =ID
@@ -211,6 +214,8 @@ class IntC_Diff(object):
         cdef np.ndarray result = scipy.integrate.odeint(model, x0, t, args=(k,))
 
         C[n, 0] = result[-1, 1]
+
+        return result[-1,1], result[-1, 0]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

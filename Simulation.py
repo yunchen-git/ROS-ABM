@@ -483,23 +483,6 @@ class Simulation(object):
         Gap Junction inhibition (GJ) or Adenylyl Cyclase inhibition (AC)
         """
 
-        #define the sinks and sources
-        print("Updating gradients...")
-        t0=time.time()
-        if(len(self.gradients) > 0):
-            sources, sinks = self._define_sinks_and_sources()
-        #print(self.objects)
-        #update the gradients
-        #print(f"gradients length {len(self.gradients)}")
-        for i in range(0, len(self.gradients)):
-            self.gradients[i].update(1, sinks[i], sources[i])
-            self.gradients[i].cubic_interpolate_at_object_locations(self.objects)
-            
-            #print(self.gradients[i])
-            print("Sources: " + repr(np.max(sources[i])) + " , " +repr(np.min(sources[i])))
-            print("Sinks: " + repr(np.max(sinks[i])) + " , " + repr(np.min(sinks[i])))
-        t1=time.time()
-        print ("Gradient Diffusion Time: {}".format(t1-t0))
         #Update nieghbor matrix for intercellular module
         nbs1=[]
         edges = self.network.edges()      
@@ -519,16 +502,39 @@ class Simulation(object):
             else:
                 for j in range(0, len(self.objects)):
                     tempC = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
-                    self.interC[i].update_Cflux(j, tempC, 3600)
-                    tempC = self.interC[i].get_C(j)
-                    if tempC < 0:
-                        tempC = abs(tempC)
-                        self.objects[j].set_gradient_source_sink_coeff("H2O2e", 0, tempC)
-                    else:
-                        self.objects[j].set_gradient_source_sink_coeff("H2O2e", tempC, 0)
-                        
+                    intC, extraC = self.interC[i].update_Cflux(j, tempC, 3600)
+                    
+                    print(intC, extraC, tempC)
+
+                    self.gradients[0].set_gradient_value_at_point(self.objects[j].location, extraC)
+
+                    # src, snk = self.objects[j].get_gradient_source_sink_coeff("H2O2e")
+
+                    # if intC < extraC:
+                    #     self.objects[j].set_gradient_source_sink_coeff("H2O2e", src, intC)
+                    # else:
+                    #     self.objects[j].set_gradient_source_sink_coeff("H2O2e", intC, snk)
+                print(np.max(self.gradients[0].Ci))
         t1=time.time()
         print ("Inter Transport Time: {}".format(t1-t0))
+
+        #define the sinks and sources
+        print("Updating gradients...")
+        t0=time.time()
+        if(len(self.gradients) > 0):
+            sources, sinks = self._define_sinks_and_sources()
+        #print(self.objects)4
+        #update the gradients
+        #print(f"gradients length {len(self.gradients)}")
+        for i in range(0, len(self.gradients)):
+            self.gradients[i].update(1, sinks[i], sources[i]) #flux between in and out
+            self.gradients[i].cubic_interpolate_at_object_locations(self.objects) #gradient value
+            
+            #print(self.gradients[i])
+            print("Sources max: " + repr(np.max(sources[i])) + " , min:" +repr(np.min(sources[i])))
+            print("Sinks max: " + repr(np.max(sinks[i])) + " , min:" + repr(np.min(sinks[i])))
+        t1=time.time()
+        print ("Gradient Diffusion Time: {}".format(t1-t0))
             
         #RUN A FASTER UPDATE LOOP     
         split = 1
