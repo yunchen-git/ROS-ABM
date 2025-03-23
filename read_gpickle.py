@@ -50,7 +50,7 @@ def read_network(path, t0, tf):
         print(f"center {center}")
         print(f"radius {radius}")
 
-def draw_cell_image(network, path, ind, center, radius, scale=1, background=(0,0,0), origin_bottom=False, bound_rad=30, image_name='image'):
+def draw_cell_image(network, path, ind, center, radius, scale=1, background=(0,0,0), origin_bottom=True, bound_rad=30, image_name='image'):
     col_dict={'U': (50, 255, 50),'T': (255, 50, 50),'D': (50, 50, 255),'A':(200,200,200)}
     outline_dict={'U': (0, 0, 0),'T': (0, 0, 0),'D': (0, 0, 0),'A':(0,0,0)}
 
@@ -80,7 +80,7 @@ def draw_cell_image(network, path, ind, center, radius, scale=1, background=(0,0
         x_p, y_p = int(scale * (x+2*radius)), int(scale * (y+2*radius))
         major, minor = int(scale * r), int(scale * r)
         #print(node.C)
-        # draw the agent and a black outline to distinguish overlapping agents
+         # Draw the agent and a black outline to distinguish overlapping agents
         image_C = cv2.ellipse(image_C, (x_p, y_p), (major, minor), 0, 0, 360, col_C, -1)
         image_C = cv2.ellipse(image_C, (x_p, y_p), (major, minor), 0, 0, 360, out, 1)
         image_state = cv2.ellipse(image_state, (x_p, y_p), (major, minor), 0, 0, 360, col_state, -1)
@@ -107,8 +107,9 @@ def draw_cell_image(network, path, ind, center, radius, scale=1, background=(0,0
     # except AttributeError:
         # print('no bounds...')
 
-    # if origin_bottom:
-    #     image = cv2.flip(image, 0)
+    if origin_bottom:
+        image_C = cv2.flip(image_C, 0)
+        image_state = cv2.flip(image_state, 0)
     #print(x, y)
     #print(list(network.nodes()))
     #print(network.nodes())
@@ -181,7 +182,7 @@ def make_txt(name, path):
     print(f'Reference image is: {name}_{format(0,"02")}.png')
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/Test/90.0/'
+    path = '/Users/huyunchen/Documents/PhD/test/2.0/'
     
     read_network(path, 0, 75)
     #path = f'/Users/andrew/PycharmProjects/pythonABM_CG/outputs/{sys.argv[1]}.0/'

@@ -243,8 +243,11 @@ class StemCell(SimulationObject):
         """
         # Store concentration in stem cell object from the intercellular diffusion module
         for interC in sim.interC:
-            #print(interC.get_C(self.ID))
+            #print(f"for {self.ID} getting C {interC.name}, {interC.get_C(self.ID)}")
             self.C[interC.name]=interC.get_C(self.ID)
+            # print(interC.get_C(self.ID))
+            # print(self.C[interC.name])
+            print(self.ID, self.C)
         #growth kinetics
         self.division_timer += dt
 
@@ -259,27 +262,33 @@ class StemCell(SimulationObject):
             #get the ID
             ID = sim.get_ID()
             #Split intracellular concentration between daughter cells
-            splitC = {key: value / 2 for key, value in self.C.items()}
+            splitC = {key: float(value) / 2 for key, value in self.C.items()}
+            print(f"splitting {self.ID}, {splitC}")
+
             for interC in sim.interC:
+                #print(f"for {self.ID} splitting C {interC.name}, {-splitC[interC.name]}")
                 interC.add_to_dC(self.ID,-splitC[interC.name])
+            
             #Make object, copy over all of the coefficients to the new cells 
             sc = StemCell(location, radius, ID, self.state, inhib_value=self.inhib_value,
                           division_time = self.division_time)
-            
             for key, value in splitC.items():
                 sc.setC(value, key)
 
+            #print(f"adding {sc.ID}, {sc.C}, because of {self.ID}, {self.C}")
             #add it to the imsulation
             sim.add_object_to_addition_queue(sc)
             #reset the division time
             self.division_timer =0
-            sim.interC[0].restart_div_cycle(self.ID)
 
-        #STATE DEPENDANT BEHAVIOR
-        if(self.state == "A"):
-            #self.set_gradient_source_sink_coeff("H2O2e", 5e-9, 0)
-            print(f"removing {self.ID}")
-            sim.add_object_to_remnoval_queue(self)
+            for interC in sim.interC:
+                interC.restart_div_cycle(self.ID)
+
+        # #STATE DEPENDANT BEHAVIOR
+        # if(self.state == "A"):
+        #     #self.set_gradient_source_sink_coeff("H2O2e", 5e-9, 0)
+        #     print(f"removing {self.ID}")
+        #     sim.add_object_to_remnoval_queue(self)
 
         #STATE DEPENDANT BEHAVIOR
         if(self.state == "T"):
@@ -294,6 +303,7 @@ class StemCell(SimulationObject):
         threshold=0.74
         #print(self.kth)
         if self.C['cAMP']>threshold:
+            #print(f"self.C['cAMP'] {self.C['cAMP']}")
             ni=4.
             ki=2.0
             self.thresCount+=1
@@ -309,8 +319,7 @@ class StemCell(SimulationObject):
             tC=self.thresCount
             self.influ= tC**ni/(ki**ni+tC**ni)
 
-        if(self.state == "U"):
-            #then the stem cell is still a stem cell
+        if(self.state == "U"):          #then the stem cell is still a stem cell
             #HANDLE DIFFERENTIATION
 
             #RANDOM RULE
@@ -320,40 +329,43 @@ class StemCell(SimulationObject):
             prob = 0.002+abs(0.001*math.sin((t+1.)/-8.)) #used to be 0.0025 but we need it to take slightly
             if(x < prob):
                 #differentiation occurs
-                #print("diff")
+                print("diff")
                 #Transition state lasts an hour
                 #(currently treated as identical to diff state) 
                 self.state = "T"
                 self.diff="rand"
                 #self.set_gradient_source_sink_coeff("H2O2e", 0.0, 2.5e-9)
                 sim.interC[0].change_state(self.ID,1) #Change state in Intercellular Diffusion Module
+                sim.interC[1].change_state(self.ID,1) #Change state in Intercellular Diffusion Module
+
             if self.state=="U":
                 #Influence of intercellular concentration on the probability of differentiation    
                 x=rand.random()
                 if x<self.influ:
-                    #print("C Diff")
+                    print("C Diff")
                     self.state="T"
                     #self.set_gradient_source_sink_coeff("H2O2e", 0.0, 2.5e-9)
                     sim.interC[0].change_state(self.ID,1) #Change state in Intercellular Diffusion Module
+                    sim.interC[1].change_state(self.ID,1) #Change state in Intercellular Diffusion Module
 
-        if self.state=="D" or self.state=="T" or self.state=="U":
-            val = self.get_gradient_value("H2O2e")
-            x = rand.random()
-            prob_extC = (1.0*val)/(0.0001+val)
-           # print(val, prob_extC,x)
-            t=sim.time
-            prob = 0.002+abs(0.001*math.sin((t+1.)/-8.))
-            if x<prob_extC:
-                #Apoptosis
-                self.state = "A"
-                print(f"feroptosis {self.ID}")
-                #self.set_gradient_source_sink_coeff("H2O2e", 5e-9, 0.0)
-                sim.interC[0].change_state(self.ID,2)
-            if x<0.1 * prob:
-                self.state = "A"
-                print(f"apoptosis {self.ID}")
-                #self.set_gradient_source_sink_coeff("H2O2e", 5e-9, 0.0)
-                sim.interC[0].change_state(self.ID,2)
+        # if self.state=="D" or self.state=="T" or self.state=="U":
+        #     val = self.get_gradient_value("H2O2e")
+        #     x = rand.random()
+        #     prob_extC = (1.0*val)/(0.0001+val)
+        #    # print(val, prob_extC,x)
+        #     t=sim.time
+        #     prob = 0.002+abs(0.001*math.sin((t+1.)/-8.))
+        #     if x<prob_extC:
+        #         #Apoptosis
+        #         self.state = "A"
+        #         print(f"feroptosis {self.ID}")
+        #         #self.set_gradient_source_sink_coeff("H2O2e", 5e-9, 0.0)
+        #         sim.interC[0].change_state(self.ID,2)
+        #     if x<0.1 * prob:
+        #         self.state = "A"
+        #         print(f"apoptosis {self.ID}")
+        #         #self.set_gradient_source_sink_coeff("H2O2e", 5e-9, 0.0)
+        #         sim.interC[0].change_state(self.ID,2)
 
 
     def __hash__(self):

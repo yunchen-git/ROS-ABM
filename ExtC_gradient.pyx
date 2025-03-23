@@ -253,7 +253,7 @@ class ExtC_Diff(object):
         zeros = np.zeros(self.Ci.shape)
         #print(self.dt)
         while(t <= t_end and diff >= epsilon):
-            print("max self.Ci: ", np.max(self.Ci))
+            #print("max self.Ci: ", np.max(self.Ci))
             #solve for the gradients in each direction
             #print("Shape of self._lx:", self._lx.shape)
             l_y = ndimage.convolve(self.Ci, self._ly, mode = "constant",

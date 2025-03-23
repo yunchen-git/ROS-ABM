@@ -1,12 +1,12 @@
 import numpy as np
-
+from scipy.integrate import odeint
 
 def get_k():
         # constants
 
         # Defining forward reaction rates 
         # Defining the array, k, that will house reaction rates
-        k = np.zeros(28)  # Defining the array, k, that will house reaction rates
+        k = np.zeros(31)  # Defining the array, k, that will house reaction rates
 
         # Rxns (Cytosolic)
 
@@ -38,11 +38,14 @@ def get_k():
         k[25] = 1.2e-7  # GSH + GSSG efflux (M/s)
         k[26] = 7.45e-10  # Trx_SH efflux (M/s)
         k[27] = 6.97e-10  # Trx_SH synthesis (M/s)
+        k[28] = 1e-5 # nox generation of superoxide ()    #Banfi B. et al, JBC 2002
+        k[29] = 4e9 # superoxide dismutase reduction and oxidation by superoxide (M-1*s-1), from Fee J.A. & Bull C. The journal of biological chemistry 1986
+        k[30] = 1e-4 # intracellular superoxide production (M/s)
 
         return k
 
 def get_x0():
-        x0 = np.zeros(24)  # Defining the array, x0, that will house initial concentrations
+        x0 = np.zeros(28)  # Defining the array, x0, that will house initial concentrations
         # Cytoplasm
         x0[0] = 1e-4  # H2O2media 
         x0[1] = 1.0e-9  # H2O2cytosol
@@ -78,58 +81,34 @@ def get_x0():
         x0[22] = 3.0e-5  # NADPH 
         x0[23] = 3.0e-7  # NADP+
 
+        x0[24] = 0 # superoxide media
+        x0[25] = 1e-9 # superoxide cytosol
+
+        x0[26] = 0 # superoxide dismutase reduced
+        x0[27] = 0 # superoxide dismutase oxidized
+
         return x0
 
 # ODE system
-def model(x, t, k):
-    x0 = np.zeros(24)  # Defining the array, x0, that will house initial concentrations
-    # Cytoplasm
-    x0[0] = 1e-4  # H2O2media 
-    x0[1] = 1.0e-9  # H2O2cytosol
-
-    x0[2] = 5e-5  # GPXr 
-    x0[3] = 1e-14  # GPXo 
-    x0[4] = 1e-14  # GPX-SG 
-
-    x0[5] = 3.68e-4  # GSH 
-    x0[6] = 1.78e-6  # GSSG 
-
-    x0[7] = 9e-7  # Catalase 
-    x0[8] = 1.0e-10  # H2O2peroxisome 
-
-    x0[9] = 1.92e-5  # Prx-SH  
-    x0[10] = 1e-14  # Prx-SOH 
-    x0[11] = 1e-14  # Prx-SOOH 
-    x0[12] = x0[9] * (0.5 / 100)  # Prx-SS 
-
-    x0[13] = 4.27e-7  # Trx1-SH 
-    x0[14] = 7.54e-8  # Trx1-SS 
-
-    x0[15] = 1.22e-4  # Pr-SH 
-    x0[16] = x0[15] * (0.5 / 100)  # Pr-SOH
-    x0[17] = x0[15] * (0.5 / 100)  # Pr-SSG 
-
-    x0[18] = 1.20e-6  # Grx-SH 
-    x0[19] = x0[18] * (0.5 / 100)  # Grx-SSG 
-
-    x0[20] = 1.09e-3  # Pr-(SH)2  
-    x0[21] = x0[20] * (0.5 / 100)  # Pr-SS
-
-    x0[22] = 3.0e-5  # NADPH 
-    x0[23] = 3.0e-7  # NADP+
-        
+def model(x, t, k, x0=None):
+    if x0 is None:
+        x0 = get_x0()
     dxdt = np.zeros_like(x)
     dxdt[0] = k[0] * (x[1] - x[0]) * 10e-3 * 1.02e-5 * (1e9)
+
     dxdt[1] = (((k[0] * x[0] * 10e-3 * 1.02e-5) / (9.16e-13))
                - ((k[0] * x[1] * 10e-3 * 1.02e-5) / (9.16e-13))
                - 2 * (k[22] * x[1] * 10e-3 * 2.98e-9) / (1.53e-14)
-               + k[1]
                - k[2] * x[2] * (x[1] - x0[1])
                - k[5] * x[7] * (x[1] - x0[1])
                - k[7] * x[9] * (x[1] - x0[1])
                - k[8] * x[10] * (x[1] - x0[1])
                - k[13] * x[15] * (x[1] - x0[1])
-               - k[17] * x[20] * (x[1] - x0[1]))
+               - k[17] * x[20] * (x[1] - x0[1])
+               + k[1]
+               + k[29] * x[25] * x[27]                                      # superoxide dismutase reduction and oxidation by superoxide
+               )
+    
     dxdt[2] = - k[2] * x[2] * (x[1] - x0[1]) + k[4] * (x[4] - x0[4]) * x[5]
     dxdt[3] = k[2] * x[2] * (x[1] - x0[1]) - k[3] * (x[3] - x0[3]) * x[5]
     dxdt[4] = k[3] * (x[3] - x0[3]) * x[5] - k[4] * (x[4] - x0[4]) * x[5]
@@ -150,19 +129,47 @@ def model(x, t, k):
                 k[9] * (x[11] - x0[11]) - k[10] * x[10])
     dxdt[11] = k[8] * x[10] * (x[1] - x0[1]) - k[9] * (x[11] - x0[11])
     dxdt[12] = k[10] * x[10] - k[11] * (x[12] - x0[12]) * x[13]
-    dxdt[13] = (- k[11] * (x[12] - x0[12]) * x[13] - k[18] * (x[21] - x0[21]) * x[13] +
-                k[20] * (x[14] - x0[14]) * x[22] - k[26] + k[27])
+    dxdt[13] = (- k[11] * (x[12] - x0[12]) * x[13] 
+                - k[18] * (x[21] - x0[21]) * x[13] 
+                + k[20] * (x[14] - x0[14]) * x[22] 
+                - k[26] 
+                + k[27])
     dxdt[14] = (k[11] * (x[12] - x0[12]) * x[13] + k[18] * (x[21] - x0[21]) * x[13] -
                 k[20] * (x[14] - x0[14]) * x[22])
-    dxdt[15] = - k[13] * x[15] * (x[1] - x0[1]) + k[15] * x[18] * (x[17] - x0[17])
+    
+    dxdt[15] = (- k[13] * x[15] * (x[1] - x0[1]) 
+                + k[15] * x[18] * (x[17] - x0[17]))
+    
     dxdt[16] = k[13] * x[15] * (x[1] - x0[1]) - k[14] * (x[16] - x0[16]) * x[5]
     dxdt[17] = k[14] * (x[16] - x0[16]) * x[5] - k[15] * x[18] * (x[17] - x0[17])
     dxdt[18] = k[16] * (x[19] - x0[19]) * x[5] - k[15] * x[18] * (x[17] - x0[17])
     dxdt[19] = k[15] * x[18] * (x[17] - x0[17]) - k[16] * (x[19] - x0[19]) * x[5]
     dxdt[20] = - k[17] * x[20] * (x[1] - x0[1]) + k[18] * (x[21] - x0[21]) * x[13]
     dxdt[21] = k[17] * x[20] * (x[1] - x0[1]) - k[18] * (x[21] - x0[21]) * x[13]
-    dxdt[22] = (- k[19] * (x[6] - x0[6]) * x[22] - k[20] * (x[14] - x0[14]) * x[22] +
-                k[21] * (x[23] - x0[23]) / (k[6] + x[23]))
-    dxdt[23] = (k[19] * (x[6] - x0[6]) * x[22] + k[20] * (x[14] - x0[14]) * x[22] -
-                k[21] * (x[23] - x0[23]) / (k[6] + x[23]))
+
+    dxdt[22] = (- k[19] * (x[6] - x0[6]) * x[22] 
+                - k[20] * (x[14] - x0[14]) * x[22] 
+                - k[28] * x[22]                                         # nox generation of superoxide
+                + k[21] * (x[23] - x0[23]) / (k[6] + x[23]))
+    
+    dxdt[23] = (k[19] * (x[6] - x0[6]) * x[22] 
+                + k[20] * (x[14] - x0[14]) * x[22] 
+                + k[28] * x[22]                                         # nox generation of superoxide and nadp+
+                - k[21] * (x[23] - x0[23]) / (k[6] + x[23]))
+    
+    dxdt[24] = (k[0] * (x[25] - x[24]) * 10e-3 * 1.02e-5 * (1e9)               # superoxide media
+                + k[28] * x[22])
+    
+    dxdt[25] = (((k[0] * x[24] * 10e-3 * 1.02e-5) / (9.16e-13))                 # superoxide cytosol
+               - ((k[0] * x[25] * 10e-3 * 1.02e-5) / (9.16e-13))
+               - k[29] * x[25] * x[26]
+               - k[29] * x[25] * x[27]
+               + k[30])
+    
+    dxdt[26] = (k[29] * x[25] * x[27] 
+                - k[29] * x[25] * x[26])
+
+    dxdt[27] = (k[29] * x[25] * x[26] 
+                - k[29] * x[25] * x[27])
+    
     return dxdt

@@ -182,7 +182,8 @@ class IntC_Diff(object):
     def add_to_dC(self,ID,Cmod):
         cdef double[:,:] C = self.C
         cdef int i =ID
-        C[i,1]=C[i,1]+Cmod
+        #print(C[i,0], Cmod, C[i,0]+Cmod)
+        C[i,0]=C[i,0]+Cmod
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -191,14 +192,14 @@ class IntC_Diff(object):
         cdef double[:,:] dp = self.deg_prod
         cdef double[:,:] C = self.C
         cdef double[:,:] cce = self.cce
-        cdef double[:] p_n =self.p_n
+        cdef double[:] p_n = self.p_n
         cdef long[:,:] state = self.state
         cdef int i, ni
-        cdef int tend=te
-        cdef double Pmax=self.Pmax
-        cdef double vx=self.vx
+        cdef int tend = te
+        cdef double Pmax = self.Pmax
+        cdef double vx = self.vx
         cdef double Peff
-        cdef int dt =self.dt
+        cdef int dt = self.dt
         cdef double prod, deg, qni, qnj
         
         cdef np.ndarray x0 = np.copy(FBA_ode.get_x0())
@@ -206,15 +207,20 @@ class IntC_Diff(object):
         # Initialize x0 with extraC and self.C
         x0[0] = extraC
         x0[1] = C[n, 0]
-        #print(x0)
-        # Create a time array with the correct number of samples
-        cdef np.ndarray t = np.linspace(0, 3600, 3601)
+        #print(n, C[n,0], extraC)
+        #print(np.array(C))
+        # Create time points for integration (0 to te with te+1 points)
+        t = np.linspace(0, tend, tend+1)  # With te=3600, this gives 3601 points
+        
+        # Solve the ODE system across the whole interval
+        result = scipy.integrate.odeint(model, x0, t, args=(k,x0))
+        
+        # Update the cell's internal concentration with only the final value
+        C[n, 0] = result[-1, 1]   # Last time point, H2O2 cytosol concentration
+        #print(n, C[n,0], result[-1,1], result[-1,0])
+        state[n,1]=state[n,1]+1
 
-        # Solve the ODE system
-        cdef np.ndarray result = scipy.integrate.odeint(model, x0, t, args=(k,))
-
-        C[n, 0] = result[-1, 1]
-
+        # Return final internal and external concentrations
         return result[-1,1], result[-1, 0]
 
     @cython.boundscheck(False)
@@ -241,11 +247,11 @@ class IntC_Diff(object):
         
         cdef double dt =self.dt
         cdef double prod, deg, qni, qnj
-
+        #print(np.array(C))
         for x in range(edges):
             i=nbs[x,0]
             j=nbs[x,1]
-            ni =state[i,0]
+            ni=state[i,0]
             mi=state[i,1]
             nj=state[j,0]
             mj=state[j,1]

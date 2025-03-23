@@ -104,6 +104,14 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
 
     H2O2e = ExtC_Diff("H2O2e", D_h2o2, x, y, z, ddim)
     sim.add_gradient(H2O2e)
+
+    # superoxide_i = IntC_Diff("superoxide_i",maxCells,D_h2o2,grid_dim,ddim,Pmax,open_prob,              #create instance of IntC_Diff class
+    #                 celltype_param,division_times,sync_time)
+    # sim.add_interC(superoxide_i)
+
+    # superoxide_e = ExtC_Diff("superoxide_e", D_h2o2, x, y, z, ddim)
+    # sim.add_gradient(superoxide_e)
+
     # dist=range(num)
     # r.shuffle(dist)
     #print(XI.vx)
@@ -123,12 +131,14 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
         #     sim_obj.C = 1
         #     XI.change_C(ID, 1)
         #     #sim.interC[0].C[i]
-
+        x = rand.random()
         sim.inc_current_ID()
-        sim_obj.setC(0.595+0.05*rand.random(),'cAMP')
+        sim_obj.setC(0.595+0.05*x,'cAMP')
         sim_obj.setC(1.0e-9,'H2O2i')
+        # sim_obj.setC(0.0,'superoxide_i')
         #print(f"ID: {ID}, cAMP {sim_obj.C['cAMP']}")
-        sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0)
+        sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
+        sim_obj.set_gradient_source_sink_coeff("superoxide_e", 0.0, 0.0)
 
         sim.add(sim_obj)
         #print(f"ID: {ID}, cAMP {np.array(sim.interC[0].C[ID])}")

@@ -13,12 +13,15 @@ from IntC_diff import IntC_Diff
 from ExtC_gradient import ExtC_Diff
 from scipy.spatial import *
 from matplotlib import pyplot as plt
+from scipy.integrate import solve_ivp
+from scipy.integrate import odeint
 import pickle
 import math as math
 import random as rand
 import time
 from read_gpickle import read_network
 from gradientImage import getGradientImages
+from FBA_ode import model, get_x0, get_k
 #create the time series class
 class TimeSeries(object):
     """ A TimeSeries class meant to hold all of the information about
@@ -504,17 +507,10 @@ class Simulation(object):
                     tempC = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
                     intC, extraC = self.interC[i].update_Cflux(j, tempC, 3600)
                     
-                    print(intC, extraC, tempC)
-
                     self.gradients[0].set_gradient_value_at_point(self.objects[j].location, extraC)
 
-                    # src, snk = self.objects[j].get_gradient_source_sink_coeff("H2O2e")
-
-                    # if intC < extraC:
-                    #     self.objects[j].set_gradient_source_sink_coeff("H2O2e", src, intC)
-                    # else:
-                    #     self.objects[j].set_gradient_source_sink_coeff("H2O2e", intC, snk)
-                print(np.max(self.gradients[0].Ci))
+                #print(np.max(self.gradients[0].Ci))
+                #print(self.interC)
         t1=time.time()
         print ("Inter Transport Time: {}".format(t1-t0))
 
@@ -523,7 +519,7 @@ class Simulation(object):
         t0=time.time()
         if(len(self.gradients) > 0):
             sources, sinks = self._define_sinks_and_sources()
-        #print(self.objects)4
+        #print(self.objects)
         #update the gradients
         #print(f"gradients length {len(self.gradients)}")
         for i in range(0, len(self.gradients)):
@@ -535,7 +531,7 @@ class Simulation(object):
             print("Sinks max: " + repr(np.max(sinks[i])) + " , min:" + repr(np.min(sinks[i])))
         t1=time.time()
         print ("Gradient Diffusion Time: {}".format(t1-t0))
-            
+        
         #RUN A FASTER UPDATE LOOP     
         split = 1
         for p in range(0, split):
@@ -543,8 +539,8 @@ class Simulation(object):
             #print(dt)
             for i in range(0, len(self.objects)):
                 #print(self.objects[i])
-                self.objects[i].update(self, dt)
-                
+                self.objects[i].update(self, dt)  
+                print(self.objects[i].C)
                 
     def collide(self):
         """ Handles the collision map generation 
