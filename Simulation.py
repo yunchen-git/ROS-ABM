@@ -457,8 +457,7 @@ class Simulation(object):
         self._header.close()
 
         read_network(self.path + self._sep + self.name + self._sep, int(self.start_time), int(self.end_time))
-        
-        # getGradientImages(self.path + self._sep + self.name + self._sep, int(self.start_time), int(self.end_time))
+        getGradientImages(self.path + self._sep + self.name + self._sep)
 
     def update_object_queue(self):
         """ Updates the object add and remove queue
@@ -503,12 +502,14 @@ class Simulation(object):
             if self.interC[i].name=='cAMP':
                 self.interC[i].update_C1(nbs2,n,1200)
             else:
+                self.interC[i].update_C0(nbs2,n,1200)
                 for j in range(0, len(self.objects)):
+                    #print(j, self.interC[i].C[j], self.objects[j].C)
                     tempC = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
                     intC, extraC = self.interC[i].update_Cflux(j, tempC, 3600)
-                    
-                    self.gradients[0].set_gradient_value_at_point(self.objects[j].location, extraC)
 
+                    self.gradients[0].set_gradient_value_at_point(self.objects[j].location, extraC)
+                self.interC[i].update_C0(nbs2,n,1200)
                 #print(np.max(self.gradients[0].Ci))
                 #print(self.interC)
         t1=time.time()
@@ -540,7 +541,6 @@ class Simulation(object):
             for i in range(0, len(self.objects)):
                 #print(self.objects[i])
                 self.objects[i].update(self, dt)  
-                print(self.objects[i].C)
                 
     def collide(self):
         """ Handles the collision map generation 

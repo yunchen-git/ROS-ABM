@@ -72,7 +72,7 @@ class IntC_Diff(object):
         
         #set the dimensions in each direction
         #cdef double[:,:] cell_cycle_effect = cvarray(shape=(n1,n2), itemsize=sizeof(double),format="d")
-        cdef np.ndarray[np.int64_t, ndim=2] cell_cycle_effect = np.zeros((n1, n2), dtype=np.int64)
+        cdef np.ndarray[np.float64_t, ndim=2] cell_cycle_effect = np.zeros((n1, n2), dtype=np.float64)
         cdef double[:,:] inhibition = cvarray(shape=(maxCells,2), itemsize=sizeof(double),format="d")
         self.inhibition=inhibition
         
@@ -188,22 +188,72 @@ class IntC_Diff(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.nonecheck(False)  
-    def update_Cflux(self, n, extraC, te):
+    def update_C0(self,cell_nbs,num,te):
+        cdef int dim = num
+        cdef int[:,:] nbs = cell_nbs
+        cdef int edges =nbs.shape[0]
         cdef double[:,:] dp = self.deg_prod
         cdef double[:,:] C = self.C
         cdef double[:,:] cce = self.cce
-        cdef double[:] p_n = self.p_n
-        cdef long[:,:] state = self.state
-        cdef int i, ni
-        cdef int tend = te
-        cdef double Pmax = self.Pmax
-        cdef double vx = self.vx
-        cdef double Peff
-        cdef int dt = self.dt
+        cdef double[:] p_n =self.p_n
+        
+        cdef double[:,:] inh = self.inhibition
+        cdef double[:] Peff = cvarray(shape=(edges,), itemsize=sizeof(double),format="d")
+        cdef long[:,:] state = self.state  
+        cdef int i,j,x,ni,nj,mi,mj
+        
+        cdef double t=0.0
+        cdef double tend=te
+        cdef double Pmax=self.Pmax
+        cdef double vx=self.vx
+        
+        cdef double dt =self.dt
         cdef double prod, deg, qni, qnj
+        #print(np.array(C))
+        for x in range(edges):
+            i=nbs[x,0]
+            j=nbs[x,1]
+            ni=state[i,0]
+            mi=state[i,1]
+            nj=state[j,0]
+            mj=state[j,1]
+            Peff[x]=vx*Pmax*(p_n[ni]*cce[mi,ni]*inh[i,0])*(p_n[nj]*cce[mj,nj]*inh[j,0])
+
+        #print(np.array(np.min(Peff)))       #min is 1.187e-05
+        #print(np.array(np.max(Peff)))       #max is 0.0002
+        while t<tend:
+            for x in range(edges):
+                i=nbs[x,0]
+                j=nbs[x,1]
+                ni =state[i,0]
+                C[i,1]=C[i,1]+Peff[x]*(C[j,0]-C[i,0])
+                C[j,1]=C[j,1]+Peff[x]*(C[i,0]-C[j,0])
+
+            for i in range(dim):
+                ni =state[i,0]  
+                if C[i,0]<0:
+                    C[i,0]=0    
+                elif math.isnan(C[i,0]):
+                    C[i,0]=0
+                
+                C[i,0]=C[i,0]+C[i,1]
+                C[i,1]=0.0
+            t=t+dt
+
+        for i in range(dim):
+            state[i,1]=state[i,1]+1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.nonecheck(False)  
+    def update_Cflux(self, n, extraC, te):
+        cdef double[:,:] C = self.C
+        cdef long[:,:] state = self.state
+        cdef int tend = te
         
         cdef np.ndarray x0 = np.copy(FBA_ode.get_x0())
         cdef np.ndarray k = FBA_ode.get_k()
+
         # Initialize x0 with extraC and self.C
         x0[0] = extraC
         x0[1] = C[n, 0]
@@ -218,7 +268,6 @@ class IntC_Diff(object):
         # Update the cell's internal concentration with only the final value
         C[n, 0] = result[-1, 1]   # Last time point, H2O2 cytosol concentration
         #print(n, C[n,0], result[-1,1], result[-1,0])
-        state[n,1]=state[n,1]+1
 
         # Return final internal and external concentrations
         return result[-1,1], result[-1, 0]
@@ -256,6 +305,7 @@ class IntC_Diff(object):
             nj=state[j,0]
             mj=state[j,1]
             Peff[x]=vx*Pmax*(p_n[ni]*cce[mi,ni]*inh[i,0])*(p_n[nj]*cce[mj,nj]*inh[j,0])
+            #print(vx, Pmax, p_n[ni], cce[mi,ni], inh[i,0], p_n[nj], cce[mj,nj], inh[j,0])
 
         #print(np.array(np.min(Peff)))       #min is 1.187e-05
         #print(np.array(np.max(Peff)))       #max is 0.0002

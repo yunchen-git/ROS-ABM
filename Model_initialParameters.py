@@ -117,7 +117,7 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     #print(XI.vx)
 
     rand1 = np.arange(0, 10, 1)
-    rand2 = np.arange(100, 110, 1)
+    rand2 = np.arange(200, 210, 1)
 
     for i in range(0,num):
         ID=i
@@ -127,21 +127,20 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
 
         sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=div_set)   #create instance of StemCell class
         
-        # if i in rand1 or i in rand2:
-        #     sim_obj.C = 1
-        #     XI.change_C(ID, 1)
-        #     #sim.interC[0].C[i]
-        x = rand.random()
         sim.inc_current_ID()
+        x = rand.random()
         sim_obj.setC(0.595+0.05*x,'cAMP')
         sim_obj.setC(1.0e-9,'H2O2i')
         # sim_obj.setC(0.0,'superoxide_i')
-        #print(f"ID: {ID}, cAMP {sim_obj.C['cAMP']}")
         sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
         sim_obj.set_gradient_source_sink_coeff("superoxide_e", 0.0, 0.0)
 
+        if i in rand2:
+            sim_obj.setC(1.0e-4,'H2O2i')
+            H2O2i.change_C(ID, 1.0e-4)
+
         sim.add(sim_obj)
-        #print(f"ID: {ID}, cAMP {np.array(sim.interC[0].C[ID])}")
+
         # print(f"object self.C: {ID} {sim_obj.C}")                           #StemCell object
         # print(f"XI self.C: {ID} {XI.get_C(ID)}")                            #IntC_Diff object
         # #print(f"len sim.interC[0].C: {ID} {len(sim.interC[0].C)}")          #IntC_Diff object

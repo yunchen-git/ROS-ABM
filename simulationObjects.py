@@ -26,6 +26,8 @@ class SimulationObject(object):
         self.distance=0
         
         self.C={}#0.595+0.05*rand.random()
+        # self.C['cAMP']=0.595+0.05*rand.random()
+        # self.C['H2O2i']=1.0e-9
 
         self.thresCount=0
         self.influ=0
@@ -71,8 +73,7 @@ class SimulationObject(object):
         
     def splitC(self,C):
         self.C=C
-
-        
+  
     def get_max_interaction_length(self):
         """ Get the max interaction length of the object
         """
@@ -245,9 +246,6 @@ class StemCell(SimulationObject):
         for interC in sim.interC:
             #print(f"for {self.ID} getting C {interC.name}, {interC.get_C(self.ID)}")
             self.C[interC.name]=interC.get_C(self.ID)
-            # print(interC.get_C(self.ID))
-            # print(self.C[interC.name])
-            print(self.ID, self.C)
         #growth kinetics
         self.division_timer += dt
 
@@ -263,7 +261,7 @@ class StemCell(SimulationObject):
             ID = sim.get_ID()
             #Split intracellular concentration between daughter cells
             splitC = {key: float(value) / 2 for key, value in self.C.items()}
-            print(f"splitting {self.ID}, {splitC}")
+            #print(f"splitting {self.ID}, {splitC}")
 
             for interC in sim.interC:
                 #print(f"for {self.ID} splitting C {interC.name}, {-splitC[interC.name]}")
@@ -327,6 +325,7 @@ class StemCell(SimulationObject):
             t=sim.time
             # Base rate with oscillation associated with RA dosing
             prob = 0.002+abs(0.001*math.sin((t+1.)/-8.)) #used to be 0.0025 but we need it to take slightly
+
             if(x < prob):
                 #differentiation occurs
                 print("diff")

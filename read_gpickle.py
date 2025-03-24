@@ -14,7 +14,7 @@ from matplotlib.colors import Normalize
 # Step 1: Define the color map
 colormap = plt.cm.viridis  # Choose a color map, e.g., viridis
 
-normalizer = Normalize(vmin=0, vmax=1)  # Replace with the range you expect
+normalizer = Normalize(vmin=0, vmax=1e-4)  # Replace with the range you expect
 
 def get_color(C_value):
     normalized_value = normalizer(C_value)  # Map C_value directly within -100 to 100 range
@@ -70,7 +70,7 @@ def draw_cell_image(network, path, ind, center, radius, scale=1, background=(0,0
         # print(node.C)
 
         # Get color based on fixed range for node.C
-        C_value = node.C['cAMP']  # Assuming node.C is a list with one value
+        C_value = node.C['H2O2i']  # Assuming node.C is a list with one value
         node_color_rgba = get_color(C_value)
         
         # Convert RGBA to BGR for OpenCV
@@ -182,7 +182,7 @@ def make_txt(name, path):
     print(f'Reference image is: {name}_{format(0,"02")}.png')
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/2.0/'
+    path = '/Users/huyunchen/Documents/PhD/test/34.0/'
     
     read_network(path, 0, 75)
     #path = f'/Users/andrew/PycharmProjects/pythonABM_CG/outputs/{sys.argv[1]}.0/'
