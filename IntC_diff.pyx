@@ -20,7 +20,7 @@ from libc.stdlib cimport abs
 #from libc.math cimport fmin
 
 import FBA_ode
-from FBA_ode import model
+from FBA_ode import model, blap_ODE_system
 
 import gc, atexit
 
@@ -188,6 +188,60 @@ class IntC_Diff(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.nonecheck(False)  
+    def update_Cflux(self, n, GSH, extraC, te):
+        cdef double[:,:] C = self.C
+        cdef long[:,:] state = self.state
+        cdef int tend = te
+        
+        cdef np.ndarray x0 = np.copy(FBA_ode.get_x0())
+        cdef np.ndarray k = FBA_ode.get_k()
+        
+        # Initialize x0 with extraC and self.C
+        x0[0] = extraC
+        x0[1] = C[n, 0]
+        #x0[5] = GSH
+
+        #if x0[0] > 1e-7:
+        #    k[1] = k[1]*1000
+        #else:
+        #    k[1] = k[1]
+            
+        # Create time points for integration (0 to te with te+1 points)
+        t = np.linspace(0, tend, tend+1)  # With te=3600, this gives 3601 points
+        
+        # Solve the ODE system across the whole interval
+        result = scipy.integrate.odeint(model, x0, t, args=(k,x0))
+        #print(n, C[n,0], result[-1,1], result[-1,0])
+        if n in np.arange(190, 200):
+            print(extraC, C[n,0], result[-1,0], result[-1,1])
+        # Update the cell's internal concentration with only the final value
+        C[n, 0] = result[-1, 1]   # Last time point, H2O2 cytosol concentration
+        #state[n,1]=state[n,1]+1
+
+        # Return final internal and external concentrations
+        return result[-1,5], result[-1, 0]
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.nonecheck(False)  
+    def update_scflux(self, n, extraC, te, protein_vals):
+        cdef double[:,:] C = self.C
+        cdef long[:,:] state = self.state
+        cdef int tend = te
+        cdef int timestep = 1
+        cdef double cell_density = 1.0e9
+        
+        # Solve the ODE system across the whole interval
+        y_blap = blap_ODE_system(tend, timestep, cell_density, protein_vals, 3, extraC, C[n,0]);
+        
+        C[n, 0] = y_blap[-1,2]   # Last time point, H2O2 cytosol concentration
+
+        # Return final internal and external concentrations
+        return y_blap[-1,1]
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.nonecheck(False)  
     def update_C0(self,cell_nbs,num,te):
         cdef int dim = num
         cdef int[:,:] nbs = cell_nbs
@@ -242,35 +296,6 @@ class IntC_Diff(object):
 
         for i in range(dim):
             state[i,1]=state[i,1]+1
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.nonecheck(False)  
-    def update_Cflux(self, n, extraC, te):
-        cdef double[:,:] C = self.C
-        cdef long[:,:] state = self.state
-        cdef int tend = te
-        
-        cdef np.ndarray x0 = np.copy(FBA_ode.get_x0())
-        cdef np.ndarray k = FBA_ode.get_k()
-
-        # Initialize x0 with extraC and self.C
-        x0[0] = extraC
-        x0[1] = C[n, 0]
-        #print(n, C[n,0], extraC)
-        #print(np.array(C))
-        # Create time points for integration (0 to te with te+1 points)
-        t = np.linspace(0, tend, tend+1)  # With te=3600, this gives 3601 points
-        
-        # Solve the ODE system across the whole interval
-        result = scipy.integrate.odeint(model, x0, t, args=(k,x0))
-        
-        # Update the cell's internal concentration with only the final value
-        C[n, 0] = result[-1, 1]   # Last time point, H2O2 cytosol concentration
-        #print(n, C[n,0], result[-1,1], result[-1,0])
-
-        # Return final internal and external concentrations
-        return result[-1,1], result[-1, 0]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

@@ -105,6 +105,10 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     H2O2e = ExtC_Diff("H2O2e", D_h2o2, x, y, z, ddim)
     sim.add_gradient(H2O2e)
 
+    GSH = IntC_Diff("GSH",maxCells,D_h2o2,grid_dim,ddim,Pmax,open_prob,              #create instance of IntC_Diff class
+                    celltype_param,division_times,sync_time)
+    sim.add_interC(GSH)
+
     # superoxide_i = IntC_Diff("superoxide_i",maxCells,D_h2o2,grid_dim,ddim,Pmax,open_prob,              #create instance of IntC_Diff class
     #                 celltype_param,division_times,sync_time)
     # sim.add_interC(superoxide_i)
@@ -125,19 +129,20 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
         radius=6.5 
         div_set=r.random()*19.
 
-        sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=div_set)   #create instance of StemCell class
+        if i in rand2:
+            sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=16.0)
+            sim_obj.setC(1.0e-4,'H2O2i')
+            #H2O2i.change_C(ID, 1.0e-4)
+        else:
+            sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=div_set)   #create instance of StemCell class
+            sim_obj.setC(1.0e-9,'H2O2i')
         
         sim.inc_current_ID()
         x = rand.random()
         sim_obj.setC(0.595+0.05*x,'cAMP')
-        sim_obj.setC(1.0e-9,'H2O2i')
+        sim_obj.setC(3.68e-4,'GSH')
         # sim_obj.setC(0.0,'superoxide_i')
         sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
-        sim_obj.set_gradient_source_sink_coeff("superoxide_e", 0.0, 0.0)
-
-        if i in rand2:
-            sim_obj.setC(1.0e-4,'H2O2i')
-            H2O2i.change_C(ID, 1.0e-4)
 
         sim.add(sim_obj)
 

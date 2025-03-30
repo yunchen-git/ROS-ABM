@@ -396,8 +396,72 @@ class Simulation(object):
                 for j in range(len(clust)):
                     self.remove(clust[j])
         self.update_object_queue()
-                    
+    
+    def load_gene_expression_data(self):
+        """Load gene expression data for ROS-related genes and process for use in simulation"""
+        import pandas as pd
         
+        print("Loading gene expression data...")
+        
+        # Define genes of interest
+        genes_of_interest = [
+            "GPX1", "GPX2", "GPX3", "GPX4", "GPX5", "GPX6", "GPX7", "GPX8",
+            "PRDX1", "PRDX2", "PRDX3", "PRDX6", "CAT", "TXN", "TXN2", "TXNRD1", "TXNRD2", "TXNRD3",
+            "GLRX", "GLRX2", "G6PD", "GLUD1", "GSR", "GSTP1", "POR", "NQO1", "SOD1", "SOD2", "SOD3",
+            "AQP3", "AQP8", "AQP9", "GCLC"
+        ]
+        
+        # Load metadata
+        metadata_file = os.path.join(os.getcwd(), "2021-06-08_scrnaseqdata.csv")
+        metadata = pd.read_csv(metadata_file)
+
+        # Directory with expression data
+        files = os.path.join(os.getcwd(), "HNSCC_Broad_scRNAseq")
+        
+        gene_index = []
+        # Load first cell data to get gene indices
+        first_cell_file = os.path.join(files, f"{metadata['cell'].iloc[0]}.csv")
+        protein = pd.read_csv(first_cell_file)
+
+        # Find the index of each gene of interest in the protein table
+        for gene in genes_of_interest:
+            # Find indices where the first column matches the gene name
+            # Note: In pandas, we use boolean indexing instead of MATLAB's find()
+            matches = protein.iloc[:, 0] == gene
+            indices = matches[matches].index.tolist()
+            gene_index.extend(indices)
+        
+        protein_vals = np.zeros((33, len(metadata)))
+        # Loop through each cell in the metadata
+        for i in range(len(metadata)):
+            # Load the protein data for this cell
+            cell_file = os.path.join(files, f"{metadata['cell'].iloc[i]}.csv")
+            protein = pd.read_csv(cell_file)
+            # Extract expression values for genes of interest and store in protein_vals
+            # We use gene_index to select rows and column index 1 for values
+            protein_vals[:, i] = protein.iloc[gene_index, 1].values
+
+        # Convert from PPM to micromolar
+        protein_vals = protein_vals * 5.29e-4
+        protein_averages = np.mean(protein_vals, axis=1)
+
+        # # # check if same as matlab
+        # # Save gene indices with gene names
+        # gene_indices_df = pd.DataFrame({
+        #     'gene': genes_of_interest,
+        #     'index': gene_index
+        # })
+        # gene_indices_df.to_csv(os.path.join(os.getcwd(), "gene_indices.csv"), index=False)
+        # # Save protein values with gene names as rows and cell IDs as columns
+        # protein_vals_df = pd.DataFrame(
+        #     data=protein_vals,
+        #     index=genes_of_interest,
+        #     columns=metadata['cell']
+        # )
+        # protein_vals_df.to_csv(os.path.join(os.getcwd(), "protein_expression.csv"))
+
+        self.protein_vals = protein_vals
+
     def run(self):
         """ Runs the simulation until either the stopping criterio is reached
             or the simulation time runs out.
@@ -424,6 +488,7 @@ class Simulation(object):
 ##        #save the inital state configuration
         self.save()
         self._set_gradient_inital_conditions()
+        #self.load_gene_expression_data()
         #nor run the loop
         while(self.time <= self.end_time):
             print("Time: " + repr(self.time))
@@ -472,7 +537,6 @@ class Simulation(object):
         #then clear these lists
         self._objects_to_remove = []
         self._objects_to_add= []
-        
 
     def update(self):
         """ Updates all of the objects in the simulation
@@ -496,22 +560,52 @@ class Simulation(object):
             j=obj2.ID
             nbs1.append([i,j])
         nbs2=np.asarray(nbs1, dtype=np.int32)
+        
+        #this section is supposed to remove the for loop in the next section, currently not used 25march2025
+        extraC={}
+        for i in range(len(self.gradients)):
+            extraC[self.gradients[i].name]=[]
+            for j in range(0, len(self.objects)):
+                tempC = self.gradients[i].get_gradient_value_at_point(self.objects[j].location)
+                extraC[self.gradients[i].name].append(tempC)
+        #extraC=np.asarray(extraC, dtype=np.float64)
+        # print(extraC)
 
         t0=time.time()
         for i in range(len(self.interC)):
             if self.interC[i].name=='cAMP':
                 self.interC[i].update_C1(nbs2,n,1200)
-            else:
-                self.interC[i].update_C0(nbs2,n,1200)
+            elif self.interC[i].name=='H2O2i':
                 for j in range(0, len(self.objects)):
                     #print(j, self.interC[i].C[j], self.objects[j].C)
-                    tempC = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
-                    intC, extraC = self.interC[i].update_Cflux(j, tempC, 3600)
+                    temp_h2o2e_C = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
+                    GSH = self.interC[2].get_C(j) #get GSH concentration
+                    # x0 = get_x0()
+                    # k = get_k()
+                    # if j in np.arange(200,210,1):
+                    #     print(x0[0:5])
+                    # x0[0] = temp_h2o2e_C
+                    # x0[1] = self.interC[i].get_C(j) #get H2O2i concentration
+                    # x0[5] = GSH
+                    # if x0[0] > 1e-7:
+                    #     k[1] = k[1]*1000
+                    # else:
+                    #     k[1] = k[1]
+                    # if j in np.arange(200,210,1):
+                    #     print(x0[0:5])
+                    
+                    # t = t = np.linspace(0, 60, 60+1)
+                    # result = odeint(model, x0, t, args=(k,x0))
+                    GSH, extraC = self.interC[i].update_Cflux(j, GSH, temp_h2o2e_C, 3600)
+                    #print(f"j: {j}  H2O2e 1: {temp_h2o2e_C} 2: {extraC}")
+                    # self.interC[2].change_C(j, result[-1, 5]) #update GSH concentration
+                    # self.interC[i].change_C(j, result[-1, 1]) #update H2O2i concentration
+                    #extraC = self.interC[i].update_scflux(j, tempC, 3600, self.protein_vals[:,j])
+                    self.interC[2].change_C(j, GSH) #update GSH concentration
+                    self.gradients[0].set_gradient_value_at_point(self.objects[j].location, extraC) #update H2O2e concentration
+                #self.interC[i].update_C0(nbs2,n,1200)                                                   #GJC for H2O2i
+            #print(self.interC)
 
-                    self.gradients[0].set_gradient_value_at_point(self.objects[j].location, extraC)
-                self.interC[i].update_C0(nbs2,n,1200)
-                #print(np.max(self.gradients[0].Ci))
-                #print(self.interC)
         t1=time.time()
         print ("Inter Transport Time: {}".format(t1-t0))
 

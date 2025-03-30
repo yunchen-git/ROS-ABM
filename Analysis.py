@@ -95,9 +95,8 @@ def save_2D_gradient_images(name, save_path, data, axis):
         if(axis == "xz"):
             plane = g.C[:, y/2, :]
         if(axis == "yz"):
-            plane = g.C[x/2 , :, :]
+            plane = g.C[x/2, :, :]
         #save the slice
-
         planes.append(plane.T)
         #compute the min and max for graphing
         mn = min(np.min(plane), mn)
@@ -107,17 +106,17 @@ def save_2D_gradient_images(name, save_path, data, axis):
     for i in range(0, len(planes)):
         #set the min and max
         #draw the figure
+        #plt.figure(figsize=(6,6))
         plt.imshow(planes[i],
                    cmap=plt.cm.seismic,
                    vmin = mn,
                    vmax = mx,
                    interpolation = 'bicubic',
                    origin= 'lower')
-
         
         #add a title
 ##        plt.title("Morphogen Gradient" + "   Time: " + repr(times[i]))
-        plt.title("Morphogen Gradient")
+        plt.title("H2O2 Media Gradient")
 
         ax=plt.gca()
         ax.get_xaxis().set_visible(False)
@@ -125,7 +124,7 @@ def save_2D_gradient_images(name, save_path, data, axis):
         divider=make_axes_locatable(ax)
         cax=divider.append_axes("left", size="5%", pad=0.05)    
         cb=plt.colorbar(cax=cax)
-        
+
         cb.set_label('Morphogen Concentration',labelpad=-70) 
         cb.ax.yaxis.set_ticks_position('left')
         #zeropad it

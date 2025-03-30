@@ -11,15 +11,6 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 
 
-# Step 1: Define the color map
-colormap = plt.cm.viridis  # Choose a color map, e.g., viridis
-
-normalizer = Normalize(vmin=0, vmax=1e-4)  # Replace with the range you expect
-
-def get_color(C_value):
-    normalized_value = normalizer(C_value)  # Map C_value directly within -100 to 100 range
-    return colormap(normalized_value)
-
 def read_network(path, t0, tf):
     files = os.listdir(path)
     center = np.zeros(2)
@@ -42,6 +33,8 @@ def read_network(path, t0, tf):
         except FileNotFoundError:
             print('No file found!')
             return
+        
+        nodes=network.nodes()
 
         draw_cell_image(network, path, n, center, radius)
         # deinfe the bounding box to take images at
@@ -60,7 +53,18 @@ def draw_cell_image(network, path, ind, center, radius, scale=1, background=(0,0
     background = (background[2], background[1], background[0])
     image_C[:, :] = background
     image_state[:, :] = background
-    
+    species = 'H2O2i'
+
+    if species == 'GSH':
+    # Step 1: Define the color map
+        colormap = plt.cm.jet#viridis  # Choose a color map, e.g., viridis
+        normalizer = Normalize(vmin=0.00040, vmax=0.0015)  # Replace with the range you expect
+    elif species == 'H2O2i':
+        colormap = plt.cm.viridis
+        normalizer = Normalize(vmin=0, vmax=5e-8)  # Replace with the range you expect
+    def get_color(C_value):
+        normalized_value = normalizer(C_value)  # Map C_value directly within -100 to 100 range
+        return colormap(normalized_value)
     # go through all of the agents
     for node in nodes:
         # get xy coordinates, the axis lengths, and color of agent
@@ -70,14 +74,15 @@ def draw_cell_image(network, path, ind, center, radius, scale=1, background=(0,0
         # print(node.C)
 
         # Get color based on fixed range for node.C
-        C_value = node.C['H2O2i']  # Assuming node.C is a list with one value
+        C_value = node.C[species]  # Assuming node.C is a list with one value
+
         node_color_rgba = get_color(C_value)
         
         # Convert RGBA to BGR for OpenCV
         col_C = tuple(int(255 * c) for c in reversed(node_color_rgba[:3]))
 
         out=outline_dict[node.state]
-        x_p, y_p = int(scale * (x+2*radius)), int(scale * (y+2*radius))
+        x_p, y_p = int(scale * (x+3*radius)), int(scale * (y+2.5*radius))
         major, minor = int(scale * r), int(scale * r)
         #print(node.C)
          # Draw the agent and a black outline to distinguish overlapping agents
@@ -85,27 +90,6 @@ def draw_cell_image(network, path, ind, center, radius, scale=1, background=(0,0
         image_C = cv2.ellipse(image_C, (x_p, y_p), (major, minor), 0, 0, 360, out, 1)
         image_state = cv2.ellipse(image_state, (x_p, y_p), (major, minor), 0, 0, 360, col_state, -1)
         image_state = cv2.ellipse(image_state, (x_p, y_p), (major, minor), 0, 0, 360, out, 1)
-    # try:
-    #     bounds=nodes[0].bounds
-    #     i = 0
-    #     for bound in bounds:
-    #         x,y=bounds[i]
-    #         if i < len(bounds)-1:
-    #             x1,y1 = bounds[i+1]
-    #         else:
-    #             x1,y1 = bounds[0]
-    #         x1_p, y1_p = int(scale * (x1 + center[0])), int(scale * (y1 + center[1]))
-    #         major, minor = int(scale * bound_rad), int(scale * bound_rad)
-
-    #         # draw the agent and a black outline to distinguish overlapping agents
-    #         image = cv2.ellipse(image, (x1_p, y1_p), (major, minor), 0, 0, 360, (0, 0, 0), 1)
-    #         x0_p, y0_p = int(scale * (x + center[0])), int(scale * (y + center[1]))
-    #         image = cv2.line((x0_p, y0_p), (x1_p, y1_p),color=(0,0,0), thickness=2)
-    #         i += 1
-    # except KeyError:
-    #     print('no bounds...')
-    # except AttributeError:
-        # print('no bounds...')
 
     if origin_bottom:
         image_C = cv2.flip(image_C, 0)
@@ -114,27 +98,28 @@ def draw_cell_image(network, path, ind, center, radius, scale=1, background=(0,0
     #print(list(network.nodes()))
     #print(network.nodes())
     # save the image as a PNG
-    folder_C = "all_images_C"
+    folder_C = "all_images" + "_" + species
     folder_state = "all_images_state"
     full_path_C = os.path.join(path, folder_C)
     full_path_state = os.path.join(path, folder_state)
     image_compression = 4  # image compression of png (0: no compression, ..., 9: max compression)
 
+    if not os.path.exists(full_path_state):
+        os.makedirs(full_path_state)
     if not os.path.exists(full_path_C):
         os.makedirs(full_path_C)
-    file_name_C = f"{image_name}_C{format(ind,'02')}.png"
-    cv2.imwrite(os.path.join(full_path_C, file_name_C), image_C, [cv2.IMWRITE_PNG_COMPRESSION, image_compression])
-    
+
     # Add a color bar using Matplotlib
+    #plt.figure(figsize=(6, 6))
     plt.imshow(cv2.cvtColor(image_C, cv2.COLOR_BGR2RGB))
     plt.axis('off')
-    cbar = plt.colorbar(plt.cm.ScalarMappable(norm=normalizer, cmap=colormap), ax=plt.gca())
+    title = species + " Concentration"
+    plt.title(title)
+    cbar = plt.colorbar(plt.cm.ScalarMappable(norm=normalizer, cmap=colormap), ax=plt.gca(), location='left', pad=0.01, shrink=1.0)
     cbar.set_label('Concentration')
     plt.savefig(os.path.join(full_path_C, f"{image_name}_with_colorbar_{format(ind, '02')}.png"), bbox_inches='tight', dpi=300)
     plt.close()
 
-    if not os.path.exists(full_path_state):
-        os.makedirs(full_path_state)
     file_name_state = f"{image_name}_state{format(ind,'02')}.png"
     cv2.imwrite(os.path.join(full_path_state, file_name_state), image_state, [cv2.IMWRITE_PNG_COMPRESSION, image_compression])
 
@@ -182,7 +167,7 @@ def make_txt(name, path):
     print(f'Reference image is: {name}_{format(0,"02")}.png')
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/34.0/'
+    path = '/Users/huyunchen/Documents/PhD/test/H2O2i without GJC/'
     
     read_network(path, 0, 75)
     #path = f'/Users/andrew/PycharmProjects/pythonABM_CG/outputs/{sys.argv[1]}.0/'
