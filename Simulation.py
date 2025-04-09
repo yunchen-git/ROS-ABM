@@ -574,7 +574,7 @@ class Simulation(object):
         t0=time.time()
         for i in range(len(self.interC)):
             if self.interC[i].name=='cAMP':
-                self.interC[i].update_C1(nbs2,n,1200)
+                self.interC[i].update_C1(nbs2,n,20)
             elif self.interC[i].name=='H2O2i':
                 for j in range(0, len(self.objects)):
                     #print(j, self.interC[i].C[j], self.objects[j].C)
@@ -596,14 +596,14 @@ class Simulation(object):
                     
                     # t = t = np.linspace(0, 60, 60+1)
                     # result = odeint(model, x0, t, args=(k,x0))
-                    GSH, extraC = self.interC[i].update_Cflux(j, GSH, temp_h2o2e_C, 3600)
+                    GSH, extraC = self.interC[i].update_Cflux(j, GSH, temp_h2o2e_C, 60)
                     #print(f"j: {j}  H2O2e 1: {temp_h2o2e_C} 2: {extraC}")
                     # self.interC[2].change_C(j, result[-1, 5]) #update GSH concentration
                     # self.interC[i].change_C(j, result[-1, 1]) #update H2O2i concentration
                     #extraC = self.interC[i].update_scflux(j, tempC, 3600, self.protein_vals[:,j])
                     self.interC[2].change_C(j, GSH) #update GSH concentration
                     self.gradients[0].set_gradient_value_at_point(self.objects[j].location, extraC) #update H2O2e concentration
-                #self.interC[i].update_C0(nbs2,n,1200)                                                   #GJC for H2O2i
+                self.interC[i].update_C0(nbs2,n,60)                                                   #GJC for H2O2i
             #print(self.interC)
 
         t1=time.time()

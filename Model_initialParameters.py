@@ -15,7 +15,7 @@ from read_gpickle import network_radius
 def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     #Start time, end time, time step
     ts = 0
-    te = 50
+    te = 60
     dt = 1
 
     #Now make a new simulation, instance of Simulation class
@@ -71,7 +71,7 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     D_camp=444 ##um^2/sec diffusion coefficient for cyclic AMP Dworkin & Keller 1977 J. Bio Chem
     D_h2o2 = 444 ##um^2/sec diffusion coefficient for H2O2
     
-    cell_path = os.getcwd() + os.sep + 'RA0_4.5.txt'
+    cell_path = os.getcwd() + os.sep + 'populated.txt'
     cells = np.loadtxt(cell_path, delimiter=',')
     locations = cells[:,1:3]
 

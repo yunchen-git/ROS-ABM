@@ -83,6 +83,7 @@ class IntC_Diff(object):
                 #print(cell_cycle_effect[j,i])
           
         self.cce=cell_cycle_effect
+        #print(self.cce.shape) (51,2)
         #set the spatial resolution in each direction
         self._dx = float(dx)
 
@@ -200,26 +201,52 @@ class IntC_Diff(object):
         x0[0] = extraC
         x0[1] = C[n, 0]
         #x0[5] = GSH
-
-        #if x0[0] > 1e-7:
-        #    k[1] = k[1]*1000
-        #else:
-        #    k[1] = k[1]
+        
+         # Validate input values
+        if not np.all(np.isfinite(x0)):
+            # Replace non-finite values with safe defaults
+            for i in range(len(x0)):
+                if not np.isfinite(x0[i]):
+                    x0[i] = 0.0
+                    print(f"Warning: Replaced non-finite x0[{i}] with 0.0")
+                    
+        if x0[1] > 1e-6:
+            k[1] = k[1]*1e3
+        else:
+            k[1] = k[1]
             
         # Create time points for integration (0 to te with te+1 points)
         t = np.linspace(0, tend, tend+1)  # With te=3600, this gives 3601 points
         
         # Solve the ODE system across the whole interval
-        result = scipy.integrate.odeint(model, x0, t, args=(k,x0))
-        #print(n, C[n,0], result[-1,1], result[-1,0])
-        if n in np.arange(190, 200):
-            print(extraC, C[n,0], result[-1,0], result[-1,1])
-        # Update the cell's internal concentration with only the final value
-        C[n, 0] = result[-1, 1]   # Last time point, H2O2 cytosol concentration
-        #state[n,1]=state[n,1]+1
+        # result = scipy.integrate.odeint(model, x0, t, args=(k,x0))
+
+        try:
+            # Use more robust integration method with error control
+            result = scipy.integrate.solve_ivp(
+                lambda t, y: model(y, t, k, x0),
+                [0, tend],
+                x0,
+                method='LSODA',
+                t_eval=t,
+                atol=1e-10,
+                rtol=1e-8
+            )
+            final_values = result.y[:, -1]  # Get the last time point values
+            
+            # Update the cell's internal concentration with only the final value
+            C[n, 0] = final_values[1]  # Last time point, H2O2 cytosol concentration
+            
+            # Return final internal and external concentrations
+            return final_values[5], final_values[0]
+        except ValueError as e:
+            print(f"Error in cell {n}: {e}")
+            print(f"x0 = {x0}")
+            # Return current values if integration fails
+            return x0[5], x0[0]
 
         # Return final internal and external concentrations
-        return result[-1,5], result[-1, 0]
+        #return final_values[5], final_values[0]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -272,6 +299,7 @@ class IntC_Diff(object):
             nj=state[j,0]
             mj=state[j,1]
             Peff[x]=vx*Pmax*(p_n[ni]*cce[mi,ni]*inh[i,0])*(p_n[nj]*cce[mj,nj]*inh[j,0])
+            #Peff[x]=vx*Pmax
 
         #print(np.array(np.min(Peff)))       #min is 1.187e-05
         #print(np.array(np.max(Peff)))       #max is 0.0002
@@ -294,8 +322,8 @@ class IntC_Diff(object):
                 C[i,1]=0.0
             t=t+dt
 
-        for i in range(dim):
-            state[i,1]=state[i,1]+1
+        #for i in range(dim):
+        #    state[i,1]=state[i,1]+1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

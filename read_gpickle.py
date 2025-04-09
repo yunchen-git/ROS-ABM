@@ -48,8 +48,8 @@ def draw_cell_image(network, path, ind, center, radius, scale=1, background=(0,0
     outline_dict={'U': (0, 0, 0),'T': (0, 0, 0),'D': (0, 0, 0),'A':(0,0,0)}
 
     nodes=network.nodes()
-    image_C = np.zeros((int(radius)*7, int(radius)*7, 3), dtype=np.uint8)
-    image_state = np.zeros((int(radius)*7, int(radius)*7, 3), dtype=np.uint8)
+    image_C = np.zeros((int(radius)*4, int(radius)*4, 3), dtype=np.uint8)
+    image_state = np.zeros((int(radius)*4, int(radius)*4, 3), dtype=np.uint8)
     background = (background[2], background[1], background[0])
     image_C[:, :] = background
     image_state[:, :] = background
@@ -61,7 +61,7 @@ def draw_cell_image(network, path, ind, center, radius, scale=1, background=(0,0
         normalizer = Normalize(vmin=0.00040, vmax=0.0015)  # Replace with the range you expect
     elif species == 'H2O2i':
         colormap = plt.cm.viridis
-        normalizer = Normalize(vmin=0, vmax=5e-8)  # Replace with the range you expect
+        normalizer = Normalize(vmin=0, vmax=5e-9)  # Replace with the range you expect
     def get_color(C_value):
         normalized_value = normalizer(C_value)  # Map C_value directly within -100 to 100 range
         return colormap(normalized_value)
@@ -82,7 +82,7 @@ def draw_cell_image(network, path, ind, center, radius, scale=1, background=(0,0
         col_C = tuple(int(255 * c) for c in reversed(node_color_rgba[:3]))
 
         out=outline_dict[node.state]
-        x_p, y_p = int(scale * (x+3*radius)), int(scale * (y+2.5*radius))
+        x_p, y_p = int(scale * (x+2*radius)), int(scale * (y+2*radius))
         major, minor = int(scale * r), int(scale * r)
         #print(node.C)
          # Draw the agent and a black outline to distinguish overlapping agents
@@ -167,7 +167,7 @@ def make_txt(name, path):
     print(f'Reference image is: {name}_{format(0,"02")}.png')
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/H2O2i without GJC/'
+    path = '/Users/huyunchen/Documents/PhD/test/2.0/'
     
     read_network(path, 0, 75)
     #path = f'/Users/andrew/PycharmProjects/pythonABM_CG/outputs/{sys.argv[1]}.0/'
