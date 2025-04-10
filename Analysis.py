@@ -41,25 +41,6 @@ def ZeroPad(maxTime, time):
     s = s + repr(time)
     return s
 
-
-def draw_cell_image(network,path):
-    nodes=network.nodes()
-    image1 = Image.new("RGB", (930, 465),color='white')
-    draw = ImageDraw.Draw(image1)
-    cmin=100
-    cmax=0
-    col_dict={'A':'black','B':'red','C':'green'}
-    outline_dict={'A':'#444444','B':'#aa1111','C':'#11aa11'}
-    for i in range(len(nodes)):
-        node=nodes[i]
-        x,y,z=node.location
-        r=node.radius
-        col=col_dict[node.state]
-        out=outline_dict[node.state]
-        draw.ellipse((y-r, x-r, y+r, x+r),outline=out,fill=col)
-    image1.save(path)
-
-
 def save_2D_gradient_images(name, save_path, data, axis):
     """ Will save a 2D slice of the gradient specified by name along the given
         axis which by default is xy
@@ -101,7 +82,8 @@ def save_2D_gradient_images(name, save_path, data, axis):
         #compute the min and max for graphing
         mn = min(np.min(plane), mn)
         mx = max(np.max(plane), mx)      
-    #print(len(planes))
+
+    # print(len(planes))
     #now make and save a figure for each slice
     for i in range(0, len(planes)):
         #set the min and max

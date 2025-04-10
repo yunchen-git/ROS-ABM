@@ -28,6 +28,8 @@ def read_network(path, t0, tf):
         center = network_avg(network)
         radius = network_radius(network)
         available_species = get_available_species(network)
+        print(f"Center of network: {center}")
+        print(f"Radius of network: {radius}")
         print(f"Available species in network: {available_species}")
     
     # draw image for each network
@@ -50,10 +52,12 @@ def read_network(path, t0, tf):
 def draw_species_image(network, path, ind, center, radius, species, scale=1, background=(0,0,0), origin_bottom=True, bound_rad=30, image_name='image'):
     outline_dict={'U': (0, 0, 0),'T': (0, 0, 0),'D': (0, 0, 0),'A':(0,0,0)}
 
-    image_C = np.zeros((int(center[0]+2*radius), int(center[1]+2*radius), 3), dtype=np.uint8)
+    image_size = int(2*radius)
+    image_C = np.zeros((image_size, image_size, 3), dtype=np.uint8)
     background = (background[2], background[1], background[0])
     image_C[:, :] = background
 
+    img_center = image_size // 2
     nodes=network.nodes()
 
     # Step 1: Define the color map
@@ -85,7 +89,10 @@ def draw_species_image(network, path, ind, center, radius, species, scale=1, bac
         col_C = tuple(int(255 * c) for c in reversed(node_color_rgba[:3]))
 
         out=outline_dict[node.state]
-        x_p, y_p = int(scale * (x+radius)), int(scale * (y+radius))
+        
+        # Position nodes relative to the center of the image
+        x_p = int(scale * (x - center[0] + img_center))
+        y_p = int(scale * (y - center[1] + img_center))
         major, minor = int(scale * r), int(scale * r)
 
         # Draw the agent and a black outline to distinguish overlapping agents

@@ -48,7 +48,7 @@ class IntC_Diff(object):
     """
 
         
-    def __init__(self, name, maxCells, D, x, dx, Pmax, open_prob, celltypes,
+    def __init__(self, name, maxCells, D, dx, Pmax, open_prob, celltypes,
                  division_times,sync_time,vol_units = 1e-6):
         #save the unit volume
     
@@ -88,7 +88,7 @@ class IntC_Diff(object):
         self._dx = float(dx)
 
         #solve for the index of the array
-        self.dim = int(x/dx)
+        
         self.maxInd = maxCells
         #solve some of the more specific constraints
         dx2 = dx*dx

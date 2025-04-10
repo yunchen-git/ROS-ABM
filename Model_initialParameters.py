@@ -85,8 +85,6 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     
     division_times = np.array([18, 51], dtype=np.int32)
     
-    grid_dim=130.0                  #Grid dimension (NxNxN), (I'm pretty sure I stopped using this altogether...)
-
     x = 2800
     y = 2800
     z = 30
@@ -94,18 +92,18 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     sync_time=[500,500]             # This isn't used
 
     ## Initializing the intercellular diffusion module
-    XI = IntC_Diff("cAMP",maxCells,D_camp,grid_dim,ddim,Pmax,open_prob,              #create instance of IntC_Diff class
+    XI = IntC_Diff("cAMP",maxCells,D_camp, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
                     celltype_param,division_times,sync_time)
     sim.add_interC(XI)
     
-    H2O2i = IntC_Diff("H2O2i",maxCells,D_h2o2,grid_dim,ddim,Pmax,open_prob,              #create instance of IntC_Diff class
+    H2O2i = IntC_Diff("H2O2i",maxCells,D_h2o2, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
                     celltype_param,division_times,sync_time)
     sim.add_interC(H2O2i)
 
     H2O2e = ExtC_Diff("H2O2e", D_h2o2, x, y, z, ddim)
     sim.add_gradient(H2O2e)
 
-    GSH = IntC_Diff("GSH",maxCells,D_h2o2,grid_dim,ddim,Pmax,open_prob,              #create instance of IntC_Diff class
+    GSH = IntC_Diff("GSH",maxCells,D_h2o2, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
                     celltype_param,division_times,sync_time)
     sim.add_interC(GSH)
 
