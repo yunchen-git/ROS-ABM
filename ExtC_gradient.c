@@ -22278,8 +22278,8 @@ static PyObject *__pyx_pf_13ExtC_gradient_9ExtC_Diff_10get_object_position_on_gr
   PyObject *__pyx_v_dx = NULL;
   PyObject *__pyx_v_dy = NULL;
   CYTHON_UNUSED PyObject *__pyx_v_dz = NULL;
-  PyObject *__pyx_v_cx = NULL;
-  PyObject *__pyx_v_cy = NULL;
+  CYTHON_UNUSED PyObject *__pyx_v_cx = NULL;
+  CYTHON_UNUSED PyObject *__pyx_v_cy = NULL;
   CYTHON_UNUSED PyObject *__pyx_v_cz = NULL;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
@@ -22402,25 +22402,21 @@ static PyObject *__pyx_pf_13ExtC_gradient_9ExtC_Diff_10get_object_position_on_gr
   /* "ExtC_gradient.pyx":168
  * 
  *         #return the x, y, z indicies to add at
- *         return cx + dx, cy + dy #, cz + dz             # <<<<<<<<<<<<<<
+ *         return dx, dy#cx + dx, cy + dy #, cz + dz             # <<<<<<<<<<<<<<
  * 
  *     def get_gradient_value_at_point(self, point):
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_3 = PyNumber_Add(__pyx_v_cx, __pyx_v_dx); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 168, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(2); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 168, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_2 = PyNumber_Add(__pyx_v_cy, __pyx_v_dy); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 168, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = PyTuple_New(2); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 168, __pyx_L1_error)
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_GIVEREF(__pyx_t_3);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 0, __pyx_t_3)) __PYX_ERR(0, 168, __pyx_L1_error);
-  __Pyx_GIVEREF(__pyx_t_2);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_1, 1, __pyx_t_2)) __PYX_ERR(0, 168, __pyx_L1_error);
+  __Pyx_INCREF(__pyx_v_dx);
+  __Pyx_GIVEREF(__pyx_v_dx);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_v_dx)) __PYX_ERR(0, 168, __pyx_L1_error);
+  __Pyx_INCREF(__pyx_v_dy);
+  __Pyx_GIVEREF(__pyx_v_dy);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 1, __pyx_v_dy)) __PYX_ERR(0, 168, __pyx_L1_error);
+  __pyx_r = __pyx_t_3;
   __pyx_t_3 = 0;
-  __pyx_t_2 = 0;
-  __pyx_r = __pyx_t_1;
-  __pyx_t_1 = 0;
   goto __pyx_L0;
 
   /* "ExtC_gradient.pyx":152
@@ -22451,7 +22447,7 @@ static PyObject *__pyx_pf_13ExtC_gradient_9ExtC_Diff_10get_object_position_on_gr
 }
 
 /* "ExtC_gradient.pyx":170
- *         return cx + dx, cy + dy #, cz + dz
+ *         return dx, dy#cx + dx, cy + dy #, cz + dz
  * 
  *     def get_gradient_value_at_point(self, point):             # <<<<<<<<<<<<<<
  *         """ Will get the gradient value at a specific point. Useful for
@@ -23116,7 +23112,7 @@ static PyObject *__pyx_pf_13ExtC_gradient_9ExtC_Diff_12get_gradient_value_at_poi
   goto __pyx_L0;
 
   /* "ExtC_gradient.pyx":170
- *         return cx + dx, cy + dy #, cz + dz
+ *         return dx, dy#cx + dx, cy + dy #, cz + dz
  * 
  *     def get_gradient_value_at_point(self, point):             # <<<<<<<<<<<<<<
  *         """ Will get the gradient value at a specific point. Useful for
@@ -26536,7 +26532,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __pyx_codeobj__38 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 8, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__37, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_ExtC_gradient_pyx, __pyx_n_s_get_object_position_on_grid, 152, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__38)) __PYX_ERR(0, 152, __pyx_L1_error)
 
   /* "ExtC_gradient.pyx":170
- *         return cx + dx, cy + dy #, cz + dz
+ *         return dx, dy#cx + dx, cy + dy #, cz + dz
  * 
  *     def get_gradient_value_at_point(self, point):             # <<<<<<<<<<<<<<
  *         """ Will get the gradient value at a specific point. Useful for
@@ -27921,7 +27917,7 @@ if (!__Pyx_RefNanny) {
   __Pyx_DECREF(__pyx_t_9); __pyx_t_9 = 0;
 
   /* "ExtC_gradient.pyx":170
- *         return cx + dx, cy + dy #, cz + dz
+ *         return dx, dy#cx + dx, cy + dy #, cz + dz
  * 
  *     def get_gradient_value_at_point(self, point):             # <<<<<<<<<<<<<<
  *         """ Will get the gradient value at a specific point. Useful for

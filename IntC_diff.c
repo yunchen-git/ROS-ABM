@@ -4237,7 +4237,7 @@ typedef struct {
   PyObject *__pyx_n_s_y_blap;
   PyObject *__pyx_n_s_zeros;
   PyObject *__pyx_float_0_0;
-  PyObject *__pyx_float_1e3;
+  PyObject *__pyx_float_1e4;
   PyObject *__pyx_float_4_0;
   PyObject *__pyx_float_1eneg_6;
   PyObject *__pyx_float_1eneg_8;
@@ -4679,7 +4679,7 @@ static int __pyx_m_clear(PyObject *m) {
   Py_CLEAR(clear_module_state->__pyx_n_s_y_blap);
   Py_CLEAR(clear_module_state->__pyx_n_s_zeros);
   Py_CLEAR(clear_module_state->__pyx_float_0_0);
-  Py_CLEAR(clear_module_state->__pyx_float_1e3);
+  Py_CLEAR(clear_module_state->__pyx_float_1e4);
   Py_CLEAR(clear_module_state->__pyx_float_4_0);
   Py_CLEAR(clear_module_state->__pyx_float_1eneg_6);
   Py_CLEAR(clear_module_state->__pyx_float_1eneg_8);
@@ -5099,7 +5099,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
   Py_VISIT(traverse_module_state->__pyx_n_s_y_blap);
   Py_VISIT(traverse_module_state->__pyx_n_s_zeros);
   Py_VISIT(traverse_module_state->__pyx_float_0_0);
-  Py_VISIT(traverse_module_state->__pyx_float_1e3);
+  Py_VISIT(traverse_module_state->__pyx_float_1e4);
   Py_VISIT(traverse_module_state->__pyx_float_4_0);
   Py_VISIT(traverse_module_state->__pyx_float_1eneg_6);
   Py_VISIT(traverse_module_state->__pyx_float_1eneg_8);
@@ -5555,7 +5555,7 @@ static int __pyx_m_traverse(PyObject *m, visitproc visit, void *arg) {
 #define __pyx_n_s_y_blap __pyx_mstate_global->__pyx_n_s_y_blap
 #define __pyx_n_s_zeros __pyx_mstate_global->__pyx_n_s_zeros
 #define __pyx_float_0_0 __pyx_mstate_global->__pyx_float_0_0
-#define __pyx_float_1e3 __pyx_mstate_global->__pyx_float_1e3
+#define __pyx_float_1e4 __pyx_mstate_global->__pyx_float_1e4
 #define __pyx_float_4_0 __pyx_mstate_global->__pyx_float_4_0
 #define __pyx_float_1eneg_6 __pyx_mstate_global->__pyx_float_1eneg_6
 #define __pyx_float_1eneg_8 __pyx_mstate_global->__pyx_float_1eneg_8
@@ -24983,7 +24983,7 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_20update_Cflux(CYTHON_UNUSED PyO
  *                     print(f"Warning: Replaced non-finite x0[{i}] with 0.0")
  * 
  *         if x0[1] > 1e-6:             # <<<<<<<<<<<<<<
- *             k[1] = k[1]*1e3
+ *             k[1] = k[1]*1e4
  *         else:
  */
   __pyx_t_1 = __Pyx_GetItemInt(((PyObject *)__pyx_cur_scope->__pyx_v_x0), 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 213, __pyx_L1_error)
@@ -24997,13 +24997,13 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_20update_Cflux(CYTHON_UNUSED PyO
     /* "IntC_diff.pyx":214
  * 
  *         if x0[1] > 1e-6:
- *             k[1] = k[1]*1e3             # <<<<<<<<<<<<<<
+ *             k[1] = k[1]*1e4             # <<<<<<<<<<<<<<
  *         else:
  *             k[1] = k[1]
  */
     __pyx_t_5 = __Pyx_GetItemInt(((PyObject *)__pyx_cur_scope->__pyx_v_k), 1, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 214, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_5);
-    __pyx_t_1 = PyNumber_Multiply(__pyx_t_5, __pyx_float_1e3); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 214, __pyx_L1_error)
+    __pyx_t_1 = PyNumber_Multiply(__pyx_t_5, __pyx_float_1e4); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 214, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_1);
     __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
     if (unlikely((__Pyx_SetItemInt(((PyObject *)__pyx_cur_scope->__pyx_v_k), 1, __pyx_t_1, long, 1, __Pyx_PyInt_From_long, 0, 0, 0) < 0))) __PYX_ERR(0, 214, __pyx_L1_error)
@@ -25013,14 +25013,14 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_20update_Cflux(CYTHON_UNUSED PyO
  *                     print(f"Warning: Replaced non-finite x0[{i}] with 0.0")
  * 
  *         if x0[1] > 1e-6:             # <<<<<<<<<<<<<<
- *             k[1] = k[1]*1e3
+ *             k[1] = k[1]*1e4
  *         else:
  */
     goto __pyx_L7;
   }
 
   /* "IntC_diff.pyx":216
- *             k[1] = k[1]*1e3
+ *             k[1] = k[1]*1e4
  *         else:
  *             k[1] = k[1]             # <<<<<<<<<<<<<<
  * 
@@ -31587,7 +31587,7 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
 static CYTHON_SMALL_CODE int __Pyx_InitConstants(void) {
   if (__Pyx_CreateStringTabAndInitStrings() < 0) __PYX_ERR(0, 1, __pyx_L1_error);
   __pyx_float_0_0 = PyFloat_FromDouble(0.0); if (unlikely(!__pyx_float_0_0)) __PYX_ERR(0, 1, __pyx_L1_error)
-  __pyx_float_1e3 = PyFloat_FromDouble(1e3); if (unlikely(!__pyx_float_1e3)) __PYX_ERR(0, 1, __pyx_L1_error)
+  __pyx_float_1e4 = PyFloat_FromDouble(1e4); if (unlikely(!__pyx_float_1e4)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_float_4_0 = PyFloat_FromDouble(4.0); if (unlikely(!__pyx_float_4_0)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_float_1eneg_6 = PyFloat_FromDouble(1e-6); if (unlikely(!__pyx_float_1eneg_6)) __PYX_ERR(0, 1, __pyx_L1_error)
   __pyx_float_1eneg_8 = PyFloat_FromDouble(1e-8); if (unlikely(!__pyx_float_1eneg_8)) __PYX_ERR(0, 1, __pyx_L1_error)

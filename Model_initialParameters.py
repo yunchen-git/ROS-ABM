@@ -71,7 +71,7 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     D_camp=444 ##um^2/sec diffusion coefficient for cyclic AMP Dworkin & Keller 1977 J. Bio Chem
     D_h2o2 = 444 ##um^2/sec diffusion coefficient for H2O2
     
-    cell_path = os.getcwd() + os.sep + 'populated.txt'
+    cell_path = os.getcwd() + os.sep + 'new_populated.txt'
     cells = np.loadtxt(cell_path, delimiter=',')
     locations = cells[:,1:3]
 
@@ -85,10 +85,10 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     
     division_times = np.array([18, 51], dtype=np.int32)
     
-    x = 2800
-    y = 2800
+    x = 750
+    y = 750
     z = 30
-    ddim=2.0                        #Grid spacing in um
+    ddim=1.0                      #Grid spacing in um
     sync_time=[500,500]             # This isn't used
 
     ## Initializing the intercellular diffusion module
@@ -119,7 +119,7 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     #print(XI.vx)
 
     rand1 = np.arange(0, 10, 1)
-    rand2 = np.arange(200, 210, 1)
+    rand2 = np.arange(200, 201, 1)
 
     for i in range(0,num):
         ID=i

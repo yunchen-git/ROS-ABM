@@ -211,7 +211,7 @@ class IntC_Diff(object):
                     print(f"Warning: Replaced non-finite x0[{i}] with 0.0")
                     
         if x0[1] > 1e-6:
-            k[1] = k[1]*1e3
+            k[1] = k[1]*1e4
         else:
             k[1] = k[1]
             

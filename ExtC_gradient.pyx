@@ -165,7 +165,7 @@ class ExtC_Diff(object):
         cz = int(self.z_dim / 2)
 
         #return the x, y, z indicies to add at
-        return cx + dx, cy + dy #, cz + dz
+        return dx, dy#cx + dx, cy + dy #, cz + dz
 
     def get_gradient_value_at_point(self, point):
         """ Will get the gradient value at a specific point. Useful for
