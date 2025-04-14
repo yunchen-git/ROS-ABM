@@ -88,7 +88,6 @@ class IntC_Diff(object):
         self._dx = float(dx)
 
         #solve for the index of the array
-        
         self.maxInd = maxCells
         #solve some of the more specific constraints
         dx2 = dx*dx
@@ -227,7 +226,7 @@ class IntC_Diff(object):
                 lambda t, y: model(y, t, k, x0),
                 [0, tend],
                 x0,
-                method='LSODA',
+                method='Radau',
                 t_eval=t,
                 atol=1e-10,
                 rtol=1e-8
@@ -322,8 +321,8 @@ class IntC_Diff(object):
                 C[i,1]=0.0
             t=t+dt
 
-        #for i in range(dim):
-        #    state[i,1]=state[i,1]+1
+        for i in range(dim):
+            state[i,1]=state[i,1]+1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -378,6 +377,7 @@ class IntC_Diff(object):
                     C[i,0]=0
                 
                 prod=inh[i,1]*vx*dp[ni,0]/(1.+(C[i,0]/dp[ni,1])**dp[ni,2])
+                #print(prod)
                 deg=-vx*dp[ni,3]*C[i,0]
 
                 C[i,0]=C[i,0]+C[i,1]+prod+deg

@@ -122,12 +122,13 @@ def draw_species_image(network, path, ind, center, radius, species, scale=1, bac
 def draw_state_image(network, path, ind, center, radius, scale=1, background=(0,0,0), origin_bottom=True, bound_rad=30, image_name='image'):
     col_dict={'U': (50, 255, 50),'T': (255, 50, 50),'D': (50, 50, 255),'A':(200,200,200)}
     outline_dict={'U': (0, 0, 0),'T': (0, 0, 0),'D': (0, 0, 0),'A':(0,0,0)}
-
-    image_state = np.zeros((int(center[0]+2*radius), int(center[1]+2*radius), 3), dtype=np.uint8)
+    
+    image_size = int(2*radius)
+    image_state = np.zeros((image_size, image_size, 3), dtype=np.uint8)
 
     background = (background[2], background[1], background[0])
     image_state[:, :] = background
-
+    img_center = image_size // 2
     nodes=network.nodes()
     
     # go through all of the agents
@@ -137,7 +138,8 @@ def draw_state_image(network, path, ind, center, radius, scale=1, background=(0,
         r=node.radius
         col_state=col_dict[node.state]
         out=outline_dict[node.state]
-        x_p, y_p = int(scale * (x+radius)), int(scale * (y+radius))
+        x_p = int(scale * (x - center[0] + img_center))
+        y_p = int(scale * (y - center[1] + img_center))
         major, minor = int(scale * r), int(scale * r)
 
         # Draw the agent and a black outline to distinguish overlapping agents
@@ -212,10 +214,9 @@ def make_txt(name, path):
     print(f'Reference image is: {name}_{format(0,"02")}.png')
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/12.0/'
+    path = '/Users/huyunchen/Documents/PhD/test/11.0/'
     
     read_network(path, 0, 75)
-
 
     """ 
     I think below is for saving as txt instead of pic, not used as of 09apr2025

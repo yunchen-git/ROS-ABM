@@ -460,6 +460,8 @@ def blap_ODE_system(endtime, step, celldens, protein_abund, blap_conc, extraC, i
         x0[19] = x0[18] * (.5 / 100)  # Grx-SSG
         x0[21] = x0[20] * (.5 / 100)  # Pr-SS
         x0[23] = x0[22] / 100  # NADP+
+
+        
     
     def ode_sys(t, x, k, celldens):
         # Apply bounds to state variables to prevent them from going too high/low

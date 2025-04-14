@@ -71,7 +71,7 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     D_camp=444 ##um^2/sec diffusion coefficient for cyclic AMP Dworkin & Keller 1977 J. Bio Chem
     D_h2o2 = 444 ##um^2/sec diffusion coefficient for H2O2
     
-    cell_path = os.getcwd() + os.sep + 'new_populated.txt'
+    cell_path = os.getcwd() + os.sep + 'RA0_4.5.txt'
     cells = np.loadtxt(cell_path, delimiter=',')
     locations = cells[:,1:3]
 
@@ -85,10 +85,10 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     
     division_times = np.array([18, 51], dtype=np.int32)
     
-    x = 750
-    y = 750
+    x = 1500
+    y = 1500
     z = 30
-    ddim=1.0                      #Grid spacing in um
+    ddim=2.0                      #Grid spacing in um
     sync_time=[500,500]             # This isn't used
 
     ## Initializing the intercellular diffusion module
@@ -128,16 +128,17 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
         div_set=r.random()*19.
 
         if i in rand2:
-            sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=16.0)
+            sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=div_set)
             sim_obj.setC(1.0e-4,'H2O2i')
+            sim_obj.setC(1,'cAMP')
             #H2O2i.change_C(ID, 1.0e-4)
         else:
             sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=div_set)   #create instance of StemCell class
             sim_obj.setC(1.0e-9,'H2O2i')
+            sim_obj.setC(0.595+0.05*x,'cAMP')
         
         sim.inc_current_ID()
         x = rand.random()
-        sim_obj.setC(0.595+0.05*x,'cAMP')
         sim_obj.setC(3.68e-4,'GSH')
         # sim_obj.setC(0.0,'superoxide_i')
         sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
@@ -151,12 +152,12 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
         #print(f"sim self.C: {ID} {sim.interC[0]}")                          #IntC_Diff object
 
     try:
-        sim.collide()
+        sim.collide(x,y,z)
     except Exception as e:
         print(f"Manual Collision due to: {e}")
         sim.collide_lowDens()
     
-    sim.run()
+    sim.run(x,y,z)
 
   #set the seperator
     if(platform.system() == "Windows"):

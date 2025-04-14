@@ -462,7 +462,7 @@ class Simulation(object):
 
         self.protein_vals = protein_vals
 
-    def run(self):
+    def run(self,x,y,z):
         """ Runs the simulation until either the stopping criterio is reached
             or the simulation time runs out.
         """
@@ -503,7 +503,7 @@ class Simulation(object):
             self.update_object_queue()
             #perform physcis
             try:
-                self.collide()
+                self.collide(x,y,z)
             except:
                 print("manual collide")
                 self.collide_lowDens()
@@ -574,36 +574,21 @@ class Simulation(object):
         t0=time.time()
         for i in range(len(self.interC)):
             if self.interC[i].name=='cAMP':
-                self.interC[i].update_C1(nbs2,n,20)
+                self.interC[i].update_C1(nbs2,n,1200)
             elif self.interC[i].name=='H2O2i':
                 for j in range(0, len(self.objects)):
                     #print(j, self.interC[i].C[j], self.objects[j].C)
                     temp_h2o2e_C = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
                     GSH = self.interC[2].get_C(j) #get GSH concentration
-                    # x0 = get_x0()
-                    # k = get_k()
-                    # if j in np.arange(200,210,1):
-                    #     print(x0[0:5])
-                    # x0[0] = temp_h2o2e_C
-                    # x0[1] = self.interC[i].get_C(j) #get H2O2i concentration
-                    # x0[5] = GSH
-                    # if x0[0] > 1e-7:
-                    #     k[1] = k[1]*1000
-                    # else:
-                    #     k[1] = k[1]
-                    # if j in np.arange(200,210,1):
-                    #     print(x0[0:5])
                     
-                    # t = t = np.linspace(0, 60, 60+1)
-                    # result = odeint(model, x0, t, args=(k,x0))
-                    GSH, extraC = self.interC[i].update_Cflux(j, GSH, temp_h2o2e_C, 60)
+                    GSH, extraC = self.interC[i].update_Cflux(j, GSH, temp_h2o2e_C, 3600)
                     #print(f"j: {j}  H2O2e 1: {temp_h2o2e_C} 2: {extraC}")
                     # self.interC[2].change_C(j, result[-1, 5]) #update GSH concentration
                     # self.interC[i].change_C(j, result[-1, 1]) #update H2O2i concentration
                     #extraC = self.interC[i].update_scflux(j, tempC, 3600, self.protein_vals[:,j])
                     self.interC[2].change_C(j, GSH) #update GSH concentration
                     self.gradients[0].set_gradient_value_at_point(self.objects[j].location, extraC) #update H2O2e concentration
-                self.interC[i].update_C0(nbs2,n,60)                                                   #GJC for H2O2i
+                self.interC[i].update_C0(nbs2,n,1200)                                                   #GJC for H2O2i
             #print(self.interC)
 
         t1=time.time()
@@ -636,9 +621,10 @@ class Simulation(object):
                 #print(self.objects[i])
                 self.objects[i].update(self, dt)  
                 
-    def collide(self):
+    def collide(self, x, y, z):
         """ Handles the collision map generation 
-        """
+        """ 
+            
         #first make a list of points for the delaunay to use
         k=0
         for i in range(0,len(self.objects)):
@@ -697,7 +683,6 @@ class Simulation(object):
             if(dist > interaction_length):
                 self.network.remove_edge(obj1, obj2)
 
-
     def collide_lowDens(self):
         """ If there are too few cells, or the first iteration of the model. 
         """
@@ -749,7 +734,6 @@ class Simulation(object):
             #if it does not meet the criterion, remove it from the list
             if(dist > interaction_length):
                 self.network.remove_edge(obj1, obj2)
-                
                 
     def optimize(self):                
         #apply constraints from each object and update the positions
