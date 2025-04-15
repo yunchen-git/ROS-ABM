@@ -211,7 +211,7 @@ class StemCell(SimulationObject):
     """
     def __init__(self, location, radius, ID, state, inhib_value=1.0,
                  division_set = 0.0,
-                 division_time = 19.0,
+                 division_time = 19.0*60,
                  owner_ID = None):
         """ Constructor for a stem cell
             location - the location fo the stem cell
@@ -295,7 +295,7 @@ class StemCell(SimulationObject):
             self.state = "D"
             self.update_d
             #self.set_gradient_source_sink_coeff("D", 0, 1e-9)
-            self.division_time = 51 #in hours
+            self.division_time = 51*60 #in hours
 
         #Concentration threshold influencing differentiation; chance to differentiation increases the longer a cell has
         # an elevated intracellular concentration

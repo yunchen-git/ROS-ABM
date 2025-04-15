@@ -20,7 +20,7 @@ from libc.stdlib cimport abs
 #from libc.math cimport fmin
 
 import FBA_ode
-from FBA_ode import model, blap_ODE_system
+from FBA_ode import model, blap_ode_sys
 
 import gc, atexit
 
@@ -60,6 +60,7 @@ class IntC_Diff(object):
         self.name = name
         #set the diffusion coefficient
         self._D = float(D)
+        self.division_times = division_times
         
         cdef int i,j,n1,n2
         cdef double div
@@ -76,10 +77,10 @@ class IntC_Diff(object):
         cdef double[:,:] inhibition = cvarray(shape=(maxCells,2), itemsize=sizeof(double),format="d")
         self.inhibition=inhibition
         
-        for i in range(n2):
-            for j in range(n1):
-                div=abs(j-(division_times[i]/4.0))
-                cell_cycle_effect[j,i]=1/(1+(div/(division_times[i]/4.0))**2)+0.69*j**6/(j**6+division_times[i]**6)
+        #for i in range(n2):
+        #    for j in range(n1):
+        #        div=abs(j-(division_times[i]/4.0))
+        #        cell_cycle_effect[j,i]=1/(1+(div/(division_times[i]/4.0))**2)+0.69*j**6/(j**6+division_times[i]**6)
                 #print(cell_cycle_effect[j,i])
           
         self.cce=cell_cycle_effect
@@ -250,25 +251,55 @@ class IntC_Diff(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.nonecheck(False)  
-    def update_scflux(self, n, extraC, te, protein_vals):
+    def update_scflux(self, n, extraC, te, protein_vals, GSH):
         cdef double[:,:] C = self.C
         cdef long[:,:] state = self.state
         cdef int tend = te
         cdef int timestep = 1
         cdef double cell_density = 1.0e9
-        
-        # Solve the ODE system across the whole interval
-        y_blap = blap_ODE_system(tend, timestep, cell_density, protein_vals, 3, extraC, C[n,0]);
-        
-        C[n, 0] = y_blap[-1,2]   # Last time point, H2O2 cytosol concentration
+        extraC = extraC
 
-        # Return final internal and external concentrations
-        return y_blap[-1,1]
+        cdef np.ndarray x0 = np.copy(FBA_ode.get_blap_x(protein_vals, 3, extraC, C[n,0]))
+        cdef np.ndarray k = FBA_ode.get_blap_k(protein_vals, 3, extraC, C[n,0])
+        
+        t = np.linspace(0, tend, tend+1)  # With te=3600, this gives 3601 points
+
+        try:
+            result = scipy.integrate.solve_ivp(
+                lambda t, y: blap_ode_sys(y, t, k, x0, cell_density),
+                [0, tend],
+                x0,
+                method='Radau',
+                t_eval=t,
+                atol=1e-10,
+                rtol=1e-4
+            )
+            final_values = result.y[:, -1]  # Get the last time point values
+            C[n, 0] = final_values[1]  # Last time point, H2O2 cytosol concentration
+            return final_values[5], final_values[0]
+        except ValueError as e:
+            print(f"Error in cell {n}: {e}")
+            print(f"x0 = {x0}")
+            # Check which values might be causing issues in the result
+            if 'result' in locals():
+                if hasattr(result, 'y'):
+                    print("Result shape:", result.y.shape)
+                    for i in range(min(5, result.y.shape[0])):  # Print first few rows
+                        print(f"result.y[{i},:] = {result.y[i,:]}")
+                    
+                    # Find any NaN or infinity values in the result
+                    if np.any(~np.isfinite(result.y)):
+                        nan_indices = np.where(~np.isfinite(result.y))
+                        print(f"Non-finite values at indices: {nan_indices}")
+                        print(f"Values: {result.y[nan_indices]}")
+                        
+            # Return current values if integration fails
+            return x0[5], x0[0]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.nonecheck(False)  
-    def update_C0(self,cell_nbs,num,te):
+    def update_C0(self,cell_nbs,num,te, division_timer):
         cdef int dim = num
         cdef int[:,:] nbs = cell_nbs
         cdef int edges =nbs.shape[0]
@@ -276,6 +307,7 @@ class IntC_Diff(object):
         cdef double[:,:] C = self.C
         cdef double[:,:] cce = self.cce
         cdef double[:] p_n =self.p_n
+        cdef int[:] division_times = self.division_times
         
         cdef double[:,:] inh = self.inhibition
         cdef double[:] Peff = cvarray(shape=(edges,), itemsize=sizeof(double),format="d")
@@ -297,8 +329,9 @@ class IntC_Diff(object):
             mi=state[i,1]
             nj=state[j,0]
             mj=state[j,1]
-            Peff[x]=vx*Pmax*(p_n[ni]*cce[mi,ni]*inh[i,0])*(p_n[nj]*cce[mj,nj]*inh[j,0])
-            #Peff[x]=vx*Pmax
+            ccei = 1/(1+(abs(division_timer[i]-(division_times[ni]/4.0))/(division_times[ni]/4.0))**2)+0.69*division_timer[i]**6/(division_timer[i]**6+division_times[ni]**6)
+            ccej = 1/(1+(abs(division_timer[j]-(division_times[nj]/4.0))/(division_times[nj]/4.0))**2)+0.69*division_timer[j]**6/(division_timer[j]**6+division_times[nj]**6)
+            Peff[x]=vx*Pmax*(p_n[ni]*ccei)*(p_n[nj]*ccej)
 
         #print(np.array(np.min(Peff)))       #min is 1.187e-05
         #print(np.array(np.max(Peff)))       #max is 0.0002
@@ -327,7 +360,7 @@ class IntC_Diff(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.nonecheck(False)  
-    def update_C1(self,cell_nbs,num,te):
+    def update_C1(self,cell_nbs,num,te, division_timer):
         cdef int dim = num
         cdef int[:,:] nbs = cell_nbs
         cdef int edges =nbs.shape[0]
@@ -335,6 +368,7 @@ class IntC_Diff(object):
         cdef double[:,:] C = self.C
         cdef double[:,:] cce = self.cce
         cdef double[:] p_n =self.p_n
+        cdef int[:] division_times = self.division_times
         
         cdef double[:,:] inh = self.inhibition
         cdef double[:] Peff = cvarray(shape=(edges,), itemsize=sizeof(double),format="d")
@@ -356,7 +390,9 @@ class IntC_Diff(object):
             mi=state[i,1]
             nj=state[j,0]
             mj=state[j,1]
-            Peff[x]=vx*Pmax*(p_n[ni]*cce[mi,ni]*inh[i,0])*(p_n[nj]*cce[mj,nj]*inh[j,0])
+            ccei = 1/(1+(abs(division_timer[i]-(division_times[ni]/4.0))/(division_times[ni]/4.0))**2)+0.69*division_timer[i]**6/(division_timer[i]**6+division_times[ni]**6)
+            ccej = 1/(1+(abs(division_timer[j]-(division_times[nj]/4.0))/(division_times[nj]/4.0))**2)+0.69*division_timer[j]**6/(division_timer[j]**6+division_times[nj]**6)
+            Peff[x]=vx*Pmax*(p_n[ni]*ccei)*(p_n[nj]*ccej)
             #print(vx, Pmax, p_n[ni], cce[mi,ni], inh[i,0], p_n[nj], cce[mj,nj], inh[j,0])
 
         #print(np.array(np.min(Peff)))       #min is 1.187e-05
@@ -416,7 +452,7 @@ class IntC_Diff(object):
         for x in range(edges):
             i=nbs[x,0]
             j=nbs[x,1]
-            ni =state[i,0]
+            ni=state[i,0]
             mi=state[i,1]
             nj=state[j,0]
             mj=state[j,1]

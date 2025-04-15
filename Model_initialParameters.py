@@ -84,6 +84,7 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
         maxCells= int(num * 2 ** ((te+1)/fastest_division_time)) # Calculating the maximum possible number of cells
     
     division_times = np.array([18, 51], dtype=np.int32)
+    division_times = division_times * 60 # convert to minutes
     
     x = 1500
     y = 1500
@@ -125,7 +126,7 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
         ID=i
         point=[locations[i,0], locations[i,1], 0]
         radius=6.5 
-        div_set=r.random()*19.
+        div_set=r.random()*19.*60 #randomly assign a division time between 0 and 19 hours
 
         if i in rand2:
             sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=div_set)

@@ -177,7 +177,7 @@ def model(x, t, k, x0):
     
     return dxdt
 
-def blap_ODE_system(endtime, step, celldens, protein_abund, blap_conc, extraC, intC, parameter_pctchange=None, species_pctchange=None):
+def get_blap_k(protein_abund, blap_conc, extraC, intC, parameter_pctchange=None, species_pctchange=None):
     """
     Model for compartmentalized hydrogen peroxide consumption
     
@@ -203,17 +203,11 @@ def blap_ODE_system(endtime, step, celldens, protein_abund, blap_conc, extraC, i
     time_series : ndarray
         Array containing time points and state variables
     """
-    
     # Establish genes of interest and index
     genes = ["GPX1", "GPX2", "GPX3", "GPX4", "GPX5", "GPX6", "GPX7", "GPX8", "PRDX1", "PRDX2",
              "PRDX2", "PRDX3", "PRDX6", "CAT", "TXN", "TXN2", "TXNRD1", "TXNRD2", "TXNRD3", "GLRX", 
              "GLRX2", "G6PD", "GLUD1", "GSR", "GSTP1", "POR", "NQO1", "SOD1", "SOD2", "SOD3", 
              "AQP3", "AQP8", "AQP9", "GCLC"]
-    
-    # Solver Parameters
-    ti = 0  # start time
-    tf = endtime  # stop time
-    tspan = (ti, tf)
     
     # Define parameter values
     k = np.zeros(36)
@@ -345,6 +339,9 @@ def blap_ODE_system(endtime, step, celldens, protein_abund, blap_conc, extraC, i
     if parameter_pctchange is not None:
         k = k * parameter_pctchange
     
+    return k
+
+def get_blap_x(protein_abund, blap_conc, extraC, intC, parameter_pctchange=None, species_pctchange=None):
     # Defining initial Conditions (Concentrations in uM = micromoles/Liter)
     # Defining the array, x0, that will house initial concentrations
     x0 = np.zeros(32)
@@ -460,122 +457,126 @@ def blap_ODE_system(endtime, step, celldens, protein_abund, blap_conc, extraC, i
         x0[19] = x0[18] * (.5 / 100)  # Grx-SSG
         x0[21] = x0[20] * (.5 / 100)  # Pr-SS
         x0[23] = x0[22] / 100  # NADP+
+    
+    return x0
+            
+def blap_ode_sys(x, t, k, x0, celldens):
+    # Apply bounds to state variables to prevent them from going too high/low
+    dxdt = np.zeros_like(x)
+    
+    x_area = celldens * 1 * 1000 * 4 * np.pi * .00001**2 * 10e-3 # in cm^-1, peroxisome area
+    c_area = celldens * 1 * 4 * np.pi * .001**2 * 10e-3 - x_area  # in cm^-1, # cell membrane area
+    x_vol = 1 * 1000 * 4/3 * np.pi * .00001**3  # in cm^3
+    c_vol = 1 * 4/3 * np.pi * .001**3 - x_vol  # in cm^3
+    m_vol = 1000 - x_vol - c_vol  # in cm^3
+    
+    # Cytosolic Dynamics
+    dxdt[0] = k[0] * c_area * (x[1] - x[0]) / m_vol  # H2O2 extracellular
+    
+    dxdt[1] = (k[0] * c_area * (x[0] - x[1]) / (c_vol) - 
+                k[22] * x_area * (x[1] - x[8]) / (c_vol) + 
+                k[1] - k[2] * x[2] * (x[1] - x0[1]) - 
+                k[7] * x[9] * (x[1] - x0[1]) - k[8] * x[10] * (x[1] - x0[1]) - 
+                k[13] * x[15] * (x[1] - x0[1]) - k[17] * x[20] * (x[1] - x0[1]) + 
+                k[31] * x[27]**2)  # H2O2 cytosol
+    
+    # dxdt[0] = k[0] * (x[1] - x[0]) * 10e-3 * 1.02e-5 * (1e9)
 
-        
+    # dxdt[1] = (((k[0] * x[0] * 10e-3 * 1.02e-5) / (9.16e-13))
+    #            - ((k[0] * x[1] * 10e-3 * 1.02e-5) / (9.16e-13))
+    #            - 2 * (k[22] * (x[1]-x[8]) * 10e-3 * 2.98e-9) / (1.53e-14)              # peroxisomal H2O2     
+    #            - k[2] * x[2] * (x[1] - x0[1])                                   # GPx reduction of H2O2
+    #            - k[5] * x[7] * (x[1] - x0[1])                                   # catalase reaction
+    #            - k[7] * x[9] * (x[1] - x0[1])                                   # peroxiredoxin oxidation
+    #            - k[8] * x[10] * (x[1] - x0[1])                                  # overoxidized peroxiredoxin
+    #            - k[13] * x[15] * (x[1] - x0[1])                                 # Protein monothiol oxidation
+    #            - k[17] * x[20] * (x[1] - x0[1])                                 # Protein dithiol oxidation
+    #            + k[31] * x[27]**2                             
+    #            )
     
-    def ode_sys(t, x, k, celldens):
-        # Apply bounds to state variables to prevent them from going too high/low
-        dxdt = np.zeros_like(x)
-        
-        x_area = celldens * 1 * 1000 * 4 * np.pi * .00001**2  # in cm^2
-        c_area = celldens * 1 * 4 * np.pi * .001**2 - x_area  # in cm^2
-        x_vol = celldens * 1 * 1000 * 4/3 * np.pi * .00001**3  # in cm^3
-        c_vol = celldens * 1 * 4/3 * np.pi * .001**3 - x_vol  # in cm^3
-        m_vol = 1000 - x_vol - c_vol  # in cm^3
-        
-        # Cytosolic Dynamics
-        dxdt[0] = k[0] * c_area * (x[1] - x[0]) / m_vol  # H2O2 extracellular
-        
-        dxdt[1] = (k[0] * c_area * (x[0] - x[1]) / c_vol - 
-                  k[22] * x_area * (x[1] - x[8]) / c_vol + 
-                  k[1] - k[2] * x[2] * (x[1] - x0[1]) - 
-                  k[7] * x[9] * (x[1] - x0[1]) - k[8] * x[10] * (x[1] - x0[1]) - 
-                  k[13] * x[15] * (x[1] - x0[1]) - k[17] * x[20] * (x[1] - x0[1]) + 
-                  k[31] * x[27]**2)  # H2O2 cytosol
-        
-        dxdt[2] = -k[2] * x[2] * (x[1] - x0[1]) + k[4] * (x[4] - x0[4]) * x[5]  # GPXr
-        
-        dxdt[3] = k[2] * x[2] * (x[1] - x0[1]) - k[3] * (x[3] - x0[3]) * x[5]  # GPXo
-        
-        dxdt[4] = k[3] * (x[3] - x0[3]) * x[5] - k[4] * (x[4] - x0[4]) * x[5]  # GPX-SG
-        
-        dxdt[5] = (-k[3] * (x[3] - x0[3]) * x[5] - 
-                  k[4] * (x[4] - x0[4]) * x[5] - 
-                  2 * k[12] * x[5] - k[14] * (x[16] - x0[16]) * x[5] - 
-                  k[34] * x[25] * x[5] - k[16] * (x[19] - x0[19]) * x[5] + 
-                  2 * k[19] * (x[6] - x0[6]) * x[22] + 
-                  k[23] - k[25] * x[5] * x[6])  # GSH
-        
-        dxdt[6] = (k[4] * (x[4] - x0[4]) * x[5] + k[12] * x[5] + 
-                  k[16] * (x[19] - x0[19]) * x[5] - 
-                  k[19] * (x[6] - x0[6]) * x[22] - 
-                  k[24] - k[25] * x[5] * x[6])  # GSSG
-        
-        dxdt[7] = 0  # FeCat
-        
-        dxdt[8] = k[22] * x_area * (x[1] - x[8]) / x_vol - k[5] * x[7] * (x[8] - x0[8])  # H2O2 peroxisome
-        
-        dxdt[9] = -k[7] * x[9] * (x[1] - x0[1]) + k[11] * (x[12] - x0[12]) * x[13]  # Prx-SH
-        
-        dxdt[10] = (k[7] * x[9] * (x[1] - x0[1]) - k[8] * x[10] * (x[1] - x0[1]) + 
-                   k[9] * (x[11] - x0[11]) - k[10] * x[10])  # Prx-SOH
-        
-        dxdt[11] = k[8] * x[10] * (x[1] - x0[1]) - k[9] * (x[11] - x0[11])  # Prx-SOOH
-        
-        dxdt[12] = k[10] * x[10] - k[11] * (x[12] - x0[12]) * x[13]  # Prx-SS
-        
-        dxdt[13] = (-k[11] * (x[12] - x0[12]) * x[13] - 
-                   k[18] * (x[21] - x0[21]) * x[13] + 
-                   k[20] * (x[14] - x0[14]) * x[22])  # Trx-SH
-        
-        dxdt[14] = (k[11] * (x[12] - x0[12]) * x[13] + 
-                   k[18] * (x[21] - x0[21]) * x[13] - 
-                   k[20] * (x[14] - x0[14]) * x[22])  # Trx-SS
-        
-        dxdt[15] = -k[13] * x[15] * (x[1] - x0[1]) + k[15] * x[18] * (x[17] - x0[17])  # Pr-SH
-        
-        dxdt[16] = k[13] * x[15] * (x[1] - x0[1]) - k[14] * (x[16] - x0[16]) * x[5]  # Pr-SOH
-        
-        dxdt[17] = k[14] * (x[16] - x0[16]) * x[5] - k[15] * x[18] * (x[17] - x0[17])  # Pr-SSG
-        
-        dxdt[18] = k[16] * (x[19] - x0[19]) * x[5] - k[15] * x[18] * (x[17] - x0[17])  # Grx-SH
-        
-        dxdt[19] = k[15] * x[18] * (x[17] - x0[17]) - k[16] * (x[19] - x0[19]) * x[5]  # Grx-SSG
-        
-        dxdt[20] = -k[17] * x[20] * (x[1] - x0[1]) + k[18] * (x[21] - x0[21]) * x[13]  # Pr-(SH)2
-        
-        dxdt[21] = k[17] * x[20] * (x[1] - x0[1]) - k[18] * (x[21] - x0[21]) * x[13]  # Pr-SS
-        
-        dxdt[22] = (-k[19] * (x[6] - x0[6]) * x[22] - 
-                   k[20] * (x[14] - x0[14]) * x[22] - 
-                   k[28] * x[24] * x[22] + 
-                   k[21] * (x[23] - x0[23]) / (k[6] + x[23]))  # NADPH
-        
-        dxdt[23] = (k[19] * (x[6] - x0[6]) * x[22] + 
-                   k[20] * (x[14] - x0[14]) * x[22] + 
-                   k[28] * x[24] * x[22] - 
-                   k[21] * (x[23] - x0[23]) / (k[6] + x[23]))  # NADP+
-        
-        dxdt[24] = (k[33] * c_area * (x[29] - x[24]) / c_vol + 
-                   k[30] * x[26] * x[28] - k[28] * x[24] * x[22] - 
-                   k[32] * x[24] * x[22])  # b-lap Q cyto
-        
-        dxdt[25] = (k[28] * x[24] * x[22] - k[29] * x[25] * x[28] - 
-                   k[34] * x[25] * x[5] + k[32] * x[26] * x[22])  # b-lap HQ
-        
-        dxdt[26] = (k[29] * x[25] * x[28] - k[30] * x[26] * x[28] + 
-                   k[32] * x[24] * x[22] - k[32] * x[26] * x[22])  # b-lap SQ
-        
-        dxdt[27] = k[29] * x[25] * x[28] + k[30] * x[26] * x[28] - k[31] * x[27]**2  # superO2
-        
-        dxdt[28] = -k[29] * x[25] * x[28] - k[30] * x[26] * x[28] + k[31] * x[27]**2  # O2
-        
-        dxdt[29] = -k[33] * (x[29] - x[24]) / m_vol  # b-lap Q extracellular
-        
-        dxdt[30] = k[34] * x[25] * x[5] - k[35] * c_area * (x[30] - x[31]) / c_vol  # b-lapHQ-GSH
-        
-        dxdt[31] = k[35] * c_area * (x[30] - x[31]) / m_vol  # b-lapHQ-GSH extracellular
-        
-        return dxdt
+    dxdt[2] = -k[2] * x[2] * (x[1] - x0[1]) + k[4] * (x[4] - x0[4]) * x[5]  # GPXr
     
-    # Integrate the ODE system
-    atol = 1e-10
-    rtol = 1e-4
-    sol = solve_ivp(lambda t, x: ode_sys(t, x0, k, celldens), tspan, x0, 
-                #method='BDF', 
-                atol=atol, rtol=rtol, max_step=step)
+    dxdt[3] = k[2] * x[2] * (x[1] - x0[1]) - k[3] * (x[3] - x0[3]) * x[5]  # GPXo
     
-    # Combine time and state into a single array
-    time_series = np.column_stack((sol.t, sol.y.T))
+    dxdt[4] = k[3] * (x[3] - x0[3]) * x[5] - k[4] * (x[4] - x0[4]) * x[5]  # GPX-SG
     
-    return time_series
+    dxdt[5] = (-k[3] * (x[3] - x0[3]) * x[5] - 
+                k[4] * (x[4] - x0[4]) * x[5] - 
+                2 * k[12] * x[5] - k[14] * (x[16] - x0[16]) * x[5] - 
+                k[34] * x[25] * x[5] - k[16] * (x[19] - x0[19]) * x[5] + 
+                2 * k[19] * (x[6] - x0[6]) * x[22] + 
+                k[23] - k[25] * x[5] * x[6])  # GSH
+    
+    dxdt[6] = (k[4] * (x[4] - x0[4]) * x[5] + k[12] * x[5] + 
+                k[16] * (x[19] - x0[19]) * x[5] - 
+                k[19] * (x[6] - x0[6]) * x[22] - 
+                k[24] - k[25] * x[5] * x[6])  # GSSG
+    
+    dxdt[7] = 0  # FeCat
+    
+    dxdt[8] = k[22] * x_area * (x[1] - x[8]) / x_vol - k[5] * x[7] * (x[8] - x0[8])  # H2O2 peroxisome
+    
+    dxdt[9] = -k[7] * x[9] * (x[1] - x0[1]) + k[11] * (x[12] - x0[12]) * x[13]  # Prx-SH
+    
+    dxdt[10] = (k[7] * x[9] * (x[1] - x0[1]) - k[8] * x[10] * (x[1] - x0[1]) + 
+                k[9] * (x[11] - x0[11]) - k[10] * x[10])  # Prx-SOH
+    
+    dxdt[11] = k[8] * x[10] * (x[1] - x0[1]) - k[9] * (x[11] - x0[11])  # Prx-SOOH
+    
+    dxdt[12] = k[10] * x[10] - k[11] * (x[12] - x0[12]) * x[13]  # Prx-SS
+    
+    dxdt[13] = (-k[11] * (x[12] - x0[12]) * x[13] - 
+                k[18] * (x[21] - x0[21]) * x[13] + 
+                k[20] * (x[14] - x0[14]) * x[22])  # Trx-SH
+    
+    dxdt[14] = (k[11] * (x[12] - x0[12]) * x[13] + 
+                k[18] * (x[21] - x0[21]) * x[13] - 
+                k[20] * (x[14] - x0[14]) * x[22])  # Trx-SS
+    
+    dxdt[15] = -k[13] * x[15] * (x[1] - x0[1]) + k[15] * x[18] * (x[17] - x0[17])  # Pr-SH
+    
+    dxdt[16] = k[13] * x[15] * (x[1] - x0[1]) - k[14] * (x[16] - x0[16]) * x[5]  # Pr-SOH
+    
+    dxdt[17] = k[14] * (x[16] - x0[16]) * x[5] - k[15] * x[18] * (x[17] - x0[17])  # Pr-SSG
+    
+    dxdt[18] = k[16] * (x[19] - x0[19]) * x[5] - k[15] * x[18] * (x[17] - x0[17])  # Grx-SH
+    
+    dxdt[19] = k[15] * x[18] * (x[17] - x0[17]) - k[16] * (x[19] - x0[19]) * x[5]  # Grx-SSG
+    
+    dxdt[20] = -k[17] * x[20] * (x[1] - x0[1]) + k[18] * (x[21] - x0[21]) * x[13]  # Pr-(SH)2
+    
+    dxdt[21] = k[17] * x[20] * (x[1] - x0[1]) - k[18] * (x[21] - x0[21]) * x[13]  # Pr-SS
+    
+    dxdt[22] = (-k[19] * (x[6] - x0[6]) * x[22] - 
+                k[20] * (x[14] - x0[14]) * x[22] - 
+                k[28] * x[24] * x[22] + 
+                k[21] * (x[23] - x0[23]) / (k[6] + x[23]))  # NADPH
+    
+    dxdt[23] = (k[19] * (x[6] - x0[6]) * x[22] + 
+                k[20] * (x[14] - x0[14]) * x[22] + 
+                k[28] * x[24] * x[22] - 
+                k[21] * (x[23] - x0[23]) / (k[6] + x[23]))  # NADP+
+    
+    dxdt[24] = (k[33] * c_area * (x[29] - x[24]) / c_vol + 
+                k[30] * x[26] * x[28] - k[28] * x[24] * x[22] - 
+                k[32] * x[24] * x[22])  # b-lap Q cyto
+    
+    dxdt[25] = (k[28] * x[24] * x[22] - k[29] * x[25] * x[28] - 
+                k[34] * x[25] * x[5] + k[32] * x[26] * x[22])  # b-lap HQ
+    
+    dxdt[26] = (k[29] * x[25] * x[28] - k[30] * x[26] * x[28] + 
+                k[32] * x[24] * x[22] - k[32] * x[26] * x[22])  # b-lap SQ
+    
+    dxdt[27] = (k[29] * x[25] * x[28] 
+                + k[30] * x[26] * x[28] 
+                - k[31] * x[27]**2)  # superO2
+    
+    dxdt[28] = -k[29] * x[25] * x[28] - k[30] * x[26] * x[28] + k[31] * x[27]**2  # O2
+    
+    dxdt[29] = -k[33] * (x[29] - x[24]) / m_vol  # b-lap Q extracellular
+    
+    dxdt[30] = k[34] * x[25] * x[5] - k[35] * c_area * (x[30] - x[31]) / c_vol  # b-lapHQ-GSH
+    
+    dxdt[31] = k[35] * c_area * (x[30] - x[31]) / m_vol  # b-lapHQ-GSH extracellular
+    
+    return dxdt

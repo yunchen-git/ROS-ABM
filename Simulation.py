@@ -412,8 +412,8 @@ class Simulation(object):
         ]
         
         # Load metadata
-        metadata_file = os.path.join(os.getcwd(), "2021-06-08_scrnaseqdata.csv")
-        metadata = pd.read_csv(metadata_file)
+        #metadata_file = os.path.join(os.getcwd(), "2021-06-08_scrnaseqdata.csv")
+        metadata = pd.read_csv('/Users/huyunchen/Library/CloudStorage/OneDrive-GeorgiaInstituteofTechnology/Melissa Kemp Lab/Reference Models/kemplab github/Raddatz AD Antioxidants 2023/AntioxidantsODE-main/2021-06-08_scrnaseqdata.csv')
 
         # Directory with expression data
         files = os.path.join(os.getcwd(), "HNSCC_Broad_scRNAseq")
@@ -570,25 +570,26 @@ class Simulation(object):
                 extraC[self.gradients[i].name].append(tempC)
         #extraC=np.asarray(extraC, dtype=np.float64)
         # print(extraC)
+        division_timer = []
+        for i in range(len(self.objects)):
+            division_timer.append(self.objects[i].division_timer)
 
         t0=time.time()
         for i in range(len(self.interC)):
             if self.interC[i].name=='cAMP':
-                self.interC[i].update_C1(nbs2,n,1200)
+                self.interC[i].update_C1(nbs2,n,20, division_timer)
             elif self.interC[i].name=='H2O2i':
                 for j in range(0, len(self.objects)):
                     #print(j, self.interC[i].C[j], self.objects[j].C)
                     temp_h2o2e_C = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
                     GSH = self.interC[2].get_C(j) #get GSH concentration
+
+                    GSH, extraC = self.interC[i].update_Cflux(j, GSH, temp_h2o2e_C, 60)
+                    #GSH, extraC = self.interC[i].update_scflux(j, temp_h2o2e_C, 3600, self.protein_vals[:,j], GSH) #update H2O2i concentration
                     
-                    GSH, extraC = self.interC[i].update_Cflux(j, GSH, temp_h2o2e_C, 3600)
-                    #print(f"j: {j}  H2O2e 1: {temp_h2o2e_C} 2: {extraC}")
-                    # self.interC[2].change_C(j, result[-1, 5]) #update GSH concentration
-                    # self.interC[i].change_C(j, result[-1, 1]) #update H2O2i concentration
-                    #extraC = self.interC[i].update_scflux(j, tempC, 3600, self.protein_vals[:,j])
                     self.interC[2].change_C(j, GSH) #update GSH concentration
                     self.gradients[0].set_gradient_value_at_point(self.objects[j].location, extraC) #update H2O2e concentration
-                self.interC[i].update_C0(nbs2,n,1200)                                                   #GJC for H2O2i
+                self.interC[i].update_C0(nbs2,n,20,division_timer)                                                   #GJC for H2O2i
             #print(self.interC)
 
         t1=time.time()

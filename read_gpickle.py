@@ -66,7 +66,7 @@ def draw_species_image(network, path, ind, center, radius, species, scale=1, bac
         normalizer = Normalize(vmin=0.00040, vmax=0.0015)  # Replace with the range you expect
     elif species == 'H2O2i':
         colormap = plt.cm.viridis
-        normalizer = Normalize(vmin=0, vmax=5e-9)  # Replace with the range you expect
+        normalizer = Normalize(vmin=0, vmax=5e-6)  # Replace with the range you expect
     elif species == 'cAMP':
         colormap = plt.cm.viridis
         normalizer = Normalize(vmin=0, vmax=1)
@@ -214,7 +214,7 @@ def make_txt(name, path):
     print(f'Reference image is: {name}_{format(0,"02")}.png')
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/11.0/'
+    path = '/Users/huyunchen/Documents/PhD/test/18.0/'
     
     read_network(path, 0, 75)
 
