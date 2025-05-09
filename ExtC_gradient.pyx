@@ -1,6 +1,5 @@
 # cython: language_level=3
 
-# Disable deprecated NumPy API
 cdef extern from *:
     """
     #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION

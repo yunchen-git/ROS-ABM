@@ -61,16 +61,16 @@ def draw_species_image(network, path, ind, center, radius, species, scale=1, bac
     nodes=network.nodes()
 
     # Step 1: Define the color map
-    if species == 'GSH':
+    if species == 'cAMP':
+        colormap = plt.cm.viridis
+        normalizer = Normalize(vmin=0, vmax=1)
+    elif species == 'GSH':
         colormap = plt.cm.jet#viridis  # Choose a color map, e.g., viridis
         normalizer = Normalize(vmin=0.00040, vmax=0.0015)  # Replace with the range you expect
     elif species == 'H2O2i':
         colormap = plt.cm.viridis
-        normalizer = Normalize(vmin=0, vmax=5e-6)  # Replace with the range you expect
-    elif species == 'cAMP':
-        colormap = plt.cm.viridis
-        normalizer = Normalize(vmin=0, vmax=1)
-
+        normalizer = Normalize(vmin=0, vmax=1e-7)  # Replace with the range you expect
+    
     def get_color(C_value):
         normalized_value = normalizer(C_value)  # Map C_value directly within -100 to 100 range
         return colormap(normalized_value)
@@ -112,6 +112,7 @@ def draw_species_image(network, path, ind, center, radius, species, scale=1, bac
     # Add a color bar using Matplotlib
     plt.imshow(cv2.cvtColor(image_C, cv2.COLOR_BGR2RGB))
     plt.axis('off')
+    
     title = species + " Concentration"
     plt.title(title)
     cbar = plt.colorbar(plt.cm.ScalarMappable(norm=normalizer, cmap=colormap), ax=plt.gca(), location='left', pad=0.01, shrink=1.0)
@@ -214,8 +215,7 @@ def make_txt(name, path):
     print(f'Reference image is: {name}_{format(0,"02")}.png')
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/18.0/'
-    
+    path = '/Users/huyunchen/Documents/PhD/test/5.0/'
     read_network(path, 0, 75)
 
     """ 

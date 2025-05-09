@@ -101,8 +101,17 @@ def save_2D_gradient_images(name, save_path, data, axis):
         plt.title("H2O2 Media Gradient")
 
         ax=plt.gca()
-        ax.get_xaxis().set_visible(False)
-        ax.get_yaxis().set_visible(False)
+        ax.get_xaxis().set_visible(True)
+        ax.get_yaxis().set_visible(True)
+
+        height, width = planes[i].shape
+        x_ticks = np.linspace(0, width, 5)
+        y_ticks = np.linspace(0, height, 5)
+        x_labels = [f"{int(x * 10)}" for x in np.linspace(0, width/10, 5)]  # Example conversion to μm
+        y_labels = [f"{int(y * 10)}" for y in np.linspace(0, height/10, 5)]  # Example conversion to μm
+        plt.xticks(x_ticks, x_labels)
+        plt.yticks(y_ticks, y_labels)
+
         divider=make_axes_locatable(ax)
         cax=divider.append_axes("left", size="5%", pad=0.05)    
         cb=plt.colorbar(cax=cax)

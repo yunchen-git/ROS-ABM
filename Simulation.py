@@ -277,7 +277,6 @@ class Simulation(object):
 
         #also keep track of the current sim object ID
         self._current_ID = 0
-
         #keep track of the fuile sepeartor to use
         if(platform.system() == "Windows"):
             #windows
@@ -490,6 +489,7 @@ class Simulation(object):
         self._set_gradient_inital_conditions()
         #self.load_gene_expression_data()
         #nor run the loop
+
         while(self.time <= self.end_time):
             print("Time: " + repr(self.time))
             print("Number of objects: " + repr(len(self.objects)))
@@ -581,14 +581,19 @@ class Simulation(object):
             elif self.interC[i].name=='H2O2i':
                 for j in range(0, len(self.objects)):
                     #print(j, self.interC[i].C[j], self.objects[j].C)
-                    temp_h2o2e_C = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
-                    GSH = self.interC[2].get_C(j) #get GSH concentration
+                    # temp_h2o2e_C = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
+                    #GSH = self.interC[2].get_C(j) #get GSH concentration
+                    x0 = self.objects[j].x0
+                    x0[0] = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
 
-                    GSH, extraC = self.interC[i].update_Cflux(j, GSH, temp_h2o2e_C, 60)
+                    x0= self.interC[i].update_Cflux(j, x0, 60) #GSH, temp_h2o2e_C, 60)
+                    self.objects[j].x0 = x0
+                    if j == 1:
+                        print(self.objects[j].x0)
                     #GSH, extraC = self.interC[i].update_scflux(j, temp_h2o2e_C, 3600, self.protein_vals[:,j], GSH) #update H2O2i concentration
                     
-                    self.interC[2].change_C(j, GSH) #update GSH concentration
-                    self.gradients[0].set_gradient_value_at_point(self.objects[j].location, extraC) #update H2O2e concentration
+                    #self.interC[2].change_C(j, GSH) #update GSH concentration
+                    self.gradients[0].set_gradient_value_at_point(self.objects[j].location, x0[0]) #update H2O2e concentration
                 self.interC[i].update_C0(nbs2,n,20,division_timer)                                                   #GJC for H2O2i
             #print(self.interC)
 
@@ -608,8 +613,10 @@ class Simulation(object):
             self.gradients[i].cubic_interpolate_at_object_locations(self.objects) #gradient value
             
             #print(self.gradients[i])
-            print("Sources max: " + repr(np.max(sources[i])) + " , min:" +repr(np.min(sources[i])))
-            print("Sinks max: " + repr(np.max(sinks[i])) + " , min:" + repr(np.min(sinks[i])))
+            print(f"Sources max: {np.max(sources[i]):g} , min: {np.min(sources[i]):g}")
+            print(f"Sinks max: {np.max(sinks[i]):g} , min: {np.min(sinks[i]):g}")
+
+            #print("Sinks max: " + repr(np.max(sinks[i])) + " , min:" + repr(np.min(sinks[i])))
         t1=time.time()
         print ("Gradient Diffusion Time: {}".format(t1-t0))
         

@@ -5,10 +5,10 @@ except ImportError:
     # from distutils.core import setup
     # from distutils.extension import Extension
     print("error, please install setuptools")
-import numpy
+    
+import numpy as np
 
 from Cython.Build import cythonize
-import numpy as np
 """
 This script is meant to compile the intercellular diffusion module and extracellular diffusion module to C-code. 
 
@@ -20,6 +20,6 @@ To compile go to a command console and:
 
 setup(
     ext_modules=cythonize(["IntC_diff.pyx", "ExtC_gradient.pyx"], compiler_directives={'language_level': "3"}),
-    include_dirs=[numpy.get_include()],
+    include_dirs=[np.get_include()],
     define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')]
 )

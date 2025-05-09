@@ -1,6 +1,5 @@
 # cython: language_level=3
 
-# Disable deprecated NumPy API
 cdef extern from *:
     """
     #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
@@ -68,14 +67,15 @@ class IntC_Diff(object):
         sync_state[0]=int(sync_time[0])
         sync_state[1]=int(sync_time[1])
         self.sync_t = sync_state
+        #set the dimensions in each direction
         n1=np.max(division_times)
         n2=len(division_times)
-        
-        #set the dimensions in each direction
+
         #cdef double[:,:] cell_cycle_effect = cvarray(shape=(n1,n2), itemsize=sizeof(double),format="d")
         cdef np.ndarray[np.float64_t, ndim=2] cell_cycle_effect = np.zeros((n1, n2), dtype=np.float64)
         cdef double[:,:] inhibition = cvarray(shape=(maxCells,2), itemsize=sizeof(double),format="d")
         self.inhibition=inhibition
+
         
         #for i in range(n2):
         #    for j in range(n1):
@@ -189,31 +189,41 @@ class IntC_Diff(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.nonecheck(False)  
-    def update_Cflux(self, n, GSH, extraC, te):
+    def update_Cflux(self, n, x0, te): #GSH, extraC, te):
         cdef double[:,:] C = self.C
         cdef long[:,:] state = self.state
         cdef int tend = te
         
-        cdef np.ndarray x0 = np.copy(FBA_ode.get_x0())
+        #cdef np.ndarray x0 = np.copy(FBA_ode.get_x0())
         cdef np.ndarray k = FBA_ode.get_k()
+        cdef np.ndarray x_0 = x0
         
         # Initialize x0 with extraC and self.C
-        x0[0] = extraC
-        x0[1] = C[n, 0]
+        #x0[0] = extraC
+        x_0[1] = C[n, 0]
         #x0[5] = GSH
         
+        #h2o2 scavenging rate constants
+        #k[2]=0          #
+        #k[5]=0
+        #k[7]=0
+        #k[8]=0
+        #k[13]=0
+        #k[17]=0
+        #k[22]=0
+
          # Validate input values
-        if not np.all(np.isfinite(x0)):
+        if not np.all(np.isfinite(x_0)):
             # Replace non-finite values with safe defaults
-            for i in range(len(x0)):
-                if not np.isfinite(x0[i]):
-                    x0[i] = 0.0
+            for i in range(len(x_0)):
+                if not np.isfinite(x_0[i]):
+                    x_0[i] = 0.0
                     print(f"Warning: Replaced non-finite x0[{i}] with 0.0")
                     
-        if x0[1] > 1e-6:
-            k[1] = k[1]*1e4
+        if x_0[1] > 1e-7:
+            k[31] = 1e-3
         else:
-            k[1] = k[1]
+            k[31] = 0
             
         # Create time points for integration (0 to te with te+1 points)
         t = np.linspace(0, tend, tend+1)  # With te=3600, this gives 3601 points
@@ -224,9 +234,9 @@ class IntC_Diff(object):
         try:
             # Use more robust integration method with error control
             result = scipy.integrate.solve_ivp(
-                lambda t, y: model(y, t, k, x0),
+                lambda t, y: model(y, t, k, x_0),
                 [0, tend],
-                x0,
+                x_0,
                 method='Radau',
                 t_eval=t,
                 atol=1e-10,
@@ -238,12 +248,12 @@ class IntC_Diff(object):
             C[n, 0] = final_values[1]  # Last time point, H2O2 cytosol concentration
             
             # Return final internal and external concentrations
-            return final_values[5], final_values[0]
+            return final_values
         except ValueError as e:
             print(f"Error in cell {n}: {e}")
             print(f"x0 = {x0}")
             # Return current values if integration fails
-            return x0[5], x0[0]
+            return x_0
 
         # Return final internal and external concentrations
         #return final_values[5], final_values[0]
@@ -484,65 +494,6 @@ class IntC_Diff(object):
 
         for i in range(dim):
             state[i,1]=state[i,1]+1
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.nonecheck(False)  
-    def update_C_sync(self,cell_nbs,num,te):
-        cdef int dim = num
-        cdef int[:,:] nbs = cell_nbs
-        cdef int edges =nbs.shape[0]
-        cdef double[:,:] dp = self.deg_prod
-        cdef double[:,:] C = self.C
-        cdef double[:,:] cce = self.cce
-        cdef double[:] p_n =self.p_n
-        
-        cdef double[:,:] inh = self.inhibition
-        cdef double[:] Peff = cvarray(shape=(edges,), itemsize=sizeof(double),format="d")
-        cdef long[:,:] state = self.state
-        cdef int i,j,x,ni,nj,mi,mj
-        
-        cdef double t=0.0
-        cdef double tend=te
-        cdef double Pmax=self.Pmax
-        cdef double vx=self.vx
-        cdef int[:] sync_time = self.sync_t
-        cdef double temp 
-        cdef double dt =self.dt
-        cdef double prod, deg, qni, qnj
-
-        for x in range(edges):
-            i=nbs[x,0]
-            j=nbs[x,1]
-            ni =state[i,0]
-            mi=state[j,1]
-            nj=state[j,0]
-            mj=state[j,1]
-            Peff[x]=vx*Pmax*(p_n[ni]*cce[mi,ni]*inh[i,0])*(p_n[nj]*cce[mj,nj]*inh[j,0])
-                
-        while t<tend:
-            for x in range(edges):
-                i=nbs[x,0]
-                j=nbs[x,1]
-                ni =state[i,0]
-                C[i,1]=C[i,1]+Peff[x]*(C[j,0]-C[i,0])
-                C[j,1]=C[j,1]+Peff[x]*(C[i,0]-C[j,0])
-                
-            for i in range(dim):
-                ni =state[i,0]               
-                prod=inh[i,1]*vx*dp[ni,0]/(1.+(C[i,0]/dp[ni,1])**dp[ni,2])
-                
-                deg=-vx*dp[ni,3]*C[i,0]
-                
-                C[i,0]=C[i,0]+C[i,1]+prod+deg
-                C[i,1]=0.0
-            t=t+dt
-                
-        for i in range(dim):
-            j=state[i,0]
-            temp=abs(state[i,1]-sync_time[j])
-            if temp>0:
-                state[i,1]=state[i,1]+1
             
 
     def __repr__(self):

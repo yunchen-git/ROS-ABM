@@ -7,6 +7,7 @@ from simulationMath1 import *
 import random as rand
 import math as math
 import numpy as np
+from FBA_ode import get_k, get_x0
 class SimulationObject(object):
     """ Base class from which all simulation obejcts must inherit
     """
@@ -36,6 +37,9 @@ class SimulationObject(object):
         self.sim_type = sim_type
         self.ID = ID
         self.owner_ID = owner_ID
+        self.k = get_k()
+        self.x0 = get_x0()
+
         self.z=0
         #keep track of the opt and col vecs
         #print(len(self.location))
@@ -63,6 +67,8 @@ class SimulationObject(object):
 
     def setC(self,C,name):
         self.C[name]=C
+        if name == 'H2O2i':
+            self.x0[1] = C
 
     def update_d(self, sim):
         nbs=sim.network.neighbors(self)

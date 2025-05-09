@@ -7,7 +7,7 @@ def get_k():
 
         # Defining forward reaction rates 
         # Defining the array, k, that will house reaction rates
-        k = np.zeros(31)  # Defining the array, k, that will house reaction rates
+        k = np.zeros(32)  # Defining the array, k, that will house reaction rates
 
         # Rxns (Cytosolic)
 
@@ -42,6 +42,7 @@ def get_k():
         k[28] = 1e-5 # nox generation of superoxide ()    #Banfi B. et al, JBC 2002
         k[29] = 4e9 # superoxide dismutase reduction and oxidation by superoxide (M-1*s-1), from Fee J.A. & Bull C. The journal of biological chemistry 1986
         k[30] = 1e-4 # intracellular superoxide production (M/s)
+        k[31] = 0
 
         return k
 
@@ -49,7 +50,7 @@ def get_x0():
         x0 = np.zeros(28)  # Defining the array, x0, that will house initial concentrations
         # Cytoplasm
         x0[0] = 0#1e-4  # H2O2media 
-        x0[1] = 1.0e-9  # H2O2cytosol
+        x0[1] = 1.0e-8  # H2O2cytosol
 
         x0[2] = 5e-5  # GPXr 
         x0[3] = 1e-14  # GPXo 
@@ -96,7 +97,7 @@ def model(x, t, k, x0):
     #     x0 = get_x0()
 
     dxdt = np.zeros_like(x)
-    dxdt[0] = k[0] * (x[1] - x[0]) * 10e-3 * 1.02e-5 * (1e9)
+    dxdt[0] = k[0] * (x[1] - x[0]) * 10e-3 * 1.02e-5 * (1e9) + k[31]
 
     dxdt[1] = (((k[0] * x[0] * 10e-3 * 1.02e-5) / (9.16e-13))
                - ((k[0] * x[1] * 10e-3 * 1.02e-5) / (9.16e-13))
