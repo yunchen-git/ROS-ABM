@@ -185,14 +185,14 @@ class ExtC_Diff(object):
 
         #perform a trilinear interpolation from wikipedia.org
         #x
-        if(x - ix > .5):
+        if(x - ix >= .5):
             x0 = ix
             x1 = ix + 1
         else:
             x0 = ix - 1
             x1 = ix
         #y
-        if(y - iy > .5):
+        if(y - iy >= .5):
             y0 = iy
             y1 = iy + 1
         else:

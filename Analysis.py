@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import math
 import os
+import Analysis as af
+import Simulation as sim
+import pickle as p
 
 import atexit,gc
 @atexit.register
@@ -92,9 +95,10 @@ def save_2D_gradient_images(name, save_path, data, axis):
         plt.imshow(planes[i],
                    cmap=plt.cm.seismic,
                    vmin = mn,
-                   vmax = mx,
+                   vmax = 1e-9,
                    interpolation = 'bicubic',
                    origin= 'lower')
+        #print(mx, mn)
         
         #add a title
 ##        plt.title("Morphogen Gradient" + "   Time: " + repr(times[i]))
@@ -134,6 +138,16 @@ def save_2D_gradient_images(name, save_path, data, axis):
         plt.cla()
     plt.close()
     
-        
+def getGradientImages(path):
+    data=sim.TimeSeries(path)
+    grad_names=data._grad_names
+    
+    for i in range(0,len(grad_names)):
+        save_2D_gradient_images(grad_names[i],path,data,axis="xy")
+
+if __name__=='__main__':
+    path='/Users/huyunchen/Documents/PhD/test/3.0/'
+    getGradientImages(path)
+
 
         

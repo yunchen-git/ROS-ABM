@@ -23239,13 +23239,13 @@ static PyObject *__pyx_pf_13ExtC_gradient_9ExtC_Diff_12get_gradient_value_at_poi
   /* "ExtC_gradient.pyx":188
  *         #perform a trilinear interpolation from wikipedia.org
  *         #x
- *         if(x - ix > .5):             # <<<<<<<<<<<<<<
+ *         if(x - ix >= .5):             # <<<<<<<<<<<<<<
  *             x0 = ix
  *             x1 = ix + 1
  */
   __pyx_t_2 = PyNumber_Subtract(__pyx_v_x, __pyx_v_ix); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 188, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_3 = PyObject_RichCompare(__pyx_t_2, __pyx_float__5, Py_GT); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 188, __pyx_L1_error)
+  __pyx_t_3 = PyObject_RichCompare(__pyx_t_2, __pyx_float__5, Py_GE); __Pyx_XGOTREF(__pyx_t_3); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 188, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_t_7 = __Pyx_PyObject_IsTrue(__pyx_t_3); if (unlikely((__pyx_t_7 < 0))) __PYX_ERR(0, 188, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
@@ -23253,7 +23253,7 @@ static PyObject *__pyx_pf_13ExtC_gradient_9ExtC_Diff_12get_gradient_value_at_poi
 
     /* "ExtC_gradient.pyx":189
  *         #x
- *         if(x - ix > .5):
+ *         if(x - ix >= .5):
  *             x0 = ix             # <<<<<<<<<<<<<<
  *             x1 = ix + 1
  *         else:
@@ -23262,7 +23262,7 @@ static PyObject *__pyx_pf_13ExtC_gradient_9ExtC_Diff_12get_gradient_value_at_poi
     __pyx_v_x0 = __pyx_v_ix;
 
     /* "ExtC_gradient.pyx":190
- *         if(x - ix > .5):
+ *         if(x - ix >= .5):
  *             x0 = ix
  *             x1 = ix + 1             # <<<<<<<<<<<<<<
  *         else:
@@ -23276,7 +23276,7 @@ static PyObject *__pyx_pf_13ExtC_gradient_9ExtC_Diff_12get_gradient_value_at_poi
     /* "ExtC_gradient.pyx":188
  *         #perform a trilinear interpolation from wikipedia.org
  *         #x
- *         if(x - ix > .5):             # <<<<<<<<<<<<<<
+ *         if(x - ix >= .5):             # <<<<<<<<<<<<<<
  *             x0 = ix
  *             x1 = ix + 1
  */
@@ -23301,7 +23301,7 @@ static PyObject *__pyx_pf_13ExtC_gradient_9ExtC_Diff_12get_gradient_value_at_poi
  *             x0 = ix - 1
  *             x1 = ix             # <<<<<<<<<<<<<<
  *         #y
- *         if(y - iy > .5):
+ *         if(y - iy >= .5):
  */
     __Pyx_INCREF(__pyx_v_ix);
     __pyx_v_x1 = __pyx_v_ix;
@@ -23311,13 +23311,13 @@ static PyObject *__pyx_pf_13ExtC_gradient_9ExtC_Diff_12get_gradient_value_at_poi
   /* "ExtC_gradient.pyx":195
  *             x1 = ix
  *         #y
- *         if(y - iy > .5):             # <<<<<<<<<<<<<<
+ *         if(y - iy >= .5):             # <<<<<<<<<<<<<<
  *             y0 = iy
  *             y1 = iy + 1
  */
   __pyx_t_3 = PyNumber_Subtract(__pyx_v_y, __pyx_v_iy); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 195, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
-  __pyx_t_2 = PyObject_RichCompare(__pyx_t_3, __pyx_float__5, Py_GT); __Pyx_XGOTREF(__pyx_t_2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 195, __pyx_L1_error)
+  __pyx_t_2 = PyObject_RichCompare(__pyx_t_3, __pyx_float__5, Py_GE); __Pyx_XGOTREF(__pyx_t_2); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 195, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __pyx_t_7 = __Pyx_PyObject_IsTrue(__pyx_t_2); if (unlikely((__pyx_t_7 < 0))) __PYX_ERR(0, 195, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -23325,7 +23325,7 @@ static PyObject *__pyx_pf_13ExtC_gradient_9ExtC_Diff_12get_gradient_value_at_poi
 
     /* "ExtC_gradient.pyx":196
  *         #y
- *         if(y - iy > .5):
+ *         if(y - iy >= .5):
  *             y0 = iy             # <<<<<<<<<<<<<<
  *             y1 = iy + 1
  *         else:
@@ -23334,7 +23334,7 @@ static PyObject *__pyx_pf_13ExtC_gradient_9ExtC_Diff_12get_gradient_value_at_poi
     __pyx_v_y0 = __pyx_v_iy;
 
     /* "ExtC_gradient.pyx":197
- *         if(y - iy > .5):
+ *         if(y - iy >= .5):
  *             y0 = iy
  *             y1 = iy + 1             # <<<<<<<<<<<<<<
  *         else:
@@ -23348,7 +23348,7 @@ static PyObject *__pyx_pf_13ExtC_gradient_9ExtC_Diff_12get_gradient_value_at_poi
     /* "ExtC_gradient.pyx":195
  *             x1 = ix
  *         #y
- *         if(y - iy > .5):             # <<<<<<<<<<<<<<
+ *         if(y - iy >= .5):             # <<<<<<<<<<<<<<
  *             y0 = iy
  *             y1 = iy + 1
  */

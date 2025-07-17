@@ -13,6 +13,7 @@ from matplotlib.colors import Normalize
 
 def read_network(path, t0, tf):
     center = np.zeros(2)
+    tracked_cell_data = []
 
     # get center and radius of the last available network
     last_available_n = None
@@ -70,6 +71,9 @@ def draw_species_image(network, path, ind, center, radius, species, scale=1, bac
     elif species == 'H2O2i':
         colormap = plt.cm.viridis
         normalizer = Normalize(vmin=0, vmax=1e-7)  # Replace with the range you expect
+    else:
+        colormap = plt.cm.plasma
+        normalizer = Normalize(vmin=0, vmax=1e-9)
     
     def get_color(C_value):
         normalized_value = normalizer(C_value)  # Map C_value directly within -100 to 100 range
@@ -215,7 +219,7 @@ def make_txt(name, path):
     print(f'Reference image is: {name}_{format(0,"02")}.png')
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/5.0/'
+    path = '/Users/huyunchen/Documents/PhD/test/3.0/'
     read_network(path, 0, 75)
 
     """ 

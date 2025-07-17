@@ -212,7 +212,10 @@ class IntC_Diff(object):
         #k[17]=0
         #k[22]=0
 
-         # Validate input values
+        #h2o2 production
+        #k[1]=0
+
+        # Validate input values
         if not np.all(np.isfinite(x_0)):
             # Replace non-finite values with safe defaults
             for i in range(len(x_0)):
@@ -220,10 +223,14 @@ class IntC_Diff(object):
                     x_0[i] = 0.0
                     print(f"Warning: Replaced non-finite x0[{i}] with 0.0")
                     
+        #if x_0[1] > 1e-7 or x_0[29] > 1e-19:
+        #k[32] = x_0[1] * 1e-6
         if x_0[1] > 1e-7:
-            k[31] = 1e-3
+            k[31] = 0#1e-4                #nox
+            #k[1] = 1.1e-5               #internal production
         else:
             k[31] = 0
+            #k[1] = k[1]
             
         # Create time points for integration (0 to te with te+1 points)
         t = np.linspace(0, tend, tend+1)  # With te=3600, this gives 3601 points

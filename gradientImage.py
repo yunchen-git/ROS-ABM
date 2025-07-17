@@ -11,7 +11,7 @@ def getGradientImages(path):
 
 
 if __name__=='__main__':
-    path='/Users/huyunchen/Documents/PhD/experiment/3.0/'
+    path='/Users/huyunchen/Documents/PhD/test/2.0/'
     getGradientImages(path)
 
 

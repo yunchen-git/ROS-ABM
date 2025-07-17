@@ -94,6 +94,7 @@ class TimeSeries(object):
         #get the gradient names
         line = f.readline()
         data = line.split(":")
+        print(data)
         data = data[1].strip("\n")
         data = data.split(",")
         if(data[0] == "" or data[0] == " "):
@@ -102,6 +103,7 @@ class TimeSeries(object):
             self._grad_names = data
         line = f.readline()
         data = line.split(":")
+        print(data)
         data = data[1].strip("\n")
         data = data.split(",")
         if(data[0] == "" or data[0] == " "):
@@ -475,13 +477,14 @@ class Simulation(object):
             print("Directory already exsists... overwriting directory")
         struct_path=os.getcwd()
         
-        final_path=self.path + self._sep + self.name+self._sep+"copiedTM"
-        try:
-            shutil.copytree(struct_path,final_path)
-        except OSError:
-            print("Replacing Model files...hope you wanted that.")
-            shutil.rmtree(final_path)
-            shutil.copytree(struct_path,final_path)
+        # final_path=self.path + self._sep + self.name+self._sep+"copiedTM"
+        # try:
+        #     shutil.copytree(struct_path,final_path)
+        # except OSError:
+        #     print("Replacing Model files...hope you wanted that.")
+        #     shutil.rmtree(final_path)
+        #     shutil.copytree(struct_path,final_path)
+
         #create the simulation header file
         self._create_header_file()
 ##        #save the inital state configuration
@@ -489,7 +492,7 @@ class Simulation(object):
         self._set_gradient_inital_conditions()
         #self.load_gene_expression_data()
         #nor run the loop
-
+        self.gradients[0].set_gradient_value_at_point([np.float64(299.82398870120426), np.float64(374.4983564833048), 0], .001)
         while(self.time <= self.end_time):
             print("Time: " + repr(self.time))
             print("Number of objects: " + repr(len(self.objects)))
@@ -510,9 +513,6 @@ class Simulation(object):
                 #now optimize the resultant constraints
             self.optimize()
             
-            # for i in range(len(self.objects)):                      #checking the C values of the classes
-            #     print(f"{i} sim_obj C: " + repr(self.objects[i].C), "interC C: " + repr(self.interC[0].C[i]))
-
             #increment the time
             self.time += self.time_step
             #save 
@@ -573,6 +573,29 @@ class Simulation(object):
         division_timer = []
         for i in range(len(self.objects)):
             division_timer.append(self.objects[i].division_timer)
+        
+        #define the sinks and sources
+        print("Updating gradients...")
+        t0=time.time()
+        if(len(self.gradients) > 0):
+            sources, sinks = self._define_sinks_and_sources()
+        #print(self.objects)
+        #update the gradients
+        #print(f"gradients length {len(self.gradients)}")
+        for i in range(0, len(self.gradients)):
+            t0_1 = time.time()
+            self.gradients[i].update(1, sinks[i], sources[i]) #flux between in and out
+            self.gradients[i].cubic_interpolate_at_object_locations(self.objects) #gradient value
+            
+            print(self.gradients[i].name)
+            print(f"Sources max: {np.max(sources[i]):g} , min: {np.min(sources[i]):g}")
+            print(f"Sinks max: {np.max(sinks[i]):g} , min: {np.min(sinks[i]):g}")
+            t0_2 = time.time()
+            print(f"{self.gradients[i].name} transport time: {t0_2-t0_1}")
+
+            #print("Sinks max: " + repr(np.max(sinks[i])) + " , min:" + repr(np.min(sinks[i])))
+        t1=time.time()
+        print ("Gradient Diffusion Time: {}".format(t1-t0))
 
         t0=time.time()
         for i in range(len(self.interC)):
@@ -583,42 +606,29 @@ class Simulation(object):
                     #print(j, self.interC[i].C[j], self.objects[j].C)
                     # temp_h2o2e_C = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
                     #GSH = self.interC[2].get_C(j) #get GSH concentration
+                    
                     x0 = self.objects[j].x0
                     x0[0] = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
+                    #print(x0[0])
+                    x0[28] = self.interC[2].get_C(j) #get Ca concentration
+                    x0[29] = self.gradients[1].get_gradient_value_at_point(self.objects[j].location) #get Ca concentration
 
-                    x0= self.interC[i].update_Cflux(j, x0, 60) #GSH, temp_h2o2e_C, 60)
+                    x0 = self.interC[i].update_Cflux(j, x0, 60) #GSH, temp_h2o2e_C, 60)
+                    self.interC[2].change_C(j, x0[28]) #update Ca concentration
                     self.objects[j].x0 = x0
-                    if j == 1:
-                        print(self.objects[j].x0)
                     #GSH, extraC = self.interC[i].update_scflux(j, temp_h2o2e_C, 3600, self.protein_vals[:,j], GSH) #update H2O2i concentration
                     
+                    #if self.time > 1 and j == 1890:
+                        #self.objects[j].set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
                     #self.interC[2].change_C(j, GSH) #update GSH concentration
                     self.gradients[0].set_gradient_value_at_point(self.objects[j].location, x0[0]) #update H2O2e concentration
+                    self.gradients[1].set_gradient_value_at_point(self.objects[j].location, x0[29]) #update Ca concentration
+                    
+                    #self.objects[j].set_gradient_source_sink_coeff('H2O2e', x0[29], 0.0)
                 self.interC[i].update_C0(nbs2,n,20,division_timer)                                                   #GJC for H2O2i
             #print(self.interC)
-
         t1=time.time()
-        print ("Inter Transport Time: {}".format(t1-t0))
-
-        #define the sinks and sources
-        print("Updating gradients...")
-        t0=time.time()
-        if(len(self.gradients) > 0):
-            sources, sinks = self._define_sinks_and_sources()
-        #print(self.objects)
-        #update the gradients
-        #print(f"gradients length {len(self.gradients)}")
-        for i in range(0, len(self.gradients)):
-            self.gradients[i].update(1, sinks[i], sources[i]) #flux between in and out
-            self.gradients[i].cubic_interpolate_at_object_locations(self.objects) #gradient value
-            
-            #print(self.gradients[i])
-            print(f"Sources max: {np.max(sources[i]):g} , min: {np.min(sources[i]):g}")
-            print(f"Sinks max: {np.max(sinks[i]):g} , min: {np.min(sinks[i]):g}")
-
-            #print("Sinks max: " + repr(np.max(sinks[i])) + " , min:" + repr(np.min(sinks[i])))
-        t1=time.time()
-        print ("Gradient Diffusion Time: {}".format(t1-t0))
+        print("Inter Transport Time: {}".format(t1-t0))
         
         #RUN A FASTER UPDATE LOOP     
         split = 1
@@ -981,7 +991,7 @@ class Simulation(object):
         #Write the gradient names
         self._header.write("Gradient Species:")
         for i in range(0, len(self.gradients)):
-            self._header.write(self.gradients[i].name)
+            self._header.write(self.gradients[i].name + ",")
             if(i > len(self.gradients) - 1):
                 self._header.write(",")
         self._header.write("\n")

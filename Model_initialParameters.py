@@ -68,10 +68,10 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     fastest_division_time=18.0
     
     D_camp = 444 ##um^2/sec diffusion coefficient for cyclic AMP Dworkin & Keller 1977 J. Bio Chem
-    D_h2o2i = 444 ##um^2/sec diffusion coefficient for H2O2
-    D_h2o2e = 444 ##um^2/sec diffusion coefficient for H2O2 in the extracellular space 
+    D_h2o2i = 2500 ##um^2/sec diffusion coefficient for H2O2
+    D_h2o2e = 2500 ##um^2/sec diffusion coefficient for H2O2 in the extracellular space 
     
-    cell_path = os.getcwd() + os.sep + 'RA0_4.5.txt'#'new_populated.txt' #'RA0_4.5.txt'
+    cell_path = os.getcwd() + os.sep + 'new_populated.txt' #'RA0_4.5.txt'
     cells = np.loadtxt(cell_path, delimiter=',')
     locations = cells[:,1:3]
 
@@ -86,8 +86,8 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     division_times = np.array([18, 51], dtype=np.int32)
     division_times = division_times * 60 # convert to minutes
     
-    x = 1000#2000
-    y = 1000#2000
+    x = 750
+    y = 750
     z = 30
     ddim=1.0                      #Grid spacing in um
     sync_time=[500,500]             # This isn't used
@@ -107,6 +107,13 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     # GSH = IntC_Diff("GSH",maxCells,D_h2o2, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
     #                 celltype_param,division_times,sync_time)
     # sim.add_interC(GSH)
+
+    iCa = IntC_Diff("iCa",maxCells, 300, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
+                    celltype_param,division_times,sync_time)
+    sim.add_interC(iCa)
+
+    eCa = ExtC_Diff("eCa", 300, x, y, z, ddim)
+    sim.add_gradient(eCa)
 
     # superoxide_i = IntC_Diff("superoxide_i",maxCells,D_h2o2,grid_dim,ddim,Pmax,open_prob,              #create instance of IntC_Diff class
     #                 celltype_param,division_times,sync_time)
@@ -128,15 +135,21 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
         radius=6.5 
         div_set=r.random()*19.*60 #randomly assign a division time between 0 and 19 hours
 
-        if i == 1:#1890: #9118:
+        if i == 92:#1890:#9116:#1890: 
             sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=div_set)
-            sim_obj.setC(1.0e-5,'H2O2i')
-            sim_obj.setC(1,'cAMP')
+            sim_obj.setC(1.0e-9,'H2O2i')
+            sim_obj.setC(0.595+0.05*x,'cAMP')
+            sim_obj.setC(0, 'iCa')
+            #sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
+            #sim.gradients[0].set_gradient_value_at_point(point, 5.25)
+            #sim_obj.set_gradient_source_sink_coeff("eCa", 1e-4, 0.0)
             #H2O2i.change_C(ID, 1.0e-4)
         else:
             sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=div_set)   #create instance of StemCell class
-            sim_obj.setC(1.0e-8,'H2O2i')
+            sim_obj.setC(1.0e-9,'H2O2i')
             sim_obj.setC(0.595+0.05*x,'cAMP')
+            sim_obj.setC(0.0,'iCa')
+            #sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
         
         sim.inc_current_ID()
         x = rand.random()
@@ -144,6 +157,7 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
 
         # sim_obj.setC(0.0,'superoxide_i')
         sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
+        sim_obj.set_gradient_source_sink_coeff("eCa", 0.0, 0.0)
 
         sim.add(sim_obj)
 

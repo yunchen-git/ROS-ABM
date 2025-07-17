@@ -7,7 +7,7 @@ def get_k():
 
         # Defining forward reaction rates 
         # Defining the array, k, that will house reaction rates
-        k = np.zeros(32)  # Defining the array, k, that will house reaction rates
+        k = np.zeros(33)  # Defining the array, k, that will house reaction rates
 
         # Rxns (Cytosolic)
 
@@ -42,15 +42,16 @@ def get_k():
         k[28] = 1e-5 # nox generation of superoxide ()    #Banfi B. et al, JBC 2002
         k[29] = 4e9 # superoxide dismutase reduction and oxidation by superoxide (M-1*s-1), from Fee J.A. & Bull C. The journal of biological chemistry 1986
         k[30] = 1e-4 # intracellular superoxide production (M/s)
-        k[31] = 0
+        k[31] = 0 # nox h2o2 production (M/s)
+        k[32] = 0 # extracellular vesicle production (M/s?)
 
         return k
 
 def get_x0():
-        x0 = np.zeros(28)  # Defining the array, x0, that will house initial concentrations
+        x0 = np.zeros(30)  # Defining the array, x0, that will house initial concentrations
         # Cytoplasm
-        x0[0] = 0#1e-4  # H2O2media 
-        x0[1] = 1.0e-8  # H2O2cytosol
+        x0[0] = 1e-4  # H2O2media 
+        x0[1] = 1.0e-9  # H2O2cytosol
 
         x0[2] = 5e-5  # GPXr 
         x0[3] = 1e-14  # GPXo 
@@ -89,6 +90,9 @@ def get_x0():
         x0[26] = 0 # superoxide dismutase reduced
         x0[27] = 0 # superoxide dismutase oxidized
 
+        x0[28] = 0 # calcium intracellular
+        x0[29] = 0 # calcium extracellular
+
         return x0
 
 # ODE system
@@ -97,7 +101,7 @@ def model(x, t, k, x0):
     #     x0 = get_x0()
 
     dxdt = np.zeros_like(x)
-    dxdt[0] = k[0] * (x[1] - x[0]) * 10e-3 * 1.02e-5 * (1e9) + k[31]
+    dxdt[0] = (k[0] * (x[1] - x[0]) * 10e-3 * 1.02e-5 * (1e9)) + k[31]
 
     dxdt[1] = (((k[0] * x[0] * 10e-3 * 1.02e-5) / (9.16e-13))
                - ((k[0] * x[1] * 10e-3 * 1.02e-5) / (9.16e-13))
@@ -175,6 +179,12 @@ def model(x, t, k, x0):
 
     dxdt[27] = (k[29] * x[25] * x[26] 
                 - k[29] * x[25] * x[27])
+    
+    dxdt[28] = 0#(((k[0] * x[29] * 10e-3 * 1.02e-5) / (9.16e-13))               # calcium cytosol
+               #- ((k[0] * x[28] * 10e-3 * 1.02e-5) / (9.16e-13)))
+               #+ (200e-6*(x[28]**2/(0.6e-6**2+x[28]**2))))
+    
+    dxdt[29] = ((k[0] * 1e-3 * (x[28] - x[29]) * 10e-3 * 1.02e-5 * (1e9)) + k[32])               # calcium media
     
     return dxdt
 
