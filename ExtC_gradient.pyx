@@ -16,10 +16,13 @@ import math
 
 from cython.view cimport array as cvarray
 from libc.stdlib cimport abs
+from scipy.signal import convolve2d
 from scipy import ndimage
 from scipy.interpolate import griddata
 
 import gc, atexit
+import torch
+import torch.nn.functional as F
 
 # -----------------------------------------------------------------------
 
@@ -246,37 +249,60 @@ class ExtC_Diff(object):
             until the end time of the simulation is reached.
             t_end - the end time to solve the system towards
         """
-        t = 0
-        epsilon = 1E-10
-        diff = epsilon  * 2
-        zeros = np.zeros(self.Ci.shape)
-        #print(self.dt)
-        while(t <= t_end and diff >= epsilon):
-            #print("max self.Ci: ", np.max(self.Ci))
-            #solve for the gradients in each direction
-            #print("Shape of self._lx:", self._lx.shape)
-            l_y = ndimage.convolve(self.Ci, self._ly, mode = "constant",
-                                   cval = self._c_out)
-            l_x = ndimage.convolve(self.Ci, self._lx, mode = "constant",
-                                   cval = self._c_out)
-            #first diffusion
+        device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
-            #first diffusion
-            self.C = self.Ci + (l_x+l_y)*self._D*self.dt
-            #MUST BE normalized by unit VOLUME
-            temp_sink = (-sink*self.dt) / self._grid_vol
-            temp_source = source*self.dt / self._grid_vol
-            #print("self.C 1: ", np.max(self.C))
-            self.C += temp_sink + temp_source
-            #print("2: ", np.max(self.C), np.max(self.Ci))
-            #get the summed difference
-            diff = np.sum(np.abs(self.Ci - self.C))
-            #make sure its positive
-            self.C = self.C * (self.C > 0.0)
-            #update the old
-            self.Ci = self.C
-            #update the time step
+        # Convert fixed parameters to torch tensors on the GPU
+        dt = torch.tensor(self.dt, dtype=torch.float32).to(device)
+        D = torch.tensor(self._D, dtype=torch.float32).to(device)
+        grid_vol = torch.tensor(self._grid_vol, dtype=torch.float32).to(device)
+        c_out = torch.tensor(self._c_out, dtype=torch.float32).to(device)
+
+        # Convert sink/source arrays to GPU tensors
+        sink_tensor = torch.tensor(sink, dtype=torch.float32).to(device)
+        source_tensor = torch.tensor(source, dtype=torch.float32).to(device)
+
+        # Initial concentration as GPU tensor with shape (1, 1, H, W)
+        Ci_tensor = torch.tensor(self.Ci, dtype=torch.float32).unsqueeze(0).unsqueeze(0).to(device)
+
+        # Build combined 2D Laplacian kernel
+        dx2 = self._dx ** 2
+        dy2 = self._dy ** 2
+        laplacian_kernel = torch.tensor([
+            [0, 1/dy2, 0],
+            [1/dx2, -2*(1/dx2 + 1/dy2), 1/dx2],
+            [0, 1/dy2, 0]
+        ], dtype=torch.float32).unsqueeze(0).unsqueeze(0).to(device)
+
+        t = 0
+        epsilon = 1e-10
+        diff = epsilon  * 2
+
+        while(t <= t_end and diff >= epsilon):
+            # Pad the concentration field with constant boundary
+            Ci_padded = F.pad(Ci_tensor, (1, 1, 1, 1), mode='reflect')
+
+            # Apply Laplacian via convolution
+            lap = F.conv2d(Ci_padded, laplacian_kernel, padding=0)
+
+            # Diffusion step
+            C_tensor = Ci_tensor + D * dt * lap
+
+            # Add source/sink terms
+            C_tensor += (-sink_tensor * dt + source_tensor * dt) / grid_vol
+
+            # Clamp negative values
+            C_tensor = torch.clamp(C_tensor, min=0.0)
+
+            # Compute difference for convergence
+            diff = torch.sum(torch.abs(C_tensor - Ci_tensor))
+
+            # Update for next iteration
+            Ci_tensor = C_tensor
             t += self.dt
+
+        # Save back to CPU NumPy array
+        self.Ci = Ci_tensor.squeeze().cpu().numpy()
+        self.C = self.Ci.copy()
 
     def __repr__(self):
         """ Returns a string representation of the gradient

@@ -137,7 +137,7 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
 
         if i == 92:#1890:#9116:#1890: 
             sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=div_set)
-            sim_obj.setC(1.0e-9,'H2O2i')
+            sim_obj.setC(5.25,'H2O2i')
             sim_obj.setC(0.595+0.05*x,'cAMP')
             sim_obj.setC(0, 'iCa')
             #sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)

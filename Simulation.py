@@ -22,6 +22,7 @@ import time
 from read_gpickle import read_network
 from gradientImage import getGradientImages
 from FBA_ode import model, get_x0, get_k
+
 #create the time series class
 class TimeSeries(object):
     """ A TimeSeries class meant to hold all of the information about
@@ -492,7 +493,7 @@ class Simulation(object):
         self._set_gradient_inital_conditions()
         #self.load_gene_expression_data()
         #nor run the loop
-        self.gradients[0].set_gradient_value_at_point([np.float64(299.82398870120426), np.float64(374.4983564833048), 0], .001)
+        #self.gradients[0].set_gradient_value_at_point([np.float64(299.82398870120426), np.float64(374.4983564833048), 0], 0.00742)
         while(self.time <= self.end_time):
             print("Time: " + repr(self.time))
             print("Number of objects: " + repr(len(self.objects)))
@@ -584,14 +585,15 @@ class Simulation(object):
         #print(f"gradients length {len(self.gradients)}")
         for i in range(0, len(self.gradients)):
             t0_1 = time.time()
-            self.gradients[i].update(1, sinks[i], sources[i]) #flux between in and out
+            self.gradients[i].update(60, sinks[i], sources[i]) #flux between in and out
             self.gradients[i].cubic_interpolate_at_object_locations(self.objects) #gradient value
             
-            print(self.gradients[i].name)
-            print(f"Sources max: {np.max(sources[i]):g} , min: {np.min(sources[i]):g}")
-            print(f"Sinks max: {np.max(sinks[i]):g} , min: {np.min(sinks[i]):g}")
+            # print(f"Sources max: {np.max(sources[i]):g} , min: {np.min(sources[i]):g}")
+            # print(f"Sinks max: {np.max(sinks[i]):g} , min: {np.min(sinks[i]):g}")
             t0_2 = time.time()
-            print(f"{self.gradients[i].name} transport time: {t0_2-t0_1}")
+            print(f"{self.gradients[i].name} transport time: {t0_2-t0_1}, \
+                  Sources max: {np.max(sources[i]):g} , min: {np.min(sources[i]):g}, \
+                    Sinks max: {np.max(sinks[i]):g} , min: {np.min(sinks[i]):g}")
 
             #print("Sinks max: " + repr(np.max(sinks[i])) + " , min:" + repr(np.min(sinks[i])))
         t1=time.time()
@@ -625,7 +627,7 @@ class Simulation(object):
                     self.gradients[1].set_gradient_value_at_point(self.objects[j].location, x0[29]) #update Ca concentration
                     
                     #self.objects[j].set_gradient_source_sink_coeff('H2O2e', x0[29], 0.0)
-                self.interC[i].update_C0(nbs2,n,20,division_timer)                                                   #GJC for H2O2i
+                #self.interC[i].update_C0(nbs2,n,20,division_timer)                                                   #GJC for H2O2i
             #print(self.interC)
         t1=time.time()
         print("Inter Transport Time: {}".format(t1-t0))

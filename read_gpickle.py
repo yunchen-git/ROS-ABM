@@ -219,7 +219,7 @@ def make_txt(name, path):
     print(f'Reference image is: {name}_{format(0,"02")}.png')
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/3.0/'
+    path = '/Users/huyunchen/Documents/PhD/test/4.0/'
     read_network(path, 0, 75)
 
     """ 
