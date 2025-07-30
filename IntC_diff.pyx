@@ -75,7 +75,6 @@ class IntC_Diff(object):
         cdef np.ndarray[np.float64_t, ndim=2] cell_cycle_effect = np.zeros((n1, n2), dtype=np.float64)
         cdef double[:,:] inhibition = cvarray(shape=(maxCells,2), itemsize=sizeof(double),format="d")
         self.inhibition=inhibition
-
         
         #for i in range(n2):
         #    for j in range(n1):
@@ -94,7 +93,7 @@ class IntC_Diff(object):
         dx2 = dx*dx
 
         #time step solution
-        self.dt = 1#(0.5) / (3*(D/(dx2)))   
+        self.dt = (0.5) / ((D/(dx2)))   
         
         #solve for the spatial correction constanta in each dimension
         self.vx = (D*self.dt)/(dx2)

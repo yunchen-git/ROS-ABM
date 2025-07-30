@@ -90,8 +90,8 @@ def get_x0():
         x0[26] = 0 # superoxide dismutase reduced
         x0[27] = 0 # superoxide dismutase oxidized
 
-        x0[28] = 0 # calcium intracellular
-        x0[29] = 0 # calcium extracellular
+        #x0[28] = 0 # calcium intracellular
+        #x0[29] = 0 # calcium extracellular
 
         return x0
 
@@ -180,11 +180,11 @@ def model(x, t, k, x0):
     dxdt[27] = (k[29] * x[25] * x[26] 
                 - k[29] * x[25] * x[27])
     
-    dxdt[28] = 0#(((k[0] * x[29] * 10e-3 * 1.02e-5) / (9.16e-13))               # calcium cytosol
+    #dxdt[28] = 0#(((k[0] * x[29] * 10e-3 * 1.02e-5) / (9.16e-13))               # calcium cytosol
                #- ((k[0] * x[28] * 10e-3 * 1.02e-5) / (9.16e-13)))
                #+ (200e-6*(x[28]**2/(0.6e-6**2+x[28]**2))))
     
-    dxdt[29] = ((k[0] * 1e-3 * (x[28] - x[29]) * 10e-3 * 1.02e-5 * (1e9)) + k[32])               # calcium media
+    #dxdt[29] = ((k[0] * 1e-3 * (x[28] - x[29]) * 10e-3 * 1.02e-5 * (1e9)) + k[32])               # calcium media
     
     return dxdt
 

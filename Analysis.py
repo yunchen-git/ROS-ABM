@@ -146,7 +146,7 @@ def getGradientImages(path):
         save_2D_gradient_images(grad_names[i],path,data,axis="xy")
 
 if __name__=='__main__':
-    path='/Users/huyunchen/Documents/PhD/test/4.0/'
+    path='/Users/huyunchen/Documents/PhD/test/6.0/'
     getGradientImages(path)
 
 

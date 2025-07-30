@@ -493,7 +493,8 @@ class Simulation(object):
         self._set_gradient_inital_conditions()
         #self.load_gene_expression_data()
         #nor run the loop
-        #self.gradients[0].set_gradient_value_at_point([np.float64(299.82398870120426), np.float64(374.4983564833048), 0], 0.00742)
+        #self.gradients[0].set_gradient_value_at_point([np.float64(299.82398870120426), np.float64(374.4983564833048), 0], 5.25)
+        #self.objects[92].set_gradient_source_sink_coeff("H2O2e", 2.08e-12, 0.0)
         while(self.time <= self.end_time):
             print("Time: " + repr(self.time))
             print("Number of objects: " + repr(len(self.objects)))
@@ -571,6 +572,7 @@ class Simulation(object):
                 extraC[self.gradients[i].name].append(tempC)
         #extraC=np.asarray(extraC, dtype=np.float64)
         # print(extraC)
+
         division_timer = []
         for i in range(len(self.objects)):
             division_timer.append(self.objects[i].division_timer)
@@ -596,13 +598,14 @@ class Simulation(object):
                     Sinks max: {np.max(sinks[i]):g} , min: {np.min(sinks[i]):g}")
 
             #print("Sinks max: " + repr(np.max(sinks[i])) + " , min:" + repr(np.min(sinks[i])))
+            self.objects[92].set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
         t1=time.time()
         print ("Gradient Diffusion Time: {}".format(t1-t0))
 
         t0=time.time()
         for i in range(len(self.interC)):
             if self.interC[i].name=='cAMP':
-                self.interC[i].update_C1(nbs2,n,20, division_timer)
+                self.interC[i].update_C1(nbs2,n,60, division_timer)
             elif self.interC[i].name=='H2O2i':
                 for j in range(0, len(self.objects)):
                     #print(j, self.interC[i].C[j], self.objects[j].C)
@@ -612,22 +615,21 @@ class Simulation(object):
                     x0 = self.objects[j].x0
                     x0[0] = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
                     #print(x0[0])
-                    x0[28] = self.interC[2].get_C(j) #get Ca concentration
-                    x0[29] = self.gradients[1].get_gradient_value_at_point(self.objects[j].location) #get Ca concentration
+                    #x0[28] = self.interC[2].get_C(j) #get Ca concentration
+                    #x0[29] = self.gradients[1].get_gradient_value_at_point(self.objects[j].location) #get Ca concentration
 
                     x0 = self.interC[i].update_Cflux(j, x0, 60) #GSH, temp_h2o2e_C, 60)
-                    self.interC[2].change_C(j, x0[28]) #update Ca concentration
+                    #self.interC[2].change_C(j, x0[28]) #update Ca concentration
                     self.objects[j].x0 = x0
                     #GSH, extraC = self.interC[i].update_scflux(j, temp_h2o2e_C, 3600, self.protein_vals[:,j], GSH) #update H2O2i concentration
-                    
-                    #if self.time > 1 and j == 1890:
-                        #self.objects[j].set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
+                    #self.objects[j].set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0) #update H2O2e concentration
+
                     #self.interC[2].change_C(j, GSH) #update GSH concentration
                     self.gradients[0].set_gradient_value_at_point(self.objects[j].location, x0[0]) #update H2O2e concentration
-                    self.gradients[1].set_gradient_value_at_point(self.objects[j].location, x0[29]) #update Ca concentration
+                    #self.gradients[1].set_gradient_value_at_point(self.objects[j].location, x0[29]) #update Ca concentration
                     
                     #self.objects[j].set_gradient_source_sink_coeff('H2O2e', x0[29], 0.0)
-                #self.interC[i].update_C0(nbs2,n,20,division_timer)                                                   #GJC for H2O2i
+                self.interC[i].update_C0(nbs2,n,60,division_timer)                                                   #GJC for H2O2i
             #print(self.interC)
         t1=time.time()
         print("Inter Transport Time: {}".format(t1-t0))
@@ -801,9 +803,9 @@ class Simulation(object):
                 dist_vec = SubtractVec(pos, cent)
                 #convert this to a index value
                 #for all of the gradients get the coeffients
-                x, y = self.gradients[i].get_object_position_on_grid(dist_vec)
+                x, y, z = self.gradients[i].get_object_position_on_grid(dist_vec)
                 #print(x,y)
-                mask[int(x),int(y)] = 1
+                mask[int(x),int(y),int(z)] = 1
             #now pass this in to the set inital values function
             self.gradients[i].set_initial_conditions(mask)
 
@@ -943,14 +945,14 @@ class Simulation(object):
             #for all of the gradients get the coeffients
             for i in range(0, len(self.gradients)):
                 #print(f"agent location: {j, agent.location}")
-                x, y = self.gradients[i].get_object_position_on_grid(dist_vec)
+                x, y, z = self.gradients[i].get_object_position_on_grid(dist_vec)
                 #print(f"object position on grid: {j, x,y,z}")
-                agent.set_gradient_location(self.gradients[i].name, (x,y))
+                agent.set_gradient_location(self.gradients[i].name, (x,y,z))
                 #see if the object conatins a value for this gradient
                 src, snk = agent.get_gradient_source_sink_coeff(self.gradients[i].name)
                 #print(f"sources and sinks: {sources[i][int(x),int(y),int(z)], sinks[i][int(x),int(y),int(z)]}")
-                sources[i][int(x),int(y)] += src
-                sinks[i][int(x),int(y)] += snk
+                sources[i][int(x),int(y),int(z)] += src
+                sinks[i][int(x),int(y),int(z)] += snk
                 #print(sources[i].shape)
                 #print(src)
                 
