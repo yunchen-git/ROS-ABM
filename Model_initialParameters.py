@@ -65,7 +65,7 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     
     open_prob[1]=0.85
     
-    fastest_division_time=18.0*60#*60 #18 hours in seconds
+    fastest_division_time=18.0*60*60 #18 hours in seconds
     
     D_camp = 444 ##um^2/sec diffusion coefficient for cyclic AMP Dworkin & Keller 1977 J. Bio Chem
     D_h2o2i = 2500 ##um^2/sec diffusion coefficient for H2O2
@@ -84,12 +84,12 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
         maxCells= int(num * 2 ** ((te+1)/fastest_division_time)) # Calculating the maximum possible number of cells
     
     division_times = np.array([18, 51], dtype=np.int32)
-    division_times = division_times * 60 #* 60 # convert to minutes then seconds
+    division_times = division_times * 60 * 60 # convert to minutes then seconds
     
-    x = 800
-    y = 800
+    x = 750
+    y = 750
     z = 30
-    ddim=1.0                      #Grid spacing in um
+    ddim=5.0                      #Grid spacing in um
     sync_time=[500,500]             # This isn't used
 
     ## Initializing the intercellular diffusion module
@@ -133,7 +133,7 @@ def main(x,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
         ID=i
         point=[locations[i,0], locations[i,1], 0]
         radius=6.5 
-        div_set=r.random()*19.*60 #randomly assign a division time between 0 and 19 hours
+        div_set=r.random()*19.#*60*60 #randomly assign a division time between 0 and 19 hours
 
         if i == 92:#1890:#9116:#1890: 
             sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=div_set)

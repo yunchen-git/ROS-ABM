@@ -197,27 +197,6 @@ def get_available_species(network):
     available_species = list(first_node.C.keys())
     return available_species
 
-def make_txt(name, path):
-    state_dict={"U":0,"T":1,"D":2,0:"U",1:"T",2:"D"}
-    with open(f'{name}.gpickle', 'rb') as f:
-    # network = nx.Graph()
-    # #print(f.readline().decode(encoding='utf-32'))
-    # old_network = pickle.load(f, encoding="latin1")
-    # network.add_nodes_from(old_network.nodes(data=True))
-        network = pickle.load(f, encoding='latin1')
-    nodes = network.nodes()
-    center = network_avg(network)
-    radius = network_radius(network)    
-    with open(f'{path}/{name}.txt', 'w') as f:
-        i = 1
-        for node in nodes:
-            x,y,z = node.location
-            f.write(f'{i},{x},{y},{state_dict[node.state]}\n')
-    f.close()
-    print(f'Saved network with {len(nodes)} cells as {name}')
-    draw_cell_image(network, f'{path}/', 0, center, radius, image_name=name)
-    print(f'Reference image is: {name}_{format(0,"02")}.png')
-
 if __name__ == '__main__':
     path = '/Users/huyunchen/Documents/PhD/test/6.0/'
     read_network(path, 0, 75)

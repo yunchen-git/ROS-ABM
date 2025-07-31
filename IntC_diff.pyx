@@ -225,7 +225,7 @@ class IntC_Diff(object):
         #if x_0[1] > 1e-7 or x_0[29] > 1e-19:
         #k[32] = x_0[1] * 1e-6
         if x_0[1] > 1e-7:
-            k[31] = 0#1e-4                #nox
+            k[31] = 1e-3                #nox
             #k[1] = 1.1e-5               #internal production
         else:
             k[31] = 0
@@ -356,8 +356,10 @@ class IntC_Diff(object):
                 i=nbs[x,0]
                 j=nbs[x,1]
                 ni =state[i,0]
-                C[i,1]=C[i,1]+Peff[x]*(C[j,0]-C[i,0])
-                C[j,1]=C[j,1]+Peff[x]*(C[i,0]-C[j,0])
+                #C[i,1]=C[i,1]+Peff[x]*(C[j,0]-C[i,0])
+                #C[j,1]=C[j,1]+Peff[x]*(C[i,0]-C[j,0])
+                C[i,1]=C[i,1]+Pmax*(C[j,0]-C[i,0])
+                C[j,1]=C[j,1]+Pmax*(C[i,0]-C[j,0])
 
             for i in range(dim):
                 ni =state[i,0]  
@@ -371,7 +373,7 @@ class IntC_Diff(object):
             t=t+dt
 
         for i in range(dim):
-            state[i,1]=state[i,1]+1
+            state[i,1]=state[i,1] + te
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -437,7 +439,7 @@ class IntC_Diff(object):
             t=t+dt
 
         for i in range(dim):
-            state[i,1]=state[i,1]+1
+            state[i,1]=state[i,1] + te
     
     @cython.boundscheck(False)
     @cython.wraparound(False)

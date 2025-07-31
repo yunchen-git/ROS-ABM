@@ -16,7 +16,7 @@ import math
 
 from cython.view cimport array as cvarray
 from libc.stdlib cimport abs
-#from scipy.signal import convolve3d
+from scipy.signal import convolve2d
 from scipy import ndimage
 from scipy.interpolate import griddata
 
@@ -76,12 +76,13 @@ class ExtC_Diff(object):
         dz2 = dz * dz
 
         # time step solution
-        self.dt = 0.5 / ((D/dx2) + (D/dy2) + (D/dz2))
+        self.dt = 0.5 / ((D/dx2) + (D/dy2))#+(D/dz2))
 
         # set the initial conditions
-        self.Ci = np.zeros((self.x_dim, self.y_dim, self.z_dim))*outside_c
-        self.C = np.zeros((self.x_dim, self.y_dim, self.z_dim))
-
+        #self.Ci = np.zeros((self.x_dim, self.y_dim, self.z_dim))*outside_c
+        self.Ci = np.zeros((self.x_dim, self.y_dim))*outside_c
+        #self.C = np.zeros((self.x_dim, self.y_dim, self.z_dim))
+        self.C = np.zeros((self.x_dim, self.y_dim))
         # set the boundary conditions
         self._c_out = outside_c
 
@@ -122,7 +123,7 @@ class ExtC_Diff(object):
     def shape(self):
         """ Return the shape of the gradient
         """
-        return (self.x_dim, self.y_dim, self.z_dim)
+        return (self.x_dim, self.y_dim)#, self.z_dim)
     
     def cubic_interpolate_at_object_locations(self, agents):
         """ Interpolate the gradient at the location of the agents
@@ -136,9 +137,9 @@ class ExtC_Diff(object):
             #print(pos)
             x = int(pos[0])
             y = int(pos[1])
-            z = int(pos[2])
-            points.append([x,y,z])
-
+            #z = int(pos[2])
+            #points.append([x,y,z])
+            points.append([x,y])
         #Now convert the points to an array
         points = np.array(points)
         #transpose it to the correct format
@@ -158,22 +159,15 @@ class ExtC_Diff(object):
         #now we know the spatial resolution per grid spacing
         dx = distance[0] / self._dx
         dy = distance[1] / self._dy
-        # Handle z coordinate for future 3D compatibility
-        if len(distance) > 2:
-            dz = distance[2] / self._dz
-        else:
-            dz = 0
+        dz = distance[2] / self._dz
 
-        #get the center location
+        #get the center loction
         cx = int(self.x_dim / 2)
         cy = int(self.y_dim / 2)
-        cz = int(self.z_dim / 2) if len(distance) > 2 else 0
+        cz = int(self.z_dim / 2)
 
-        #return the actual grid positions (not just the offsets)
-        if len(distance) > 2:
-            return dx, dy, dz #cx + dx, cy + dy, cz + dz
-        else:
-            return cx + dx, cy + dy
+        #return the x, y, z indicies to add at
+        return dx, dy#cx + dx, cy + dy, cz + dz
 
     def get_gradient_value_at_point(self, point):
         """ Will get the gradient value at a specific point. Useful for
@@ -190,8 +184,8 @@ class ExtC_Diff(object):
         if len(point) > 2:
             point_coords = [x, y, z]
             grid_pos = self.get_object_position_on_grid(point_coords)
-            x, y, z = grid_pos
-            ix, iy, iz = int(x), int(y), int(z)
+            x, y = grid_pos
+            ix, iy = int(x), int(y)
         else:
             point_coords = [x, y]
             grid_pos = self.get_object_position_on_grid(point_coords)
@@ -214,29 +208,27 @@ class ExtC_Diff(object):
             y0 = iy - 1
             y1 = iy
         #z
-
-        if(z - iz >= .5):
+        """
+        if(z - iz > .5):
             z0 = iz
             z1 = iz + 1
         else:
             z0 = iz - 1
             z1 = iz    
+        """
 
         #solve for xd, yd
         xd = (abs(x - (ix + .5))) / (x1 - x0)
         yd = (abs(y - (iy + .5))) / (y1 - y0)
-        zd = (abs(z - (iz + .5))) / (z1 - z0)
-        
-        # 2D interpolation
-        """ 
+
         # interpolate along the x-axis
         f0 = self.C[x0, y0]*(1 - xd) + self.C[x1, y0]*xd
         f1 = self.C[x0, y1]*(1 - xd) + self.C[x1, y1]*xd
 
         # interpolate along the y-axis
         c = f0*(1 - yd) + f1*yd
-        """ 
 
+        """
         # TODO: For future 3D trilinear interpolation, use:
         c00 = self.C[x0, y0, z0]*(1 - xd) + self.C[x1, y0, z0]*xd
         c01 = self.C[x0, y0, z1]*(1 - xd) + self.C[x1, y0, z1]*xd
@@ -245,6 +237,7 @@ class ExtC_Diff(object):
         c0 = c00*(1 - yd) + c10*yd
         c1 = c01*(1 - yd) + c11*yd
         c = c0*(1 - zd) + c1*zd
+        """
 
         #return the predicted value
         return c
@@ -260,15 +253,15 @@ class ExtC_Diff(object):
         y = int(point[1])
         z = int(point[2])
         point = [x, y, z]
-        x, y, z = self.get_object_position_on_grid(point)
+        x, y = self.get_object_position_on_grid(point)
 
         #set as int
         x = int(x)
         y = int(y)
-        z = int(z)
+        #z = int(z)
 
         #return the predicted value
-        self.Ci[x, y, z] = value
+        self.Ci[x, y] = value
     
     def update(self, t_end, sink, source):
         """ Solves the system over using the predetermined time step dt
@@ -293,19 +286,11 @@ class ExtC_Diff(object):
         # Build combined 2D Laplacian kernel
         dx2 = self._dx ** 2
         dy2 = self._dy ** 2
-        dz2 = self._dz ** 2
-        
-        # Create 3D Laplacian kernel (3x3x3)
-        laplacian_kernel = torch.zeros((3, 3, 3), dtype=torch.float32)
-        laplacian_kernel[1, 1, 0] = 1/dz2  # z-1
-        laplacian_kernel[1, 0, 1] = 1/dy2  # y-1
-        laplacian_kernel[0, 1, 1] = 1/dx2  # x-1
-        laplacian_kernel[1, 1, 1] = -2*(1/dx2 + 1/dy2 + 1/dz2)  # center
-        laplacian_kernel[2, 1, 1] = 1/dx2  # x+1
-        laplacian_kernel[1, 2, 1] = 1/dy2  # y+1
-        laplacian_kernel[1, 1, 2] = 1/dz2  # z+1
-        
-        laplacian_kernel = laplacian_kernel.unsqueeze(0).unsqueeze(0).to(device)
+        laplacian_kernel = torch.tensor([
+            [0, 1/dy2, 0],
+            [1/dx2, -2*(1/dx2 + 1/dy2), 1/dx2],
+            [0, 1/dy2, 0]
+        ], dtype=torch.float32).unsqueeze(0).unsqueeze(0).to(device)
 
         t = 0
         epsilon = 1e-10
@@ -313,10 +298,10 @@ class ExtC_Diff(object):
 
         while(t <= t_end and diff >= epsilon):
             # Pad the concentration field with constant boundary
-            Ci_padded = F.pad(Ci_tensor, (1, 1, 1, 1, 1, 1), mode='reflect')
+            Ci_padded = F.pad(Ci_tensor, (1, 1, 1, 1), mode='reflect')
 
             # Apply Laplacian via convolution
-            lap = F.conv3d(Ci_padded, laplacian_kernel, padding=0)
+            lap = F.conv2d(Ci_padded, laplacian_kernel, padding=0)
 
             # Diffusion step
             C_tensor = Ci_tensor + D * dt * lap

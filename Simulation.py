@@ -587,7 +587,7 @@ class Simulation(object):
         #print(f"gradients length {len(self.gradients)}")
         for i in range(0, len(self.gradients)):
             t0_1 = time.time()
-            self.gradients[i].update(60, sinks[i], sources[i]) #flux between in and out
+            self.gradients[i].update(3, sinks[i], sources[i]) #flux between in and out
             self.gradients[i].cubic_interpolate_at_object_locations(self.objects) #gradient value
             
             # print(f"Sources max: {np.max(sources[i]):g} , min: {np.min(sources[i]):g}")
@@ -605,7 +605,7 @@ class Simulation(object):
         t0=time.time()
         for i in range(len(self.interC)):
             if self.interC[i].name=='cAMP':
-                self.interC[i].update_C1(nbs2,n,60, division_timer)
+                self.interC[i].update_C1(nbs2,n,3,division_timer)
             elif self.interC[i].name=='H2O2i':
                 for j in range(0, len(self.objects)):
                     #print(j, self.interC[i].C[j], self.objects[j].C)
@@ -613,12 +613,13 @@ class Simulation(object):
                     #GSH = self.interC[2].get_C(j) #get GSH concentration
                     
                     x0 = self.objects[j].x0
+
                     x0[0] = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
                     #print(x0[0])
                     #x0[28] = self.interC[2].get_C(j) #get Ca concentration
                     #x0[29] = self.gradients[1].get_gradient_value_at_point(self.objects[j].location) #get Ca concentration
 
-                    x0 = self.interC[i].update_Cflux(j, x0, 60) #GSH, temp_h2o2e_C, 60)
+                    x0 = self.interC[i].update_Cflux(j, x0, 3) #GSH, temp_h2o2e_C, 60)
                     #self.interC[2].change_C(j, x0[28]) #update Ca concentration
                     self.objects[j].x0 = x0
                     #GSH, extraC = self.interC[i].update_scflux(j, temp_h2o2e_C, 3600, self.protein_vals[:,j], GSH) #update H2O2i concentration
@@ -629,7 +630,7 @@ class Simulation(object):
                     #self.gradients[1].set_gradient_value_at_point(self.objects[j].location, x0[29]) #update Ca concentration
                     
                     #self.objects[j].set_gradient_source_sink_coeff('H2O2e', x0[29], 0.0)
-                self.interC[i].update_C0(nbs2,n,60,division_timer)                                                   #GJC for H2O2i
+                self.interC[i].update_C0(nbs2,n,3,division_timer)                                                   #GJC for H2O2i
             #print(self.interC)
         t1=time.time()
         print("Inter Transport Time: {}".format(t1-t0))
@@ -803,9 +804,9 @@ class Simulation(object):
                 dist_vec = SubtractVec(pos, cent)
                 #convert this to a index value
                 #for all of the gradients get the coeffients
-                x, y, z = self.gradients[i].get_object_position_on_grid(dist_vec)
+                x, y = self.gradients[i].get_object_position_on_grid(dist_vec)
                 #print(x,y)
-                mask[int(x),int(y),int(z)] = 1
+                mask[int(x),int(y)] = 1
             #now pass this in to the set inital values function
             self.gradients[i].set_initial_conditions(mask)
 
@@ -945,14 +946,14 @@ class Simulation(object):
             #for all of the gradients get the coeffients
             for i in range(0, len(self.gradients)):
                 #print(f"agent location: {j, agent.location}")
-                x, y, z = self.gradients[i].get_object_position_on_grid(dist_vec)
+                x, y = self.gradients[i].get_object_position_on_grid(dist_vec)
                 #print(f"object position on grid: {j, x,y,z}")
-                agent.set_gradient_location(self.gradients[i].name, (x,y,z))
+                agent.set_gradient_location(self.gradients[i].name, (x,y))
                 #see if the object conatins a value for this gradient
                 src, snk = agent.get_gradient_source_sink_coeff(self.gradients[i].name)
                 #print(f"sources and sinks: {sources[i][int(x),int(y),int(z)], sinks[i][int(x),int(y),int(z)]}")
-                sources[i][int(x),int(y),int(z)] += src
-                sinks[i][int(x),int(y),int(z)] += snk
+                sources[i][int(x),int(y)] += src
+                sinks[i][int(x),int(y)] += snk
                 #print(sources[i].shape)
                 #print(src)
                 
