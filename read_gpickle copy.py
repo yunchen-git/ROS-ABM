@@ -73,11 +73,13 @@ def read_network(path, t0, tf, target_positions=None):
                 next_tracked_cells.append(None)
                 continue
                 
-            matched_cell = find_cell_in_network(network, cell)
+            matched_cell = find_cell_in_network_by_id(network, cell)
             if matched_cell:
+                camp_conc = matched_cell.C.get('cAMP', 0)
                 h2o2_conc = matched_cell.C.get('H2O2i', 0)
-                tracked_cells_data[i].append((n, h2o2_conc, matched_cell.state))
-                print(f"Time {n}, Cell {i+1}: H2O2i = {h2o2_conc}, State = {matched_cell.state}")
+                cai_conc = matched_cell.C.get('Ca', 0)
+                tracked_cells_data[i].append((n, h2o2_conc, cai_conc, matched_cell.state))
+                print(f"Time {n}, Cell {i+1}: cAMP = {camp_conc}, H2O2i = {h2o2_conc}, iCa2+ = {cai_conc}, State = {matched_cell.state}")
                 # Update tracked_cell to match the current position for better tracking in next frame
                 next_tracked_cells.append(matched_cell)
             else:
@@ -123,6 +125,21 @@ def select_cell_to_track(network):
     
     return closest_cell
 
+def select_cells_by_index(network, indices):
+    """
+    Select cells by their index in the network node list.
+    """
+    nodes = list(network.nodes())
+    selected_cells = []
+    for idx in indices:
+        if 0 <= idx < len(nodes):
+            selected_cells.append(nodes[idx])
+            print(f"Selected cell #{idx} at {nodes[idx].location}")
+        else:
+            print(f"Cell index {idx} out of range.")
+    return selected_cells
+
+
 def find_cell_in_network(network, target_cell):
     """
     Find the cell in the current network that matches the target cell.
@@ -146,6 +163,12 @@ def find_cell_in_network(network, target_cell):
     # Only return if the cell is close enough (prevent wrong matching)
     if min_distance < target_cell.radius * 2:  # Threshold can be adjusted
         return closest_cell
+    return None
+
+def find_cell_in_network_by_id(network, target_cell):
+    for node in network.nodes():
+        if hasattr(node, 'ID') and node.ID == target_cell.ID:
+            return node
     return None
 
 def select_cells_by_position(network, target_positions):
@@ -179,43 +202,30 @@ def select_cells_by_position(network, target_positions):
         
         if closest_cell:
             selected_cells.append(closest_cell)
-            print(f"Selected cell at {closest_cell.location} (closest to target {pos})")
+            print(f"Selected cell {closest_cell.ID} at {closest_cell.location} (closest to target {pos})")
     
     return selected_cells
 
 def plot_tracked_cells_data(tracked_cells_data, path, initial_positions=None):
     """
-    Plot the H2O2 concentration for all tracked cells over time on the same graph.
+    Plot the H2O2 and iCa2+ concentration for all tracked cells over time on the same graph.
     Include cell positions in the legend.
-    
-    Parameters:
-    - tracked_cells_data: Dictionary with cell data
-    - path: Path to save outputs
-    - initial_positions: Dictionary mapping cell_id to initial position (x,y)
     """
     plt.figure(figsize=(12, 8))
-    
-    # Generate different colors for each cell
     import matplotlib.cm as cm
     colors = cm.rainbow(np.linspace(0, 1, len(tracked_cells_data)))
-    
-    # Plot H2O2 concentration for each cell
+
+    # Plot H2O2i for each cell
     for i, (cell_id, data) in enumerate(tracked_cells_data.items()):
-        if not data:  # Skip cells with no data
+        if not data:
             continue
-            
-        times, concentrations, states = zip(*data)
-        
-        # Get position string for legend (if available)
+        times, h2o2, cai, states = zip(*data)
         if initial_positions and cell_id in initial_positions:
             x, y = initial_positions[cell_id]
-            position_str = f"(x={x:.2f}, y={y:.2f})"
-            label = f'Cell {cell_id+1} {position_str}'
+            label = f'Cell {cell_id+1} (x={x:.2f}, y={y:.2f})'
         else:
             label = f'Cell {cell_id+1}'
-            
-        plt.plot(times, concentrations, marker='o', color=colors[i], linewidth=2, label=label)
-    
+        plt.plot(times, h2o2, marker='o', color=colors[i], linewidth=2, label=label + ' H2O2i')
     plt.xlabel('Time', fontsize=14)
     plt.ylabel('H2O2i Concentration', fontsize=14)
     plt.yscale('log')
@@ -223,83 +233,78 @@ def plot_tracked_cells_data(tracked_cells_data, path, initial_positions=None):
     plt.grid(True, alpha=0.3)
     plt.legend(fontsize=10)
     plt.tight_layout()
-    
-    # Save the plot
     plot_dir = os.path.join(path, "all_cell_tracking")
     if not os.path.exists(plot_dir):
         os.makedirs(plot_dir)
-    
     plt.savefig(os.path.join(plot_dir, "all_tracked_cells_h2o2.png"), dpi=300)
-    
-    # Save the data as CSV with all cells in one file
+    plt.close()
+
+    # Plot iCa2+ for each cell
+    plt.figure(figsize=(12, 8))
+    for i, (cell_id, data) in enumerate(tracked_cells_data.items()):
+        if not data:
+            continue
+        times, h2o2, cai, states = zip(*data)
+        if initial_positions and cell_id in initial_positions:
+            x, y = initial_positions[cell_id]
+            label = f'Cell {cell_id+1} (x={x:.2f}, y={y:.2f}, ID={indices})'
+        else:
+            label = f'Cell {cell_id+1}'
+        plt.plot(times, cai, marker='o', color=colors[i], linewidth=2, label=label + ' iCa2+')
+    plt.xlabel('Time', fontsize=14)
+    plt.ylabel('iCa2+ Concentration', fontsize=14)
+    plt.yscale('log')
+    plt.ylim(9e-8, 5e-5)
+    plt.title('Tracked Cells iCa2+ Concentration Over Time', fontsize=16)
+    plt.grid(True, alpha=0.3)
+    plt.legend(fontsize=10)
+    plt.tight_layout()
+    plt.savefig(os.path.join(plot_dir, "all_tracked_cells_ica.png"), dpi=300)
+    plt.close()
+
+    # Save the data as CSV with both H2O2i and iCa2+ for all cells
     import csv
     with open(os.path.join(plot_dir, "all_tracked_cells_data.csv"), 'w', newline='') as csvfile:
         writer = csv.writer(csvfile)
-        
-        # Header row with cell identifiers
         header = ['Time']
         for cell_id in tracked_cells_data.keys():
             if initial_positions and cell_id in initial_positions:
                 x, y = initial_positions[cell_id]
-                header.append(f'Cell {cell_id+1} (x={x:.2f}, y={y:.2f}) H2O2i')
-                header.append(f'Cell {cell_id+1} State')
+                header += [f'Cell {cell_id+1} (x={x:.2f}, y={y:.2f}) H2O2i', f'Cell {cell_id+1} iCa2+', f'Cell {cell_id+1} State']
             else:
-                header.append(f'Cell {cell_id+1} H2O2i')
-                header.append(f'Cell {cell_id+1} State')
-        
+                header += [f'Cell {cell_id+1} H2O2i', f'Cell {cell_id+1} iCa2+', f'Cell {cell_id+1} State']
         writer.writerow(header)
-        
-        # Find all unique time points across all cells
         all_times = set()
         for data in tracked_cells_data.values():
             for entry in data:
-                all_times.add(entry[0])  # Add time point
-        
-        # Sort times
+                all_times.add(entry[0])
         all_times = sorted(all_times)
-        
-        # For each time point, write data for all cells if available
         for t in all_times:
             row = [t]
             for cell_id in tracked_cells_data.keys():
                 data = tracked_cells_data.get(cell_id, [])
-                
-                # Find entry for this time point
                 entry = next((item for item in data if item[0] == t), None)
-                
                 if entry:
-                    row.append(entry[1])  # H2O2i concentration
-                    row.append(entry[2])  # State
+                    row += [entry[1], entry[2], entry[3]]
                 else:
-                    row.append('')  # No data for this cell at this time
-                    row.append('')
-                    
+                    row += ['', '', '']
             writer.writerow(row)
-    
     print(f"All tracked cells data saved to {plot_dir}")
-    plt.close()
-    
-    # Create state plot with all cells
+
+    # State plot (unchanged)
     state_map = {'U': 0, 'T': 1, 'D': 2, 'A': 3}
     plt.figure(figsize=(12, 8))
-    
     for i, (cell_id, data) in enumerate(tracked_cells_data.items()):
-        if not data:  # Skip cells with no data
+        if not data:
             continue
-            
-        times, _, states = zip(*data)
+        times, _, _, states = zip(*data)
         state_values = [state_map.get(s, -1) for s in states]
-        
-        # Get position string for legend (if available)
         if initial_positions and cell_id in initial_positions:
             x, y = initial_positions[cell_id]
-            position_str = f"(x={x:.2f}, y={y:.2f})"
-            label = f'Cell {cell_id+1} {position_str}'
+            label = f'Cell {cell_id+1} (x={x:.2f}, y={y:.2f})'
         else:
             label = f'Cell {cell_id+1}'
-            
         plt.plot(times, state_values, marker='s', color=colors[i], linewidth=2, label=label)
-    
     plt.xlabel('Time', fontsize=14)
     plt.ylabel('Cell State', fontsize=14)
     plt.yticks(list(state_map.values()), list(state_map.keys()))
@@ -324,7 +329,7 @@ def draw_species_image(network, path, ind, center, radius, species, scale=1, bac
     # Step 1: Define the color map
     if species == 'cAMP':
         colormap = plt.cm.viridis
-        normalizer = Normalize(vmin=0, vmax=1)
+        normalizer = Normalize(vmin=0.4, vmax=1)
     elif species == 'GSH':
         colormap = plt.cm.jet#viridis  # Choose a color map, e.g., viridis
         normalizer = Normalize(vmin=0.00040, vmax=0.0015)  # Replace with the range you expect
@@ -333,7 +338,7 @@ def draw_species_image(network, path, ind, center, radius, species, scale=1, bac
         normalizer = Normalize(vmin=0, vmax=1e-7)  # Replace with the range you expect
     else:
         colormap = plt.cm.plasma
-        normalizer = Normalize(vmin=0, vmax=1e-9)
+        normalizer = Normalize(vmin=9e-8, vmax=5e-5)
     
     def get_color(C_value):
         normalized_value = normalizer(C_value)  # Map C_value directly within -100 to 100 range
@@ -458,8 +463,8 @@ def get_available_species(network):
     return available_species
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/h2o2 propagation review/t_end=60 for ExtC_gradient/basal h2o2 1e-9, H2O2i 5.25, NOX 1e-3/'
-    
+    path = '/Users/huyunchen/Documents/PhD/test/15.0/'
+
     # First, display info about the initial network to help with cell selection
     temp = path + "network0.0.gpickle"
     try:
@@ -478,36 +483,55 @@ if __name__ == '__main__':
     user_input = input("Do you want to specify cell positions to track? (y/n): ").strip().lower()
     
     if user_input == 'y':
-        print("\nYou can specify cell positions as x,y coordinates.")
+        print("\nYou can specify cell positions as x,y coordinates or cell numbers (index).")
         print(f"Network center is approximately at {center}")
         print(f"Network radius is approximately {radius}")
-        print("Enter positions one at a time, press Enter with no input when done.")
+        print("Enter positions as x,y or cell numbers as #n (e.g., #5), one at a time. Press Enter with no input when done.")
         
         positions = []
+        indices = []
         while True:
-            pos_input = input("Enter cell position (x,y) or press Enter to finish: ").strip()
+            pos_input = input("Enter cell position (x,y) or cell number (#n), or press Enter to finish: ").strip()
             if not pos_input:
                 break
                 
-            try:
-                # Try to parse as x,y
-                if ',' in pos_input:
-                    x, y = map(float, pos_input.split(','))
-                    positions.append((x, y))
-                    print(f"Added position: ({x}, {y})")
-                else:
-                    print("Invalid format. Use x,y (e.g., 10.5,20.3)")
-            except ValueError:
-                print("Invalid coordinates. Use numeric values for x and y.")
+            if pos_input.startswith('#'):
+                try:
+                    idx = int(pos_input[1:])
+                    indices.append(idx)
+                    print(f"Added cell number: {idx}")
+                except ValueError:
+                    print("Invalid cell number. Use #n (e.g., #5)")
+            else:
+                try:
+                    if ',' in pos_input:
+                        x, y = map(float, pos_input.split(','))
+                        positions.append((x, y))
+                        print(f"Added position: ({x}, {y})")
+                    else:
+                        print("Invalid format. Use x,y or #n")
+                except ValueError:
+                    print("Invalid coordinates. Use numeric values for x and y.")
         
-        if positions:
-            read_network(path, 0, 75, target_positions=positions)
+        if positions or indices:
+            with open(temp, 'rb') as f:
+                initial_network = pickle.load(f, encoding='latin1')
+                selected_cells = []
+                if positions:
+                    selected_cells += select_cells_by_position(initial_network, positions)
+                if indices:
+                    selected_cells += select_cells_by_index(initial_network, indices)
+                if selected_cells:
+                    read_network(path, 0, 600, target_positions=[cell.location[0:2] for cell in selected_cells])
+                else:
+                    print("No valid cells specified. Tracking cell at center.")
+                    read_network(path, 0, 600)
         else:
             print("No positions specified. Tracking cell at center.")
-            read_network(path, 0, 75)
+            read_network(path, 0, 600)
     else:
         print("Tracking cell closest to center.")
-        read_network(path, 0, 75)
+        read_network(path, 0, 600)
 
         
         

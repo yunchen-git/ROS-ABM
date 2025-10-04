@@ -7,6 +7,7 @@ import os, sys, shutil
 import platform
 import networkx as nx
 import numpy as np
+import FBA_ode
 from simulationMath1 import *
 from simulationObjects import *
 from IntC_diff import IntC_Diff
@@ -21,7 +22,7 @@ import random as rand
 import time
 from read_gpickle import read_network
 from gradientImage import getGradientImages
-from FBA_ode import model, get_x0, get_k
+from FBA_ode import model, get_x0, get_k, model_noref
 
 #create the time series class
 class TimeSeries(object):
@@ -148,15 +149,16 @@ class TimeSeries(object):
                     g_path = self.path + self.__sep + path
                     grad_paths[self._grad_names[j]] = g_path
                 for j in range(0, n2):
-                    #add this path to the grad path list
-                    g_path = data[j+n1+2].strip("\n")
-                    #rebuild the path
-                    paths = g_path.split(self._sep)
-                    #just take the last part
-                    path = paths[-1]
-                    #then add it to the path
-                    g_path = self.path + self.__sep + path
-                    intC_paths[self._grad_names[j]] = g_path
+                    if self._grad_names=='H2O2e':
+                        #add this path to the grad path list
+                        g_path = data[j+n1+2].strip("\n")
+                        #rebuild the path
+                        paths = g_path.split(self._sep)
+                        #just take the last part
+                        path = paths[-1]
+                        #then add it to the path
+                        g_path = self.path + self.__sep + path
+                        intC_paths[self._grad_names[j]] = g_path
                 self._gradients[time] = grad_paths
                 self._interC[time]=intC_paths
         #once this is done close this file
@@ -234,7 +236,7 @@ class Simulation(object):
     """ A class for running simulations
     """
 
-    def __init__(self, name, path, start_time, end_time, time_step,inhib_type, inhib_time=1.0,inhib_time1=24.0,inhib_duration=6.0):
+    def __init__(self, name, path, start_time, end_time, time_step, grid_size, inhib_type, inhib_time=1.0,inhib_time1=24.0,inhib_duration=6.0):
         """ Initialization function for the simulation setup.
             name - the simulation name (string)
             path - the path to save the simulation information to (string)
@@ -261,6 +263,10 @@ class Simulation(object):
         self.inhib_time1=inhib_time1
         self.inhib_duration=inhib_duration
         self.inhib_type=inhib_type
+        self.grid_size = grid_size
+        self.max_x = grid_size[0]
+        self.max_y = grid_size[1]
+        self.max_z = grid_size[2]
 
         #make a list to keep track of the sim objects
         self.objects = []
@@ -488,9 +494,9 @@ class Simulation(object):
 
         #create the simulation header file
         self._create_header_file()
-##        #save the inital state configuration
-        self.save()
+        #save the inital state configuration
         self._set_gradient_inital_conditions()
+        #self.save()
         #self.load_gene_expression_data()
         #nor run the loop
         #self.gradients[0].set_gradient_value_at_point([np.float64(299.82398870120426), np.float64(374.4983564833048), 0], 5.25)
@@ -513,12 +519,11 @@ class Simulation(object):
                 print("manual collide")
                 self.collide_lowDens()
                 #now optimize the resultant constraints
-            self.optimize()
-            
+            self.optimize(self.max_x, self.max_y, self.max_z)
+            self.save()
             #increment the time
             self.time += self.time_step
             #save 
-            self.save()
         #once the sim is done close the header file
         self._header.flush()
         self._header.close()
@@ -562,22 +567,83 @@ class Simulation(object):
             j=obj2.ID
             nbs1.append([i,j])
         nbs2=np.asarray(nbs1, dtype=np.int32)
-        
-        #this section is supposed to remove the for loop in the next section, currently not used 25march2025
-        extraC={}
-        for i in range(len(self.gradients)):
-            extraC[self.gradients[i].name]=[]
-            for j in range(0, len(self.objects)):
-                tempC = self.gradients[i].get_gradient_value_at_point(self.objects[j].location)
-                extraC[self.gradients[i].name].append(tempC)
-        #extraC=np.asarray(extraC, dtype=np.float64)
-        # print(extraC)
 
-        division_timer = []
-        for i in range(len(self.objects)):
-            division_timer.append(self.objects[i].division_timer)
-        
+        # division_timer = []
+        # for i in range(len(self.objects)):
+        #     division_timer.append(self.objects[i].division_timer)
+
         #define the sinks and sources
+        # if self.gradients[0].z_dim == 0:
+        #     temp_h2o2e_C = np.array([self.gradients[0].get_gradient_value_on_surface_shell(obj.location)
+        #                               for obj in self.objects])
+        # else:
+        #     temp_h2o2e_C = np.array([self.gradients[0].get_gradient_value_on_surface_shell(obj.location) 
+        #                                for obj in self.objects])
+        # locations = []
+        # for agent in agents:
+        #     locations.append(agent.location[0:2])
+        
+        # max_x, max_y = np.max(locations, axis=0)
+        # for i in range(len(self.gradients)):
+        #     self.gradients[i]._x = max_x + 0.1 * max_x
+        #     self.gradients[i]._y = max_y + 0.1 * max_y
+        # print(max_x,max_y)
+        
+        t0=time.time()
+        x0_baseline = get_x0()
+        k = get_k()
+        for i in range(len(self.interC)):
+            if self.interC[i].name=='cAMP':
+                self.interC[i].update_C2(nbs2,n,1)#,division_timer)
+            elif self.interC[i].name=='H2O2i':
+                #self.interC[i].update_C0(nbs2,n,0.5)#,division_timer)                                                   #GJC for H2O2i
+                for j in range(0, len(self.objects)):
+                    x0 = self.objects[j].x0
+
+                    x0[0] = self.gradients[0].get_gradient_value_on_surface_shell(self.objects[j])
+                    x0[1] = self.interC[i].get_C(j)
+                    x0[29] = self.interC[2].get_C(j)  # Ca
+
+                    if self.time == 5 and j == 877:
+                        x0[1] = 0.0012
+                    if j == 877:
+                        print(self.time, x0[0], x0[1], x0[29], j)
+
+                    t = np.linspace(0, 1, 2)
+                    solution = solve_ivp(
+                                    lambda t, y: model_noref(y, t, k, x0_baseline),  # Remove x0 from lambda arguments
+                                    (0, 1),  # t_span should be a tuple (start, end)
+                                    x0,
+                                    method='Radau',
+                                    t_eval=t,
+                                    atol=1e-10,
+                                    rtol=1e-8
+                                )
+                    
+                    xnew = solution.y[:, -1]  # Get the last time point
+                    
+                    #xnew = self.interC[i].update_Cflux(j, x0, 200) 
+                    
+                    self.interC[i].change_C(j, xnew[1])
+                    self.interC[2].change_C(j, xnew[29])
+                    #print(xnew[29])
+                    h2o2e_add = (xnew[0] - x0[0])
+
+                    self.objects[j].x0 = xnew
+                    if j == 877:
+                        print(self.time, xnew[0], xnew[1], xnew[29], j, h2o2e_add)
+                    # self.objects[j].C['H2O2i'] = float(xnew[1])
+                    # self.objects[j].C['Ca'] = float(xnew[29])
+
+                    #self.gradients[0].set_gradient_value_at_point(self.objects[j].location, xnew[0]) #update H2O2e concentration
+                    self.gradients[0].add_gradient_value_on_cell_surface(self.objects[j], h2o2e_add)
+
+                self.interC[i].update_C0(nbs2,n,1)#,division_timer)                   #GJC for H2O2i
+            else:
+                self.interC[i].update_C1(nbs2,n,1)#,division_timer)                   #GJC for Ca2+
+            #print(self.interC)
+        t1=time.time()
+        print("Inter Transport Time: {}".format(t1-t0))
         print("Updating gradients...")
         t0=time.time()
         if(len(self.gradients) > 0):
@@ -587,7 +653,7 @@ class Simulation(object):
         #print(f"gradients length {len(self.gradients)}")
         for i in range(0, len(self.gradients)):
             t0_1 = time.time()
-            self.gradients[i].update(3, sinks[i], sources[i]) #flux between in and out
+            self.gradients[i].update(1, sinks[i], sources[i]) #flux between in and out
             self.gradients[i].cubic_interpolate_at_object_locations(self.objects) #gradient value
             
             # print(f"Sources max: {np.max(sources[i]):g} , min: {np.min(sources[i]):g}")
@@ -598,43 +664,9 @@ class Simulation(object):
                     Sinks max: {np.max(sinks[i]):g} , min: {np.min(sinks[i]):g}")
 
             #print("Sinks max: " + repr(np.max(sinks[i])) + " , min:" + repr(np.min(sinks[i])))
-            self.objects[92].set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
+            #self.objects[92].set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
         t1=time.time()
         print ("Gradient Diffusion Time: {}".format(t1-t0))
-
-        t0=time.time()
-        for i in range(len(self.interC)):
-            if self.interC[i].name=='cAMP':
-                self.interC[i].update_C1(nbs2,n,3,division_timer)
-            elif self.interC[i].name=='H2O2i':
-                for j in range(0, len(self.objects)):
-                    #print(j, self.interC[i].C[j], self.objects[j].C)
-                    # temp_h2o2e_C = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
-                    #GSH = self.interC[2].get_C(j) #get GSH concentration
-                    
-                    x0 = self.objects[j].x0
-
-                    x0[0] = self.gradients[0].get_gradient_value_at_point(self.objects[j].location)
-                    #print(x0[0])
-                    #x0[28] = self.interC[2].get_C(j) #get Ca concentration
-                    #x0[29] = self.gradients[1].get_gradient_value_at_point(self.objects[j].location) #get Ca concentration
-
-                    x0 = self.interC[i].update_Cflux(j, x0, 3) #GSH, temp_h2o2e_C, 60)
-                    #self.interC[2].change_C(j, x0[28]) #update Ca concentration
-                    self.objects[j].x0 = x0
-                    #GSH, extraC = self.interC[i].update_scflux(j, temp_h2o2e_C, 3600, self.protein_vals[:,j], GSH) #update H2O2i concentration
-                    #self.objects[j].set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0) #update H2O2e concentration
-
-                    #self.interC[2].change_C(j, GSH) #update GSH concentration
-                    self.gradients[0].set_gradient_value_at_point(self.objects[j].location, x0[0]) #update H2O2e concentration
-                    #self.gradients[1].set_gradient_value_at_point(self.objects[j].location, x0[29]) #update Ca concentration
-                    
-                    #self.objects[j].set_gradient_source_sink_coeff('H2O2e', x0[29], 0.0)
-                self.interC[i].update_C0(nbs2,n,3,division_timer)                                                   #GJC for H2O2i
-            #print(self.interC)
-        t1=time.time()
-        print("Inter Transport Time: {}".format(t1-t0))
-        
         #RUN A FASTER UPDATE LOOP     
         split = 1
         for p in range(0, split):
@@ -649,15 +681,21 @@ class Simulation(object):
         """ 
             
         #first make a list of points for the delaunay to use
-        k=0
-        for i in range(0,len(self.objects)):
-            k+=self.objects[i].location[2]
-        if k==0:
-            n=2
+        # k=0
+        # for i in range(0,len(self.objects)):
+        #     k+=self.objects[i].location[2]
+        # if k==0:
+        #     n=2
+        # else:
+        #     n=3
+
+        z_vals = [obj.location[2] for obj in self.objects if len(obj.location) > 2]
+        if len(z_vals) == 0 or np.allclose(z_vals, z_vals[0]):
+            n = 2  # All z are the same (or 2D objects)
         else:
-            n=3
+            n = 3  # z varies, so use 3D
+            
         points = np.zeros((len(self.objects), n))
-        
         for i in range(0, len(self.objects)):
             #Now we can add these points to the list
             if n==2:
@@ -758,7 +796,7 @@ class Simulation(object):
             if(dist > interaction_length):
                 self.network.remove_edge(obj1, obj2)
                 
-    def optimize(self):                
+    def optimize1(self, x_max=None, y_max=None, z_max=None):                
         #apply constraints from each object and update the positions
         #keep track of the global col and opt vectors
         opt = 2
@@ -782,10 +820,62 @@ class Simulation(object):
                 #as well as any other constraints
                 self.objects[i].update_constraints(self.time_step)
             #increment the itrations
+            # if x_max is not None and y_max is not None and z_max is not None:
+            #     boundary = self._handle_boundary_constraints(x_max, y_max, z_max)
+            #     self._handle_soft_wall_constraints(x_max, y_max, z_max, wall_thickness=5.0, wall_strength=1.0)
+            # else:
+            #     boundary = 0
             itrs += 1
             #print the results
 ##            print(itrs)
 ##            print(opt, col, fixed)
+
+    def optimize(self, x_max=None, y_max=None, z_max=None):                
+        #apply constraints from each object and update the positions
+        #keep track of the global col and opt vectors
+        opt = 2
+        col = 2
+        fixed = 2
+        itrs = 0
+        max_itrs = 50
+        avg_error = 0.2 # um
+        wall_thickness = 5.0
+        wall_strength = 1.0
+        while ((opt + col + fixed) >= avg_error and itrs < max_itrs):
+            #reset these values
+            opt = 0
+            col = 0
+            fixed = 0
+           
+            opt, col = self._handle_spring_constraints()                       #handle the spring constraints
+            fixed = self._handle_fixed_constraints()                           #handle to fixed constraints
+
+            #now loop over and update all of the constraints
+            for i in range(0, len(self.objects)):
+                #update these collision and optimization vectors
+                #as well as any other constraints
+                self.objects[i].update_constraints(self.time_step)
+            #increment the itrations
+            itrs += 1
+
+        # After constraint updates, apply soft wall and decrease division_timer if near edge
+        if x_max is not None and y_max is not None and z_max is not None:
+            for obj in self.objects:
+                near_edge = False
+                # Check each dimension for proximity to wall
+                for dim, (pos, max_val) in enumerate(zip(obj.location, [x_max, y_max, z_max])):
+                    if dim >= len(obj.location):
+                        continue  # skip z if 2D
+                    if pos < wall_thickness or pos > max_val - wall_thickness:
+                        near_edge = True
+                if near_edge:
+                    # Gently push back is handled by _handle_soft_wall_constraints
+                    # Decrease division_timer (or div_set)
+                    if hasattr(obj, "division_timer"):
+                        obj.division_timer = max(0, obj.division_timer - 10)  # decrease by 10 seconds (adjust as needed)
+                    if hasattr(obj, "div_set"):
+                        obj.div_set = max(0, obj.div_set - 10)
+            self._handle_soft_wall_constraints(x_max, y_max, z_max, wall_thickness=wall_thickness, wall_strength=wall_strength)
 
     def _set_gradient_inital_conditions(self):
         """ Defines the masks to specify the gradient intal conditions
@@ -804,9 +894,17 @@ class Simulation(object):
                 dist_vec = SubtractVec(pos, cent)
                 #convert this to a index value
                 #for all of the gradients get the coeffients
-                x, y = self.gradients[i].get_object_position_on_grid(dist_vec)
-                #print(x,y)
-                mask[int(x),int(y)] = 1
+                
+                if len(shp) == 2 or shp[2] == 0:
+                    # 2D gradient
+                    x, y = self.gradients[i].get_object_position_on_grid(dist_vec)
+                    mask[int(x), int(y)] = 1
+                else:
+                    # 3D gradient
+                    x, y, z = self.gradients[i].get_object_position_on_grid(dist_vec)
+                    mask[int(x), int(y), int(z)] = 1
+                if self.gradients[i].name == "H2O2e":
+                    mask = np.zeros(shp)  # Reset mask for Ca2+
             #now pass this in to the set inital values function
             self.gradients[i].set_initial_conditions(mask)
 
@@ -907,6 +1005,41 @@ class Simulation(object):
         except ZeroDivisionError:
             error = 0 
         return error
+    
+    def _handle_boundary_constraints(self, x_max, y_max, z_max):
+        """Apply hard wall boundary constraints to all objects."""
+        boundary_error = 0
+        for obj in self.objects:
+            old_loc = obj.location.copy()
+            # Clamp x
+            obj.location[0] = min(max(obj.location[0], 0), x_max - 1e-6)
+            # Clamp y
+            obj.location[1] = min(max(obj.location[1], 0), y_max - 1e-6)
+            # Clamp z (if 3D)
+            if len(obj.location) > 2:
+                obj.location[2] = min(max(obj.location[2], 0), z_max - 1e-6)
+            # Track how much the position changed (for convergence)
+            boundary_error += np.linalg.norm(obj.location - old_loc)
+        return boundary_error / max(1, len(self.objects))
+
+    def _handle_soft_wall_constraints(self, x_max, y_max, z_max, wall_thickness=5.0, wall_strength=1.0):
+        """
+        Apply a soft repulsive force as objects approach the simulation boundaries.
+        wall_thickness: distance from the wall where the force starts acting
+        wall_strength: scaling factor for the repulsive force
+        """
+        for obj in self.objects:
+            for dim, (pos, max_val) in enumerate(zip(obj.location, [x_max, y_max, z_max])):
+                if dim >= len(obj.location):
+                    continue  # skip z if 2D
+                # Lower wall
+                if pos < wall_thickness:
+                    force = wall_strength * (wall_thickness - pos) / wall_thickness
+                    obj.add_displacement_vec(np.eye(len(obj.location))[dim] * force)
+                # Upper wall
+                if pos > max_val - wall_thickness:
+                    force = -wall_strength * (pos - (max_val - wall_thickness)) / wall_thickness
+                    obj.add_displacement_vec(np.eye(len(obj.location))[dim] * force)
 
     def _define_sinks_and_sources(self):
         """ Defines the sinks and soruce terms from the simulation
@@ -946,14 +1079,24 @@ class Simulation(object):
             #for all of the gradients get the coeffients
             for i in range(0, len(self.gradients)):
                 #print(f"agent location: {j, agent.location}")
-                x, y = self.gradients[i].get_object_position_on_grid(dist_vec)
-                #print(f"object position on grid: {j, x,y,z}")
-                agent.set_gradient_location(self.gradients[i].name, (x,y))
-                #see if the object conatins a value for this gradient
+                grid_pos = self.gradients[i].get_object_position_on_grid(dist_vec)
+                agent.set_gradient_location(self.gradients[i].name, (grid_pos))
                 src, snk = agent.get_gradient_source_sink_coeff(self.gradients[i].name)
-                #print(f"sources and sinks: {sources[i][int(x),int(y),int(z)], sinks[i][int(x),int(y),int(z)]}")
-                sources[i][int(x),int(y)] += src
-                sinks[i][int(x),int(y)] += snk
+                if len(shp) == 2 or shp[2] == 0:
+                    # 2D gradient
+                    x, y = grid_pos
+                    ix = max(0, min(self.gradients[i].x_dim - 1, int(x)))
+                    iy = max(0, min(self.gradients[i].y_dim - 1, int(y)))
+                    sources[i][ix, iy] += src
+                    sinks[i][ix, iy] += snk
+                else:
+                    # 3D gradient
+                    x, y, z = grid_pos
+                    ix = max(0, min(self.gradients[i].x_dim - 1, int(x)))
+                    iy = max(0, min(self.gradients[i].y_dim - 1, int(y)))
+                    iz = max(0, min(self.gradients[i].z_dim - 1, int(z)))
+                    sources[i][ix, iy, iz] += src
+                    sinks[i][ix, iy, iz] += snk
                 #print(sources[i].shape)
                 #print(src)
                 
@@ -995,16 +1138,19 @@ class Simulation(object):
         self._header.write(repr(self.end_time) + "," + repr(self.time_step) + "\n")
         #Write the gradient names
         self._header.write("Gradient Species:")
-        for i in range(0, len(self.gradients)):
+        for i in range(len(self.gradients)):
             self._header.write(self.gradients[i].name + ",")
-            if(i > len(self.gradients) - 1):
+            if i < len(self.gradients) - 1:   # <-- fix
                 self._header.write(",")
         self._header.write("\n")
+
+        #Write the interC names
         self._header.write("InterC Species:")
-        for i in range(0, len(self.gradients)):
+        for i in range(len(self.interC)):
             self._header.write(self.interC[i].name)
-            if(i > len(self.interC) - 1):
-                self._header.write(",") 
+            self._header.write(",")
+            print(self.interC[i].name)
+
         #Now the header file is open and defined
         self._header.write("\n")  
         

@@ -62,24 +62,33 @@ def save_2D_gradient_images(name, save_path, data, axis):
         #now slice it depending on the axis
         plane = None
         #compute half plane vbalue for x and y
-        x, y = g.C.shape
+        try:
+            x, y, z = g.C.shape
+        except:
+            x, y = g.C.shape
         #print(len(g.C.shape))
-        if(axis == "xy"):
-            n=2     
-            plane=g.C
-##            for k in range(1,n):
-##                plane=plane+g.C[:,:,k]/(n+1)
-##            temp=g.C[:, :, 1]-g.voidSpace[:,:,1]*10e6
-##            temp1=np.maximum(g.C[:,:,1],temp)
-##            plane = temp1
-        if(axis=="xyv"):
-            plane=g.voidSpace[:,:,1]
-        if (axis=="xzv"):
-            plane=g.voidSpace[:,y/2,:]
-        if(axis == "xz"):
-            plane = g.C[:, y/2, :]
-        if(axis == "yz"):
-            plane = g.C[x/2, :, :]
+        if g.C.shape==3:
+            if(axis == "xy"):
+                n=2     
+                plane=g.C[:, :, z//2]  # Select the middle z-slice for 2D display
+    ##            for k in range(1,n):
+    ##                plane=plane+g.C[:,:,k]/(n+1)
+    ##            temp=g.C[:, :, 1]-g.voidSpace[:,:,1]*10e6
+    ##            temp1=np.maximum(g.C[:,:,1],temp)
+    ##            plane = temp1
+            if(axis=="xyv"):
+                plane=g.voidSpace[:,:,z//2]  # Also fix this line
+            if (axis=="xzv"):
+                plane=g.voidSpace[:,y//2,:]
+            if(axis == "xz"):
+                plane = g.C[:, y//2, :]
+            if(axis == "yz"):
+                plane = g.C[x//2, :, :]
+        else:
+            if(axis == "xy"):
+                plane = g.C[:, :]  # Select the entire 2D array
+            if(axis=="xyv"):
+                plane=g.voidSpace[:,:]  # Also fix this line
         #save the slice
         planes.append(plane.T)
         #compute the min and max for graphing
@@ -95,7 +104,7 @@ def save_2D_gradient_images(name, save_path, data, axis):
         plt.imshow(planes[i],
                    cmap=plt.cm.seismic,
                    vmin = mn,
-                   vmax = 1e-9,
+                   vmax = 5e-9,
                    interpolation = 'bicubic',
                    origin= 'lower')
         #print(mx, mn)
@@ -146,7 +155,7 @@ def getGradientImages(path):
         save_2D_gradient_images(grad_names[i],path,data,axis="xy")
 
 if __name__=='__main__':
-    path='/Users/huyunchen/Documents/PhD/test/6.0/'
+    path='/Users/huyunchen/Documents/PhD/test/10.0/'
     getGradientImages(path)
 
 

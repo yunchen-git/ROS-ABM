@@ -3,26 +3,22 @@ from scipy.integrate import odeint, solve_ivp
 import random
 
 def get_k():
-        # constants
-
-        # Defining forward reaction rates 
-        # Defining the array, k, that will house reaction rates
-        k = np.zeros(33)  # Defining the array, k, that will house reaction rates
-
         # Rxns (Cytosolic)
+        k = np.zeros(100)  # Defining the array, k, that will house reaction rates
+                # Rxns (Cytosolic)
 
-        k[0] = 1.0e-5  # Permeability constant (plasma membrane) (cm/s)
-        k[1] = 1.1e-7  # Intracellular peroxide production (M/s)
+        k[0] = 2e-2  # Permeability constant (plasma membrane) (cm/s)
+        k[1] = 14.75e-7  # Intracellular peroxide production (M/s)
         k[2] = 2.1e7  # GPx_red reacting with H2O2in (M-1*s-1)
         k[3] = 4e4  # GPx_ox reacting with GSH (M-1*s-1)
         k[4] = 1e7  # GPx-SSG reacting with GSH (M-1*s-1)
         k[5] = 3.4e7  # Catalase reacts with H2O2 inside peroxisome (M-1*s-1)
         k[6] = 5.7e-5  # Km of NADP+ (M)
-        k[7] = 4e7  # Peroxiredoxin is oxidized by H2O2 (M-1*s-1)
-        k[8] = 7.2e4  # Oxidized peroxiredoxin is over-oxidized by H2O2 (M-1*s-1)
+        k[7] = 100e-6  # Peroxiredoxin is oxidized by H2O2 (M-1*s-1)
+        k[8] = 0.0049e-6  # Oxidized peroxiredoxin is over-oxidized by H2O2 (M-1*s-1)
         k[9] = 3e-3  # Reduction of overoxidized Prx by Srx enzyme (s-1)
         k[10] = 15  # Self-catalyzed disulfide formation of Prx-SS from Prx-SOH (s-1)
-        k[11] = 2.1e6  # Peroxiredoxin is reduced by Thioredoxin (M-1*s-1)
+        k[11] = 2.1e-6 # Peroxiredoxin is reduced by Thioredoxin (M-1*s-1)
         k[12] = 7.4e-05  # Auto-oxidation of GSH (s-1)
         k[13] = 1e4  # Protein monothiol oxidized by H2O2 (M-1*s-1)
         k[14] = 1.2e5  # Oxidized Protein monothiol glutathionylated by GSH (M-1*s-1)
@@ -39,19 +35,77 @@ def get_k():
         k[25] = 1.2e-7  # GSH + GSSG efflux (M/s)
         k[26] = 7.45e-10  # Trx_SH efflux (M/s)
         k[27] = 6.97e-10  # Trx_SH synthesis (M/s)
-        k[28] = 1e-5 # nox generation of superoxide ()    #Banfi B. et al, JBC 2002
-        k[29] = 4e9 # superoxide dismutase reduction and oxidation by superoxide (M-1*s-1), from Fee J.A. & Bull C. The journal of biological chemistry 1986
-        k[30] = 1e-4 # intracellular superoxide production (M/s)
+        k[28] = 0#1e-5 # nox generation of superoxide ()    #Banfi B. et al, JBC 2002
+        k[29] = 0#4e9 # superoxide dismutase reduction and oxidation by superoxide (M-1*s-1), from Fee J.A. & Bull C. The journal of biological chemistry 1986
+        k[30] = 0 # intracellular superoxide production (M/s)
         k[31] = 0 # nox h2o2 production (M/s)
-        k[32] = 0 # extracellular vesicle production (M/s?)
+        k[32] = 5e-7 # nox 2 (M/s?)
+        k[33] = 1e-7 # km nox2 (M) for activation by h2o2
+
+
+        # ---- new Ca2+ and NOX5 parameters (packed into k) ----
+        # ER Ca release via oxidized IP3R
+        k[34] = 1e-4    # V_rel (M/s) ER -> cyt max release
+        k[35] = 1e-7     # K_IP3R_H (M) H2O2 half-activation for IP3R oxidation and activation
+        k[36] = 4       # nH (Hill exponent H2O2→IP3R)
+        k[37] = 5e-7     # K_er (M) ER Ca activation for release
+
+        # SERCA uptake with H2O2 inhibition
+        k[38] = 1e-9    # V_SERCA (M/s)
+        k[39] = 1e-6     # K_ser (M) cyt Ca half-sat for SERCA uptake, # 10.1113/jphysiol.2013.269373
+        k[40] = 1e-5     # K_SERCA_H (M) H2O2 inhibition scale
+        k[41] = 2        # m_inhib (Hill for H2O2 inhibition)
+
+        # TRPM2 H2O2-gated influx
+        k[42] = 9e-7     # P_TRPM2 (1/s) effective permeability scale
+        k[43] = 5e-7     # K_TRPM2_H (M) H2O2 half-activation (~10–100 µM)
+        k[44] = 2.0        # p_TRPM2 (Hill exponent)
+
+        # SOCE (store-operated Ca entry) factor
+        k[45] = 1e-7     # P_SOCE (1/s)
+        k[46] = 100e-7     # K_store (M) ER Ca scale where SOCE ramps
+
+        k[47] = 2.1 # SERCA n (Hill exponent for Ca), 10.1113/jphysiol.2013.269373
+
+        # NOX5 Ca-dependent ROS production
+        k[48] = 5e-4    # Vmax_NOX5 (M/s)  (tune 1e-8 to 1e-7)
+        k[49] = 0.71e-6    # K_Ca (M) ~ 1 µM half-activation
+        k[50] = 4        # m_nox (Hill exponent for Ca)
+
+        k[51] = 5e-7     # K_IP3R_H_inh (M) H2O2 half-inhibition for IP3R oxidation
+        k[52] = 2       # mH_inh (Hill exponent H2O2 inhibition)
+        k[53] = 5e-6      # K_IP3R_C_inh (M) Ca half-inhibition for IP3R
+        k[54] = 2       # n_Ca_IP3R_act (Hill exponent Ca activation)
+
+        # ER capacity & overflow
+        k[55] = 1.1e-4     # C_ER_max [M]   (e.g., 0.5 mM; set well above baseline ~1e-4)
+        k[56] = 1e-2       # k_over  [1/s]  (how fast overflow evacuates when over cap)
+        k[57] = 5e-7    # K_IP3R_Ca (M) Cytosolic Ca scale for IP3R activation
+        # Cytosolic Ca extrusion (lumped PMCA/NCX)
+        k[58] = 6e-8        # 1/s  (cytosolic Ca leak rate constant)
+
+        # NOX5 NADPH Km (you already have Vmax & Ca gate)
+        k[62] = 1.4e-5                    # Km_NOX5_NADPH [M] (~14 µM)
+
+        # Duox1/2 (additional Ca-dependent ROS source)
+        k[63] = 0.1e-9                 # kcat_duox_low_Ca (s-1)  (tune 1e-8 to 1e-7)
+        k[64] = 0.87e-6                    # K_Duox_Ca (M) ~ 1 µM half-activation
+        k[65] = 4                           # m_duox (Hill exponent for Ca)
+        k[66] = 24.31e-6                    # Km_Duox_NADPH_low_Ca [M] (~14 µM)
+        k[67] = 11.52e-6                    # Km_Duox_NADPH_high_Ca [M] (~140 µM)
+
+        # TRPM2 Ca influx (you already have H2O2 gate) due to calcium
+        k[68] = 16.9e-6     # k_trpm2 ca (M) ca half-activation (~0.5 µM), doi.org/10.1073/pnas.0811725106
+        k[69] = 2                         # n (trpm2) ca
 
         return k
 
 def get_x0():
-        x0 = np.zeros(30)  # Defining the array, x0, that will house initial concentrations
+        # initial conditions
+        x0 = np.zeros(32)  # Defining the array, x0, that will house initial concentrations
         # Cytoplasm
-        x0[0] = 1e-4  # H2O2media 
-        x0[1] = 1.0e-9  # H2O2cytosol
+        x0[0] = 1e-9  # H2O2media 
+        x0[1] = 1e-9  # H2O2cytosol
 
         x0[2] = 5e-5  # GPXr 
         x0[3] = 1e-14  # GPXo 
@@ -90,81 +144,257 @@ def get_x0():
         x0[26] = 0 # superoxide dismutase reduced
         x0[27] = 0 # superoxide dismutase oxidized
 
-        #x0[28] = 0 # calcium intracellular
-        #x0[29] = 0 # calcium extracellular
+        x0[28] = 1e-9 # steady state h2o2 intracellular
+
+        x0[29] = 1e-7 # calcium intracellular
+        x0[30] = 1.5e-3 # calcium extracellular
+        x0[31] = 1.0e-4 # calcium ER [M] ~ 0.1 mM
+
 
         return x0
 
-# ODE system
+# Define the parameterized model (copy your full ODEs here)
+def model_noref(x, t, k, x_base):
+    dxdt = np.zeros_like(x)
+
+    # ===== Calcium–ROS crosstalk using k[...] and x[...] only =====
+    H   = x[1]     # H2O2 cytosol
+    C   = x[29]    # Ca cytosol
+    Cext= x[30]    # Ca extracellular (constant ~1-2 mM)
+    Cer = x[31]    # Ca ER pool
+
+    # --- Unpack from k ---
+    V_IP3R     = k[34]; K_IP3R_H = k[35]; nH = k[36]; K_er = k[37]
+    V_SERCA   = k[38]; K_ser    = k[39]; K_SERCA_H = k[40]; m_inhib = k[41]
+    P_TRPM2   = k[42]; K_TRPM2_H= k[43]; p_TRPM2 = k[44]
+    P_SOCE    = k[45]; K_store  = k[46]
+    k_out     = k[47]
+    Vmax_NOX5 = k[48]; K_Ca     = k[49]; m_nox = k[50]
+
+    ## --- Helper gates (pure functions of species & k) ---
+    Ca_gate_IP3R = (x[29])**k[54] / (k[57]**k[54] + (x[29])**k[54]) if x[29] > 0 else 0.0 # Activated by cyt Ca
+    Ca_IP3R_inhib = 1.0/(1.0 + (x[29]/k[53])**2) if x[29] > 0 else 0.0 # Inhibited by high Ca
+    h2o2_gate_IP3R = (H**nH)/(K_IP3R_H**nH + H**nH) if H > 0 else 0.0 # activation by H2o2
+    H2O2_inhibit_IP3R = (k[51]**k[52]) / (k[51]**k[52] + H**k[52]) if H > 0 else 0.0 # inhibition by very high H2O2
+    SERCA_inhb = 1.0/(1.0 + (H/K_SERCA_H)**m_inhib) if H > 0 else 1.0
+    H2O2_gate_TRPM2 = (H**p_TRPM2)/(K_TRPM2_H**p_TRPM2 + H**p_TRPM2) if H > 0 else 0.0
+    Ca_gate_TRPM2 = (x[29]**k[69])/((k[68]**k[69]) + (x[29]**k[69])) if x[29] > 0 else 0.0
+    SOCE_drive = K_store/(K_store + Cer)       # ramps as ER depletes
+
+    # --- Fluxes (units consistent with your H2O2 model scaling) ---
+    J_IP3R     = V_IP3R   * h2o2_gate_IP3R * Ca_gate_IP3R \
+        * Ca_IP3R_inhib * H2O2_inhibit_IP3R * (Cer - C) / (K_er + Cer) if (Cer - C) > 0 else 0.0 # ER -> cyt release via IP3R
+    #print(Ca_gate_IP3R,h2o2_gate_IP3R,Ca_IP3R_inhib,H2O2_inhibit_IP3R,J_IP3R)
+    J_SERCA   = V_SERCA * (C**k[47]/(k[39]**k[47] + C**k[47])) * SERCA_inhb if C > 0 else 0.0 # cyt -> ER uptake by SERCA
+    J_in_TRPM2= P_TRPM2 * H2O2_gate_TRPM2 * Ca_gate_TRPM2 * (x[30] - x[29]) if (x[30] - x[29]) > 0 else 0.0 # PM influx via TRPM2
+    J_in_SOCE = P_SOCE  * SOCE_drive * (x[30] - x[29]) if (x[30] - x[29]) > 0 else 0.0 # PM influx via SOCE to restore ER
+
+    # --- ER capacity gating for SERCA (prevents overfilling) ---
+    cap = 1.0 - (x[31] / k[55])         # linear headroom fraction
+    cap = 0.0 if cap < 0.0 else cap   # clamp to [0, 1]
+    J_SERCA *= cap                    # SERCA stops as ER approaches capacity
+
+    # --- Overflow if ER exceeds the cap (hard push back to cytosol) ---
+    J_over = k[56] * cap * x[31] if cap < 0.0 else 0.0
+    J_out = k[58] * (x[29])/ (5e-6 + (x[29]))  if x[29] > 0 else 0.0 # cytosolic Ca extrusion (PMCA/NCX lumped)
+    # --- NOX5 Ca-dependent ROS production ---
+    nox2 = k[32] * (x[1]**6)/(k[33]**6 + x[1]**6) if x[1] > 0 else 0.0 #nox2
+    # NOX5 with NADPH limitation
+    nox5 = k[48] * (x[29]**k[50])/(k[49]**k[50] + x[29]**k[50]) \
+                * (x[22]/(k[62] + x[22])) if x[29] > 0 or x[22] > 0 else 0.0
+
+    km_duox = k[66] - (k[66] - k[67]) * (x[29]**k[65])/(k[64]**k[65] + x[29]**k[65]) if x[29] > 0 else k[67]
+    duox = k[63] * x[22]/(km_duox + x[22])
+
+    dxdt[0] = (k[0]*(x[1] - x[0]) * 10e-3 * 5.3e-6 * (1e9)) + nox2 + duox   # extracellular peroxide
+
+    dxdt[1] = (((k[0] * x[0] * 10e-3 * 5.3e-6) / (1.15e-12))
+               - ((k[0] * x[1] * 10e-3 * 5.3e-6) / (1.15e-12))
+               - 2 * (k[22] * x[1] * 10e-3 * 2.98e-9) / (1.53e-14)              # peroxisomal H2O2     
+               - k[2] * x[2] * x[1]                             # GPx reduction of H2O2
+               - k[5] * x[7] * x[1]                                # catalase reaction
+               - k[7] * x[9] * x[1]                                   # peroxiredoxin oxidation
+               - k[8] * x[10] * x[1]                                  # overoxidized peroxiredoxin
+               - k[13] * x[15] * x[1]                                 # Protein monothiol oxidation
+               - k[17] * x[20] * x[1]                                 # Protein dithiol oxidation
+               + k[1]                                                          # peroxide production due to ETC leak
+               + nox5)                                                        # nox5 h2o2 production
+    
+    #GPXr
+    dxdt[2] = (- k[2] * x[2] * x[1]
+               + k[4] * x[4] * x[5])
+    #GPXo
+    dxdt[3] = k[2] * x[2] * x[1] - k[3] * x[3] * x[5] 
+    #GPX-SG
+    dxdt[4] = k[3] * x[3] * x[5] - k[4] * x[4] * x[5]
+    #GSH
+    dxdt[5] = (- k[3] * x[3] * x[5]
+               - k[4] * x[4] * x[5]
+               - 2 * k[12] * x[5]
+               - k[14] * x[16] * x[5]
+               - k[16] * x[16] * x[5]
+               + 2 * k[19] * x[6] * x[22]
+               + k[23] 
+               - k[25])
+    #GSSG
+    dxdt[6] = (k[4] * x[4]* x[5] 
+               + k[12] * x[5] 
+               + k[16] * x[19] * x[5] 
+               - k[19] * x[6] * x[22] if x[6] > 0 and x[22] > 0 else 0.0
+               - k[24] * x[6] / x_base[6] if x_base[6] > 0 else 0.0
+               - k[25] * x[6] / x_base[6] if x_base[6] > 0 else 0.0)
+
+    dxdt[7] = 0
+    dxdt[8] = ((k[22] * x[1] * 10e-3 * 2.98e-9) / (1.53e-14)            # peroxisomal H2O2
+               - k[5] * x[7] * x[8])
+    
+    #Prx-SH
+    dxdt[9] = (- k[7] * x[9] * x[1]                                 # peroxiredoxin oxidation by H2O2, rates = 4e7 M-1s-1
+               + k[11] * x[12] * x[13])                             # reduction of peroxiredoxin by thioredoxin
+    #Prx-SOH
+    dxdt[10] = (k[7] * x[9] * x[1] 
+                - k[8] * x[10] * x[1]                           # overoxidized peroxiredoxin by H2O2    
+                + k[9] * x[11]                                      # reduction of overoxidized peroxiredoxin by sulfiredoxin
+                - k[10] * x[10])                                # self-catalyzed disulfide formation of Prx-SS from Prx-SOH
+    #Prx-SOOH
+    dxdt[11] = (k[8] * x[10] * x[1]                                 # reduction of peroxiredoxin by thioredoxin
+                - k[9] * x[11])                                    # reduction of overoxidized peroxiredoxin by sulfiredoxin
+    #Prx-SS
+    dxdt[12] = (k[10] * x[10]                                   # self-catalyzed disulfide formation of Prx-SS from Prx-SOH
+                - k[11] * x[12] * x[13])
+    #Trx1-SH
+    dxdt[13] = (- k[11] * x[12] * x[13] 
+                - k[18] * x[21] * x[13] 
+                + k[20] * x[14] * x[22] 
+                - k[26] 
+                + k[27])
+    #Trx1-SS
+    dxdt[14] = (k[11] * x[12] * x[13] 
+                + k[18] * x[21] * x[13] 
+                - k[20] * x[14] * x[22])
+
+    dxdt[15] = (- k[13] * x[15] * (x[1])
+                + k[15] * x[18] * (x[17]))
+
+    dxdt[16] = k[13] * x[15] * x[1] - k[14] * x[16] * x[5]
+    dxdt[17] = k[14] * x[16] * x[5] - k[15] * x[18] * x[17]
+    dxdt[18] = k[16] * x[19] * x[5] - k[15] * x[18] * x[17]
+    
+    dxdt[19] = (k[15] * x[18] * x[17] 
+                - k[16] * x[19] * x[5])
+    
+    #Pr-(SH)2
+    dxdt[20] = - k[17] * x[20] * x[1] + k[18] * x[21] * x[13]
+    dxdt[21] = k[17] * x[20] * x[1] - k[18] * x[21] * x[13]
+
+    #NADPH
+    dxdt[22] = (- k[19] * x[6] * x[22] 
+                - k[20] * x[14] * x[22] 
+                #- k[28] * x[22]                                         # nox generation of superoxide
+                - (2 * nox2 if x[22] > 0 else 0.0)
+                - (2 * nox5 if x[22] > 0 else 0.0)
+                + (k[21] * x[23] / (k[6] + x[23]) if x[23] > 0 or x[22] > 0 else 0.0))
+    #NADP+
+    dxdt[23] = (k[19] * x[6] * x[22] 
+                + k[20] * x[14] * x[22] 
+                #+ k[28] * x[22]                                         # nox generation of superoxide and nadp+
+                + 2 * nox2
+                + 2 * nox5
+                - (k[21] * x[23] / (k[6] + x[23]) if x[23] > 0 else 0.0))
+    #superoxide media
+    dxdt[24] = 0
+    #superoxide cytosol
+    dxdt[25] = 0
+    #SOD reduced
+    dxdt[26] = 0
+    #SOD oxidized
+    dxdt[27] = 0
+
+    # --- Calcium balances --
+    dxdt[29] = J_IP3R + J_in_TRPM2 + J_in_SOCE + J_over - J_SERCA - J_out            # d[Ca_cyt]/dt
+    dxdt[30] = 0                                                     # d[Ca_ext]/dt
+    dxdt[31] = J_SERCA - J_IP3R - J_over                           # d[Ca_ER]/dt
+    print(dxdt[29], dxdt[31])
+
+    return dxdt
+
 def model(x, t, k, x0):
     # if x0 is None:
     #     x0 = get_x0()
-
     dxdt = np.zeros_like(x)
-    dxdt[0] = (k[0] * (x[1] - x[0]) * 10e-3 * 1.02e-5 * (1e9)) + k[31]
+    nox2 = k[32] * (x[1]**6)/(k[33]**6 + x[1]**6) if x[1] > 0 else 0.0 #nox2
+    dxdt[0] = (k[0] * (x[1] - x[0]) * 10e-3 * 1.02e-5 * (1e9)) + nox2
+    # --- Copy the rest of your ODEs from model_noref here ---
 
-    dxdt[1] = (((k[0] * x[0] * 10e-3 * 1.02e-5) / (9.16e-13))
-               - ((k[0] * x[1] * 10e-3 * 1.02e-5) / (9.16e-13))
+    dxdt[1] = (((k[0] * x[0] * 10e-3 * 5.3e-6) / (1.15e-12))
+               - ((k[0] * x[1] * 10e-3 * 5.3e-6) / (1.15e-12))
                - 2 * (k[22] * x[1] * 10e-3 * 2.98e-9) / (1.53e-14)              # peroxisomal H2O2     
-               - k[2] * x[2] * (x[1] - x0[1])                                   # GPx reduction of H2O2
-               - k[5] * x[7] * (x[1] - x0[1])                                   # catalase reaction
-               - k[7] * x[9] * (x[1] - x0[1])                                   # peroxiredoxin oxidation
-               - k[8] * x[10] * (x[1] - x0[1])                                  # overoxidized peroxiredoxin
-               - k[13] * x[15] * (x[1] - x0[1])                                 # Protein monothiol oxidation
-               - k[17] * x[20] * (x[1] - x0[1])                                 # Protein dithiol oxidation
+               - k[2] * x[2] * x[1]                             # GPx reduction of H2O2
+               - k[5] * x[7] * x[1]                                   # catalase reaction
+               - k[7] * x[9] * x[1]                                   # peroxiredoxin oxidation
+               - k[8] * x[10] * x[1]                                  # overoxidized peroxiredoxin
+               - k[13] * x[15] * x[1]                                 # Protein monothiol oxidation
+               - k[17] * x[20] * x[1]                                 # Protein dithiol oxidation
                + k[1]                                                          # intracellular peroxide production
-               + k[29] * x[25] * x[27]                                      # superoxide dismutase reduction and oxidation by superoxide
-               )
+               + k[29] * x[25] * x[27])                                      # superoxide dismutase reduction and oxidation by superoxide
+
+    dxdt[2] = (- k[2] * x[2] * x[1]
+               + k[4] * x[4] * x[5])
     
-    dxdt[2] = - k[2] * x[2] * (x[1] - x0[1]) + k[4] * (x[4] - x0[4]) * x[5]
-    dxdt[3] = k[2] * x[2] * (x[1] - x0[1]) - k[3] * (x[3] - x0[3]) * x[5]
-    dxdt[4] = k[3] * (x[3] - x0[3]) * x[5] - k[4] * (x[4] - x0[4]) * x[5]
-    dxdt[5] = (- k[3] * (x[3] - x0[3]) * x[5]
-               - k[4] * (x[4] - x0[4]) * x[5]
+    dxdt[3] = k[2] * x[2] * x[1] - k[3] * x[3] * x[5]
+    dxdt[4] = k[3] * x[3] * x[5] - k[4] * x[4] * x[5]
+    dxdt[5] = (- k[3] * x[3] * x[5]
+               - k[4] * x[4] * x[5]
                - 2 * k[12] * x[5]
-               - k[14] * (x[16] - x0[16]) * x[5]
-               - k[16] * (x[19] - x0[19]) * x[5]
-               + 2 * k[19] * (x[6] - x0[6]) * x[22]
-               + k[23] - k[25])
-    dxdt[6] = (k[4] * (x[4] - x0[4]) * x[5] + k[12] * x[5] +
-               k[16] * (x[19] - x0[19]) * x[5] - k[19] * (x[6] - x0[6]) * x[22] -
-               k[24] - k[25])
+               - k[14] * x[16] * x[5]
+               - k[16] * x[16] * x[5]
+               + 2 * k[19] * x[6] * x[22]
+               + k[23] 
+               - k[25])
+    dxdt[6] = (k[4] * x[4] * x[5] + k[12] * x[5] +
+               k[16] * x[19] * x[5] - k[19] * x[6] * x[22] 
+               - k[24] * x[6] / x0[6]
+               - k[25] * x[6] / x0[6]
+               )
     dxdt[7] = 0
-    dxdt[8] = (k[22] * x[1] * 10e-3 * 2.98e-9) / (1.53e-14) - k[5] * x[7] * (x[8] - x0[8])
-    dxdt[9] = - k[7] * x[9] * (x[1] - x0[1]) + k[11] * (x[12] - x0[12]) * x[13]
-    dxdt[10] = (k[7] * x[9] * (x[1] - x0[1]) - k[8] * x[10] * (x[1] - x0[1]) +
-                k[9] * (x[11] - x0[11]) - k[10] * x[10])
-    dxdt[11] = k[8] * x[10] * (x[1] - x0[1]) - k[9] * (x[11] - x0[11])
-    dxdt[12] = k[10] * x[10] - k[11] * (x[12] - x0[12]) * x[13]
-    dxdt[13] = (- k[11] * (x[12] - x0[12]) * x[13] 
-                - k[18] * (x[21] - x0[21]) * x[13] 
-                + k[20] * (x[14] - x0[14]) * x[22] 
+    dxdt[8] = (k[22] * x[1] * 10e-3 * 2.98e-9) / (1.53e-14) - k[5] * x[7] * x[8]
+    dxdt[9] = - k[7] * x[9] * x[1] + k[11] * x[12] * x[13]
+    dxdt[10] = (k[7] * x[9] * x[1] - k[8] * x[10] * x[1] +
+                k[9] * x[11] - k[10] * x[10])
+    dxdt[11] = k[8] * x[10] * x[1] - k[9] * x[11]
+    dxdt[12] = k[10] * x[10] - k[11] * x[12] * x[13]
+    dxdt[13] = (- k[11] * x[12] * x[13] 
+                - k[18] * x[21] * x[13] 
+                + k[20] * x[14] * x[22] 
                 - k[26] 
                 + k[27])
-    dxdt[14] = (k[11] * (x[12] - x0[12]) * x[13] + k[18] * (x[21] - x0[21]) * x[13] -
-                k[20] * (x[14] - x0[14]) * x[22])
+    dxdt[14] = (k[11] * x[12] * x[13] + k[18] * x[21] * x[13] -
+                k[20] * x[14] * x[22])
+
+    dxdt[15] = (- k[13] * x[15] * (x[1])
+                + k[15] * x[18] * (x[17]))
+
+    dxdt[16] = k[13] * x[15] * x[1] - k[14] * x[16] * x[5]
+    dxdt[17] = k[14] * x[16] * x[5] - k[15] * x[18] * x[17]
+    dxdt[18] = k[16] * x[19] * x[5] - k[15] * x[18] * x[17]
     
-    dxdt[15] = (- k[13] * x[15] * (x[1] - x0[1]) 
-                + k[15] * x[18] * (x[17] - x0[17]))
+    dxdt[19] = (k[15] * x[18] * x[17] 
+                - k[16] * x[19] * x[5])
     
-    dxdt[16] = k[13] * x[15] * (x[1] - x0[1]) - k[14] * (x[16] - x0[16]) * x[5]
-    dxdt[17] = k[14] * (x[16] - x0[16]) * x[5] - k[15] * x[18] * (x[17] - x0[17])
-    dxdt[18] = k[16] * (x[19] - x0[19]) * x[5] - k[15] * x[18] * (x[17] - x0[17])
-    dxdt[19] = k[15] * x[18] * (x[17] - x0[17]) - k[16] * (x[19] - x0[19]) * x[5]
-    dxdt[20] = - k[17] * x[20] * (x[1] - x0[1]) + k[18] * (x[21] - x0[21]) * x[13]
-    dxdt[21] = k[17] * x[20] * (x[1] - x0[1]) - k[18] * (x[21] - x0[21]) * x[13]
+    dxdt[20] = - k[17] * x[20] * x[1] + k[18] * x[21] * x[13]
+    dxdt[21] = k[17] * x[20] * x[1] - k[18] * x[21] * x[13]
 
     #NADPH
-    dxdt[22] = (- k[19] * (x[6] - x0[6]) * x[22] 
-                - k[20] * (x[14] - x0[14]) * x[22] 
-                - k[28] * x[22]                                         # nox generation of superoxide
-                + k[21] * (x[23] - x0[23]) / (k[6] + x[23]))
+    dxdt[22] = (- k[19] * x[6] * x[22] 
+                - k[20] * x[14] * x[22] 
+                #- k[28] * x[22]                                         # nox generation of superoxide
+                + k[21] * x[23] / (k[6] + x[23]))
     #NADP+
-    dxdt[23] = (k[19] * (x[6] - x0[6]) * x[22] 
-                + k[20] * (x[14] - x0[14]) * x[22] 
-                + k[28] * x[22]                                         # nox generation of superoxide and nadp+
-                - k[21] * (x[23] - x0[23]) / (k[6] + x[23]))
-    
+    dxdt[23] = (k[19] * x[6] * x[22] 
+                + k[20] * x[14] * x[22] 
+                #+ k[28] * x[22]                                         # nox generation of superoxide and nadp+
+                - k[21] * x[23] / (k[6] + x[23]))
+
     dxdt[24] = (k[0] * (x[25] - x[24]) * 10e-3 * 1.02e-5 * (1e9)               # superoxide media
                 + k[28] * x[22])
     
@@ -188,6 +418,34 @@ def model(x, t, k, x0):
     
     return dxdt
 
+def calibrate_k1_for_steady_state(k, x0):
+    # geometry
+    A_cm2, Vcyt_L = 5.3e-6, 1.15e-12
+    J_perm = k[0] * (x0[0] - x0[1]) * (A_cm2 / Vcyt_L) * 1e-3  # membrane flux
+
+    # sinks
+    v_cat = k[5]*x0[7]*x0[1]
+    v_prx = k[7]*x0[9]*x0[1] + k[8]*x0[10]*x0[1]
+    v_gpx = k[2]*x0[2]*x0[1]
+    v_prot= k[13]*x0[15]*x0[1] + k[17]*x0[20]*x0[1]
+
+    # sources (at baseline)
+    v_nox5 = k[48] * (x0[29]**k[50])/(k[49]**k[50] + x0[29]**k[50])
+    v_mito = 0.0
+    v_nox2 = 0.0
+
+    sinks  = v_cat + v_prx + v_gpx + v_prot - J_perm
+    srcs   = v_nox5 + v_mito + v_nox2
+
+    k[1] = max(sinks - srcs, 0.0)   # M/s
+    return print(k)
+
+k = get_k()
+x0 = get_x0()
+#calibrate_k1_for_steady_state(k, x0)
+
+
+    
 def get_blap_k(protein_abund, blap_conc, extraC, intC, parameter_pctchange=None, species_pctchange=None):
     """
     Model for compartmentalized hydrogen peroxide consumption

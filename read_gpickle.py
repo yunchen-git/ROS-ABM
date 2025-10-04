@@ -70,10 +70,10 @@ def draw_species_image(network, path, ind, center, radius, species, scale=1, bac
         normalizer = Normalize(vmin=0.00040, vmax=0.0015)  # Replace with the range you expect
     elif species == 'H2O2i':
         colormap = plt.cm.viridis
-        normalizer = Normalize(vmin=0, vmax=1e-7)  # Replace with the range you expect
+        normalizer = Normalize(vmin=0, vmax=1e-8)  # Replace with the range you expect
     else:
         colormap = plt.cm.plasma
-        normalizer = Normalize(vmin=0, vmax=1e-9)
+        normalizer = Normalize(vmin=0, vmax=2e-7)
     
     def get_color(C_value):
         normalized_value = normalizer(C_value)  # Map C_value directly within -100 to 100 range
@@ -198,8 +198,8 @@ def get_available_species(network):
     return available_species
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/6.0/'
-    read_network(path, 0, 75)
+    path = '/Users/huyunchen/Documents/PhD/test/12.0/'
+    read_network(path, 0, 200)
 
     """ 
     I think below is for saving as txt instead of pic, not used as of 09apr2025

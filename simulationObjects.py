@@ -15,7 +15,7 @@ class SimulationObject(object):
     def __init__(self, location, radius, ID ,owner_ID, sim_type):
         """ Base class which defines properties all sim objects MUST have
             location - the location of the sphere
-            radius - the radius of the sphere
+            radius - the radius of the sphere in um
             ID - the ID of the object #WARNING# This ID is used ot hash objects
                   it MUST BE UNIQUE
             owner_ID - usually the same as the ID, also must be unique between
@@ -74,6 +74,7 @@ class SimulationObject(object):
         nbs=sim.network.neighbors(self)
         for i in range(0,len(nbs)):
             nbs[i].d+=1
+
     def set_extra_C(self,C):
         self.extra_C=C
         
@@ -217,7 +218,7 @@ class StemCell(SimulationObject):
     """
     def __init__(self, location, radius, ID, state, inhib_value=1.0,
                  division_set = 0.0,
-                 division_time = 19.0*60,
+                 division_time = 19.0*60*60,
                  owner_ID = None):
         """ Constructor for a stem cell
             location - the location fo the stem cell
@@ -248,15 +249,26 @@ class StemCell(SimulationObject):
         """ Updates the stem cell to decide wether they differentiate
             or divide
         """
+        max_contacts = 4
+        neighbors = list(sim.network.neighbors(self))
+        if len(neighbors) > max_contacts:
+            can_divide = False
+        else:
+            can_divide = True
+
         # Store concentration in stem cell object from the intercellular diffusion module
         for interC in sim.interC:
+            if interC.name != 'H2O2i' and interC.name != 'Ca':
             #print(f"for {self.ID} getting C {interC.name}, {interC.get_C(self.ID)}")
-            self.C[interC.name]=interC.get_C(self.ID)
+                self.C[interC.name]=interC.get_C(self.ID)
+            else:
+                self.C[interC.name]=interC.get_C(self.ID)
         #growth kinetics
         self.division_timer += dt
 
         #you can grow unless you are in the A state meaning apoptosis
-        if(self.division_timer >= self.division_time):
+        # or if you are in contact with other cells
+        if(self.division_timer >= self.division_time) and can_divide:
             n=2
             #get the radius
             radius = self.radius
@@ -301,7 +313,7 @@ class StemCell(SimulationObject):
             self.state = "D"
             self.update_d
             #self.set_gradient_source_sink_coeff("D", 0, 1e-9)
-            self.division_time = 51*60 #in hours
+            self.division_time = 51*60*60 #in seconds
 
         #Concentration threshold influencing differentiation; chance to differentiation increases the longer a cell has
         # an elevated intracellular concentration

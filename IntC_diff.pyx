@@ -16,6 +16,7 @@ import math
 
 from cython.view cimport array as cvarray
 from libc.stdlib cimport abs
+from libc.math cimport fabs
 #from libc.math cimport fmin
 
 import FBA_ode
@@ -93,16 +94,16 @@ class IntC_Diff(object):
         dx2 = dx*dx
 
         #time step solution
-        self.dt = (0.5) / ((D/(dx2)))   
+        self.dt = 0.5 / (D * (1/dx2))
         
         #solve for the spatial correction constanta in each dimension
-        self.vx = (D*self.dt)/(dx2)
+        self.vx = D * self.dt / dx2
 
         self.deg_prod = celltypes
 
         cdef double[:,:] C = cvarray(shape=(maxCells,2), itemsize=sizeof(double),format="d")
 ##        cdef int[:] state = np.zeros((5,), dtype=np.int)
-        cdef long[:,:] state = cvarray(shape=(maxCells, 2), itemsize=sizeof(long), format="l")
+        cdef long[:,:] state = cvarray(shape=(maxCells, 2), itemsize=sizeof(long), format="l")  
         self.state = state
         C[:,:]=0
         self.C=C
@@ -214,18 +215,10 @@ class IntC_Diff(object):
         #h2o2 production
         #k[1]=0
 
-        # Validate input values
-        if not np.all(np.isfinite(x_0)):
-            # Replace non-finite values with safe defaults
-            for i in range(len(x_0)):
-                if not np.isfinite(x_0[i]):
-                    x_0[i] = 0.0
-                    print(f"Warning: Replaced non-finite x0[{i}] with 0.0")
-                    
         #if x_0[1] > 1e-7 or x_0[29] > 1e-19:
         #k[32] = x_0[1] * 1e-6
         if x_0[1] > 1e-7:
-            k[31] = 1e-3                #nox
+            k[31] = 0#1e-4                #nox
             #k[1] = 1.1e-5               #internal production
         else:
             k[31] = 0
@@ -249,12 +242,15 @@ class IntC_Diff(object):
                 rtol=1e-8
             )
             final_values = result.y[:, -1]  # Get the last time point values
+            #print(result.y.shape)  # Debugging: print the shape of the result
             
             # Update the cell's internal concentration with only the final value
             C[n, 0] = final_values[1]  # Last time point, H2O2 cytosol concentration
+            #print(final_values[1], final_values[0])  # Debugging: print final concentrations
             
             # Return final internal and external concentrations
             return final_values
+
         except ValueError as e:
             print(f"Error in cell {n}: {e}")
             print(f"x0 = {x0}")
@@ -315,7 +311,7 @@ class IntC_Diff(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.nonecheck(False)  
-    def update_C0(self,cell_nbs,num,te, division_timer):
+    def update_C0(self,cell_nbs,num,te):
         cdef int dim = num
         cdef int[:,:] nbs = cell_nbs
         cdef int edges =nbs.shape[0]
@@ -345,9 +341,9 @@ class IntC_Diff(object):
             mi=state[i,1]
             nj=state[j,0]
             mj=state[j,1]
-            ccei = 1/(1+(abs(division_timer[i]-(division_times[ni]/4.0))/(division_times[ni]/4.0))**2)+0.69*division_timer[i]**6/(division_timer[i]**6+division_times[ni]**6)
-            ccej = 1/(1+(abs(division_timer[j]-(division_times[nj]/4.0))/(division_times[nj]/4.0))**2)+0.69*division_timer[j]**6/(division_timer[j]**6+division_times[nj]**6)
-            Peff[x]=vx*Pmax*(p_n[ni]*ccei)*(p_n[nj]*ccej)
+            ccei = 1/(1+(fabs(mi-(division_times[ni]/4.0))/(division_times[ni]/4.0))**2)+0.69*mi**6/(mi**6+division_times[ni]**6)
+            ccej = 1/(1+(fabs(mj-(division_times[nj]/4.0))/(division_times[nj]/4.0))**2)+0.69*mj**6/(mj**6+division_times[nj]**6)
+            Peff[x]=vx*Pmax#*(p_n[ni]*ccei)*(p_n[nj]*ccej)
 
         #print(np.array(np.min(Peff)))       #min is 1.187e-05
         #print(np.array(np.max(Peff)))       #max is 0.0002
@@ -356,10 +352,10 @@ class IntC_Diff(object):
                 i=nbs[x,0]
                 j=nbs[x,1]
                 ni =state[i,0]
-                #C[i,1]=C[i,1]+Peff[x]*(C[j,0]-C[i,0])
-                #C[j,1]=C[j,1]+Peff[x]*(C[i,0]-C[j,0])
-                C[i,1]=C[i,1]+Pmax*(C[j,0]-C[i,0])
-                C[j,1]=C[j,1]+Pmax*(C[i,0]-C[j,0])
+                C[i,1]=C[i,1]+Peff[x]*(C[j,0]-C[i,0])
+                C[j,1]=C[j,1]+Peff[x]*(C[i,0]-C[j,0])
+                #C[i,1]=C[i,1]+(C[j,0]-C[i,0])*vx
+                #C[j,1]=C[j,1]+(C[i,0]-C[j,0])*vx
 
             for i in range(dim):
                 ni =state[i,0]  
@@ -367,8 +363,10 @@ class IntC_Diff(object):
                     C[i,0]=0    
                 elif math.isnan(C[i,0]):
                     C[i,0]=0
-                
                 C[i,0]=C[i,0]+C[i,1]
+
+                #print(C[i,1]*tend/dt, C[i,0], dt, vx, Pmax, self.name)
+                 # Debugging: print the change in concentration
                 C[i,1]=0.0
             t=t+dt
 
@@ -378,7 +376,7 @@ class IntC_Diff(object):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.nonecheck(False)  
-    def update_C1(self,cell_nbs,num,te, division_timer):
+    def update_C1(self,cell_nbs,num,te):
         cdef int dim = num
         cdef int[:,:] nbs = cell_nbs
         cdef int edges =nbs.shape[0]
@@ -408,9 +406,73 @@ class IntC_Diff(object):
             mi=state[i,1]
             nj=state[j,0]
             mj=state[j,1]
-            ccei = 1/(1+(abs(division_timer[i]-(division_times[ni]/4.0))/(division_times[ni]/4.0))**2)+0.69*division_timer[i]**6/(division_timer[i]**6+division_times[ni]**6)
-            ccej = 1/(1+(abs(division_timer[j]-(division_times[nj]/4.0))/(division_times[nj]/4.0))**2)+0.69*division_timer[j]**6/(division_timer[j]**6+division_times[nj]**6)
+            ccei = 1/(1+(fabs(mi-(division_times[ni]/4.0))/(division_times[ni]/4.0))**2)+0.69*mi**6/(mi**6+division_times[ni]**6)
+            ccej = 1/(1+(fabs(mj-(division_times[nj]/4.0))/(division_times[nj]/4.0))**2)+0.69*mj**6/(mj**6+division_times[nj]**6)
             Peff[x]=vx*Pmax*(p_n[ni]*ccei)*(p_n[nj]*ccej)
+
+        #print(np.array(np.min(Peff)))       #min is 1.187e-05
+        #print(np.array(np.max(Peff)))       #max is 0.0002
+        while t<tend:
+            for x in range(edges):
+                i=nbs[x,0]
+                j=nbs[x,1]
+                ni =state[i,0]
+                C[i,1]=C[i,1]+Peff[x]*(C[j,0]-C[i,0])
+                C[j,1]=C[j,1]+Peff[x]*(C[i,0]-C[j,0])
+                #C[i,1]=C[i,1]+(C[j,0]-C[i,0])*vx
+                #C[j,1]=C[j,1]+(C[i,0]-C[j,0])*vx
+
+            for i in range(dim):
+                ni =state[i,0]  
+                if C[i,0]<0:
+                    C[i,0]=0    
+                elif math.isnan(C[i,0]):
+                    C[i,0]=0
+                
+                C[i,0]=C[i,0]+C[i,1]
+                #print(C[i,1]*tend/dt, C[i,0], dt, vx, Pmax)
+                C[i,1]=0.0
+            t=t+dt
+
+        for i in range(dim):
+            state[i,1]=state[i,1] + te
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.nonecheck(False)  
+    def update_C2(self,cell_nbs,num,te):
+        cdef int dim = num
+        cdef int[:,:] nbs = cell_nbs
+        cdef int edges =nbs.shape[0]
+        cdef double[:,:] dp = self.deg_prod
+        cdef double[:,:] C = self.C
+        cdef double[:,:] cce = self.cce
+        cdef double[:] p_n =self.p_n
+        cdef int[:] division_times = self.division_times
+        
+        cdef double[:,:] inh = self.inhibition
+        cdef double[:] Peff = cvarray(shape=(edges,), itemsize=sizeof(double),format="d")
+        cdef long[:,:] state = self.state  
+        cdef int i,j,x,ni,nj,mi,mj
+        
+        cdef double t=0.0
+        cdef double tend=te
+        cdef double Pmax=self.Pmax
+        cdef double vx=self.vx
+        
+        cdef double dt =self.dt
+        cdef double prod, deg, qni, qnj
+        #print(np.array(C))
+        for x in range(edges):
+            i=nbs[x,0]
+            j=nbs[x,1]
+            ni=state[i,0]
+            mi=state[i,1]
+            nj=state[j,0]
+            mj=state[j,1]
+            ccei = 1/(1+(fabs(mi-(division_times[ni]/4.0))/(division_times[ni]/4.0))**2)+0.69*mi**6/(mi**6+division_times[ni]**6)
+            ccej = 1/(1+(fabs(mj-(division_times[nj]/4.0))/(division_times[nj]/4.0))**2)+0.69*mj**6/(mj**6+division_times[nj]**6)
+            Peff[x]=vx*Pmax#*(p_n[ni]*ccei)*(p_n[nj]*ccej)
             #print(vx, Pmax, p_n[ni], cce[mi,ni], inh[i,0], p_n[nj], cce[mj,nj], inh[j,0])
 
         #print(np.array(np.min(Peff)))       #min is 1.187e-05
@@ -440,69 +502,6 @@ class IntC_Diff(object):
 
         for i in range(dim):
             state[i,1]=state[i,1] + te
-    
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.nonecheck(False)  
-    def update_Cpositive(self,cell_nbs,num,te):
-
-        cdef int dim = num
-        cdef int[:,:] nbs = cell_nbs
-        cdef int edges =nbs.shape[0]
-        cdef double[:,:] dp = self.deg_prod
-        cdef double[:,:] C = self.C
-        cdef double[:,:] cce = self.cce
-        cdef double[:] p_n =self.p_n
-        
-        cdef double[:,:] inh = self.inhibition
-        cdef double[:] Peff = cvarray(shape=(edges,), itemsize=sizeof(double),format="d")
-        cdef long[:,:] state = self.state  
-        cdef int i,j,x,ni,nj,mi,mj
-        
-        cdef double t=0.0
-        cdef double tend=te
-        cdef double Pmax=self.Pmax
-        cdef double vx=self.vx
-        
-        cdef double dt =self.dt
-        cdef double prod, deg, qni, qnj
-
-        for x in range(edges):
-            i=nbs[x,0]
-            j=nbs[x,1]
-            ni=state[i,0]
-            mi=state[i,1]
-            nj=state[j,0]
-            mj=state[j,1]
-            Peff[x]=vx*Pmax*(p_n[ni]*cce[mi,ni]*inh[i,0])*(p_n[nj]*cce[mj,nj]*inh[j,0])
-
-        #print(np.array(np.min(Peff)))       #min is 1.187e-05
-        #print(np.array(np.max(Peff)))       #max is 0.0002
-        while t<tend:
-            for x in range(edges):
-                i=nbs[x,0]
-                j=nbs[x,1]
-                ni =state[i,0]
-                C[i,1]=C[i,1]+Peff[x]*(C[j,0]-C[i,0])
-                C[j,1]=C[j,1]+Peff[x]*(C[i,0]-C[j,0])
-
-            for i in range(dim):
-                ni =state[i,0]  
-                if C[i,0]<0:
-                    C[i,0]=0    
-                elif math.isnan(C[i,0]):
-                    C[i,0]=0
-                
-                prod=(inh[i,1]*vx*dp[ni,0]*C[i,0]**dp[ni,2])/(C[i,0]**dp[ni,2] + dp[ni,1]**dp[ni,2])
-                
-                deg=-vx*dp[ni,3]*C[i,0]
-                C[i,0]=C[i,0]+C[i,1]+prod+deg
-                C[i,1]=0.0
-            t=t+dt
-
-        for i in range(dim):
-            state[i,1]=state[i,1]+1
-            
 
     def __repr__(self):
         """ Returns a string representation of the gradient
