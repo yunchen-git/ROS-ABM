@@ -122,7 +122,7 @@ class TimeSeries(object):
                 data = line.split(",")
                 time = float(data[0])
                 #get the network path
-                n_path = data[1]
+                n_path = data[1] 
                 #make sure no new line characters on this'
                 n_path = n_path.strip("\n")
                 #rebuild the path
@@ -608,6 +608,9 @@ class Simulation(object):
                         x0[1] = 0.0012
                     if j == 877:
                         print(self.time, x0[0], x0[1], x0[29], j)
+                    
+                    # if x0[1]>1e-8:
+                    #     k[31] = 1e-4
 
                     t = np.linspace(0, 1, 2)
                     solution = solve_ivp(

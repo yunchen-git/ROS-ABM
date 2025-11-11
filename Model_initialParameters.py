@@ -14,7 +14,7 @@ from read_gpickle import network_radius
 def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     #Start time, end time, time step
     ts = 0
-    te = 600
+    te = 300
     dt = 1
 
     x = 750
@@ -103,7 +103,7 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
                     celltype_param,division_times,sync_time)
     sim.add_interC(H2O2i)
 
-    Ca = IntC_Diff("Ca",maxCells,D_Ca, ddim,Pmax*1000,open_prob,              #create instance of IntC_Diff class
+    Ca = IntC_Diff("Ca",maxCells,D_Ca, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
                     celltype_param,division_times,sync_time)
     sim.add_interC(Ca)
 
@@ -153,7 +153,7 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
         ID=i
         c = rand.random()
         point=[locations[i,0], locations[i,1], 0]
-        point[2] = z/2  # Add some variation in z-axis
+        point[2] = 0#z/2  # Add some variation in z-axis
         radius=6.5 
         div_set=0#r.random()*19.*60*60 #randomly assign a division time between 0 and 19 hours
 

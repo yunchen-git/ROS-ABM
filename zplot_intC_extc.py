@@ -11,6 +11,9 @@ from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 from scipy.ndimage import map_coordinates
 import matplotlib.colors as mcolors
+from matplotlib.colors import LogNorm
+from matplotlib.ticker import FormatStrFormatter, LogFormatterSciNotation
+from matplotlib.ticker import ScalarFormatter
 import math
 import os
 import Analysis as af
@@ -273,14 +276,13 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
     print(f"H2O2i range: {mn_h2o2i} to {mx_h2o2i}")
     
     # Set up normalizers
-    gradient_normalizer = mcolors.Normalize(vmin=mn_gradient, vmax=mx_gradient)
+    gradient_normalizer = mcolors.Normalize(vmin=mn_gradient, vmax=5e-9)
     h2o2i_normalizer = mcolors.Normalize(vmin=mn_h2o2i, vmax=mx_h2o2i)
     h2o2e_track_589 = []
     h2o2i_track_589 = []
     h2o2e_track_877 = []
     h2o2i_track_877 = []
 
-    
     # Process each time point
     for time, plane_2d, gradient_3d, g, network in all_data:
         print(f"Processing time {time}...")
@@ -313,11 +315,25 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
         cell_positions = np.array(cell_positions)
         cell_h2o2i = np.array(cell_h2o2i)
         cell_radii = np.array(cell_radii)
+        # Define consistent color scaling parameters at the beginning
+        USE_LOG = True
+        vmin_global = 1e-9  # Much lower to capture more variation
+        vmax_global = 1.006e-9   # Higher maximum for better dynamic range
+        
+        # Create shared normalization
+        if USE_LOG:
+            shared_norm = LogNorm(vmin=vmin_global, vmax=vmax_global)
+        else:
+            shared_norm = Normalize(vmin=vmin_global, vmax=vmax_global)
+        
+        # Use consistent colormap
+        shared_cmap = 'Blues'
 
         # Create 2D plot (existing functionality)
         if plot_2d:
             fig, ax = plt.subplots(figsize=(12, 10))
-            
+            # Get the position of the main axes
+            pos = ax.get_position()
             # Plot 2D gradient
             im = ax.imshow(plane_2d,
                           cmap='Blues',
@@ -325,25 +341,45 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
                           interpolation='bicubic',
                           origin='lower')
             
-            # Add gradient colorbar
-            divider = make_axes_locatable(ax)
-            cax = divider.append_axes("right", size="5%", pad=0.05)
-            plt.colorbar(im, cax=cax, label='Extracellular H2O2 Gradient')
+            # Remove divider.append_axes for right colorbar
+            right_cbar_ax = fig.add_axes([pos.x1-0.05, pos.y0, 0.02, pos.height])  # right, bottom, width, height
+            right_cbar = plt.colorbar(im, cax=right_cbar_ax)
+            right_cbar.set_label('Extracellular H2O2 Gradient', fontsize=18)
+            right_cbar.ax.tick_params(labelsize=18)
+            right_cbar.ax.yaxis.offsetText.set_fontsize(18)
+            right_cbar.ax.yaxis.offsetText.set_ha('center')
+            # Format ticks as mantissa only (e.g., 1.000, 1.025)
+            right_cbar.ax.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
+
+            # Hide offset text (default scientific notation label)
+            magnitude = 1e-9
+
+            def mantissa_formatter(x, pos):
+                return f"{x/magnitude:.1f}"
+
+            right_cbar.ax.yaxis.set_major_formatter(plt.FuncFormatter(mantissa_formatter))
+            right_cbar.ax.yaxis.offsetText.set_visible(False)
+            # Manually add magnitude label at the top of the right colorbar
+            right_cbar_ax.text(
+                0.5, 1.02, "1e-9", ha='center', va='bottom', fontsize=18, transform=right_cbar_ax.transAxes
+            )
+            ax.set_xlim(0, 700)
+            ax.set_ylim(0, 700)
             
             # Plot cells
             ax.figure.canvas.draw()  # Needed to get correct transform
 
-            from matplotlib.colors import LogNorm, Normalize, LinearSegmentedColormap
+            #from matplotlib.colors import LogNorm, Normalize, LinearSegmentedColormap
 
             # Matplotlib scatter 's' is area in points^2
             marker_size = 6.5 ** 2 * np.pi
 
             marker_sizes = np.full_like(cell_radii, marker_size)
 
-            h2o2i_normalizer = mcolors.Normalize(vmin=0, vmax=1e-10)
-            # Custom black-to-red colormap (or black-to-yellow if you prefer)
-            intracellular_cmap = LinearSegmentedColormap.from_list('black_to_red', ['black', 'yellow', 'orange', 'red', 'darkred', 'purple'])
-
+            h2o2i_normalizer = mcolors.Normalize(vmin=3e-8, vmax=1e-10)
+            # Custom lightblue-to-red colormap
+            from matplotlib.colors import LinearSegmentedColormap
+            intracellular_cmap = LinearSegmentedColormap.from_list('lightblue_to_red', ['lightblue', 'yellow', 'orange', 'red'])
 
             scatter = ax.scatter(cell_positions[:, 0], cell_positions[:, 1], 
                                  c=cell_h2o2i, cmap=intracellular_cmap, norm=h2o2i_normalizer,
@@ -351,25 +387,37 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
 
             # Highlight specific cells if needed
             for i, cell_id in enumerate(cell_ids):
-                if cell_id in [589, 877]:  # Your cells of interest
+                if cell_id in [589, 766, 877]:  # Your cells of interest
                     color = 'red' if cell_id == 589 else 'blue'
                     ax.scatter(cell_positions[i, 0], cell_positions[i, 1],
                             s=marker_size * 1.5, marker='*', color=color, edgecolors='black', 
                             linewidths=2, zorder=10, alpha=0.8,
                             label=f'Cell {cell_id}')
             
-            # After plotting scatter and before saving the figure:
-            cbar_ax = fig.add_axes([0.07, 0.25, 0.02, 0.5])  # Adjust as needed for your layout
-            cbar_int = plt.colorbar(scatter, cax=cbar_ax)
-            cbar_int.set_label('Intracellular H2O2')
+            # ...existing code...
+            cbar_ax = fig.add_axes([pos.x0-0.03, pos.y0, 0.02, pos.height])  # left, bottom, width, height
+            cbar_int = plt.colorbar(scatter, cax=cbar_ax, pad=0.1)
+            cbar_int.set_label('Intracellular H2O2', fontsize=18, labelpad=8)
+            cbar_int.ax.yaxis.set_label_position('left')
+            cbar_int.ax.yaxis.set_ticks_position('left')  # <-- Add this line
+            cbar_int.ax.tick_params(labelsize=18)  # <-- Make tick labels larger
+            cbar_int.ax.yaxis.offsetText.set_ha('center')  # <-- Center the magnitude label
+            cbar_int.ax.yaxis.offsetText.set_fontsize(18) 
+            cbar_int.ax.yaxis.offsetText.set_visible(False)
+            cbar_ax.text(
+                0.5, 1.02, "1e-8", ha='center', va='bottom', fontsize=18, transform=cbar_ax.transAxes
+            )
             
-            ax.set_title(f'2D H2O2 Distribution - Time {time}')
-            ax.set_xlabel('X Position')
+            # Increase font sizes for title and axes
+            ax.set_title(f'2D H2O2 Distribution - Time {time}', pad=5, fontsize=22)
+            ax.set_xlabel('X Position', fontsize=18)
+            ax.set_ylabel('Y Position', fontsize=18)
+            ax.tick_params(axis='both', labelsize=18)
             #ax.set_ylabel('Y Position')
             
             # Save 2D plot
             output_file_2d = output_dir_2d + f"h2o2_2d_t{ZeroPad(tf, int(time))}.png"
-            plt.savefig(output_file_2d, dpi=150, bbox_inches='tight', pad_inches=0.1)
+            plt.savefig(output_file_2d, dpi=150, bbox_inches='tight', pad_inches=0)
             plt.close()
             print(f"Saved 2D: {output_file_2d}")
 
@@ -382,9 +430,9 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
             # Gradient array is (y, x, z)
             H, W, D = gradient_3d.shape  # (height, width, depth)
 
-            # Slightly denser sampling when NOT squished
-            base = max(1, min(W, H, D) // 40)
-            sample_rate = max(2, base) if squished else base
+            # MUCH denser sampling for airy effect
+            base = max(1, min(W, H, D) // 25)  # Even denser sampling
+            sample_rate = max(1, base) if squished else base
 
             # Indices in (y, x, z) with z flipped so z=0 is at bottom visually
             y_idx = np.arange(0, H, sample_rate)
@@ -401,52 +449,120 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
             Z_flat = Zg.ravel()
             gradient_flat = vals.ravel()
 
-            # ---- Extracellular gradient coloring (absolute, shared across frames) ----
-            from matplotlib.colors import LogNorm, Normalize
-            USE_LOG = True
-            vmin_global = max(1e-22, mn_gradient)
-            vmax_global = max(vmin_global * 10.0, mx_gradient)
+            # ---- Use your exact range ----
+            USE_LOG = False
+            vmin_global = 1e-9
+            vmax_global = 1.006e-9
             norm = LogNorm(vmin=vmin_global, vmax=vmax_global) if USE_LOG else Normalize(vmin=vmin_global, vmax=vmax_global)
 
-            # Plot all points (lets the colorbar show full range)
-            non_zero_mask = gradient_flat >= 0
-            vals_plot = gradient_flat[non_zero_mask]
-            col_scaled = norm(vals_plot)               # -> 0..1
-            colors_rgba = plt.cm.Blues(col_scaled)
-            # airy translucency: alpha grows with absolute value (clipped)
-            alphas = 0.02 + 0.45 * (vals_plot / vmax_global)
-            colors_rgba[:, -1] = np.clip(alphas, 0.02, 0.5)
+            # Much lower threshold to capture more variation
+            threshold = vmin_global * 0.99  # Capture almost everything
+            visible_mask = gradient_flat >= threshold
 
-            gradient_scatter = None
-            if np.any(non_zero_mask):
-                gradient_scatter = ax.scatter(
-                    X_flat[non_zero_mask], Y_flat[non_zero_mask], Z_flat[non_zero_mask],
-                    color=colors_rgba, s=1, depthshade=False, label='Extracellular H2O2'
-                )
+            if np.any(visible_mask):
+                vals_plot = gradient_flat[visible_mask]
+                X_vis = X_flat[visible_mask]
+                Y_vis = Y_flat[visible_mask]
+                Z_vis = Z_flat[visible_mask]
+                
+                # Normalize colors
+                col_scaled = norm(vals_plot)
+                
+                # Normalize colors
+                col_scaled = norm(vals_plot)
+                
+                # ---- LAYER 1: Ultra-fine core points (VERY transparent) ----
+                colors_core = plt.cm.Blues(col_scaled)
+                alphas_core = 0.01 + 0.03 * (col_scaled ** 0.1)  # Much lower alphas
+                colors_core[:, -1] = alphas_core
+                
+                ax.scatter(X_vis, Y_vis, Z_vis,
+                        color=colors_core, s=8, depthshade=False, alpha=0.08)
+                
+                # ---- LAYER 2: Whisper-light medium layer ----
+                colors_med = plt.cm.Blues(col_scaled)
+                alphas_med = 0.008 + 0.02 * (col_scaled ** 0.2)  # Even more transparent
+                colors_med[:, -1] = alphas_med
+                
+                ax.scatter(X_vis, Y_vis, Z_vis,
+                        color=colors_med, s=25, depthshade=False, alpha=0.05)
+                
+                # ---- LAYER 3: Ghost-like halos ----
+                colors_airy = plt.cm.Blues(col_scaled)
+                alphas_airy = 0.005 + 0.015 * (col_scaled ** 0.3)  # Barely visible
+                colors_airy[:, -1] = alphas_airy
+                
+                ax.scatter(X_vis, Y_vis, Z_vis,
+                        color=colors_airy, s=80, depthshade=False, alpha=0.03)
+                
+                # ---- LAYER 4: Ethereal diffusion ----
+                colors_diffuse = plt.cm.Blues(col_scaled)
+                alphas_diffuse = 0.003 + 0.01 * (col_scaled ** 0.4)  # Like vapor
+                colors_diffuse[:, -1] = alphas_diffuse
+                
+                gradient_scatter = ax.scatter(X_vis, Y_vis, Z_vis,
+                                            color=colors_diffuse, s=150, 
+                                            depthshade=False, alpha=0.02,
+                                            label='Extracellular H2O2')
+                
+                # ---- LAYER 5: Atmospheric haze (barely there) ----
+                colors_haze = plt.cm.Blues(col_scaled)
+                alphas_haze = 0.001 + 0.005 * col_scaled  # Almost invisible
+                colors_haze[:, -1] = alphas_haze
+                
+                ax.scatter(X_vis, Y_vis, Z_vis,
+                        color=colors_haze, s=300, depthshade=False, alpha=0.015)
+                
+                # ---- LAYER 6: Ultra-diffuse background whisper ----
+                colors_whisper = plt.cm.Blues(col_scaled)
+                alphas_whisper = 0.0005 + 0.003 * col_scaled  # Like morning mist
+                colors_whisper[:, -1] = alphas_whisper
+                
+                ax.scatter(X_vis, Y_vis, Z_vis,
+                        color=colors_whisper, s=500, depthshade=False, alpha=0.01)
+                
+                # ---- LAYER 7: Add organic variation with ultra-low alpha ----
+                n_jitter = len(X_vis) // 2  # More jitter points
+                if n_jitter > 0:
+                    jitter_idx = np.random.choice(len(X_vis), n_jitter, replace=False)
+                    jitter_scale = 3.0  # More spread
+                    
+                    X_jitter = X_vis[jitter_idx] + np.random.normal(0, jitter_scale, n_jitter)
+                    Y_jitter = Y_vis[jitter_idx] + np.random.normal(0, jitter_scale, n_jitter)
+                    Z_jitter = Z_vis[jitter_idx] + np.random.normal(0, jitter_scale/2, n_jitter)
+                    
+                    colors_jitter = plt.cm.Blues(col_scaled[jitter_idx])
+                    alphas_jitter = 0.001 + 0.008 * col_scaled[jitter_idx]  # Super subtle
+                    colors_jitter[:, -1] = alphas_jitter
+                    
+                    ax.scatter(X_jitter, Y_jitter, Z_jitter,
+                            color=colors_jitter, s=40, depthshade=False, alpha=0.02)
+            
             else:
-                ax.text2D(0.02, 0.98, "No extracellular points ≥ vmin",
-                        transform=ax.transAxes, va='top', ha='left',
-                        fontsize=9, color='0.4')
+                gradient_scatter = None
+                print("No visible gradient points found!")
 
-            # Colorbar for extracellular gradient
-            sm_grad = plt.cm.ScalarMappable(cmap='Blues', norm=norm)
-            sm_grad.set_array([])
-            cbar_grad = plt.colorbar(sm_grad, ax=ax, shrink=0.5, aspect=20, pad=0.1)
-            cbar_grad.set_label('Extracellular H2O2 Gradient (absolute)')
+            # Add extracellular colorbar - no changes needed here
+            if gradient_scatter is not None:
+                sm = plt.cm.ScalarMappable(cmap='Blues', norm=norm)
+                sm.set_array([])
+                cbar_ext = plt.colorbar(sm, ax=ax, shrink=0.5, aspect=20, pad=0.05)
+                cbar_ext.set_label('Extracellular H2O2')
 
             # --- Cells (intracellular) ------------------------------------------------
-            from matplotlib.colors import LogNorm, LinearSegmentedColormap
+            #from matplotlib.colors import LogNorm, LinearSegmentedColormap
 
             cell_radius_physical = 6.5  # μm
             # Log scaling for intracellular
             vmin_h2o2i = max(1e-22, mn_h2o2i)
             vmax_h2o2i = max(vmin_h2o2i * 10.0, mx_h2o2i)
             h2o2i_normalizer = LogNorm(vmin=vmin_h2o2i, vmax=vmax_h2o2i)
+            from matplotlib.colors import LinearSegmentedColormap
 
             intracellular_cmap = LinearSegmentedColormap.from_list(
-                'black_to_red', ['black', 'yellow', 'orange', 'red', 'darkred', 'purple']
+                'black_to_red', ['lightblue', 'yellow', 'orange', 'red']
             )
-
+            h2o2i_normalizer = mcolors.Normalize(vmin=1e-10, vmax=3e-8)
             # Initial placeholder size; we’ll update via hook
             cell_scatter = ax.scatter(
                 cell_positions[:, 0], cell_positions[:, 1], cell_positions[:, 2],
@@ -458,7 +574,7 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
             # Optional star highlights
             highlight_artists = []
             for i, cid in enumerate(cell_ids):
-                if cid in [589, 877]:
+                if cid in [589, 877, 766]:
                     color = 'red' if cid == 589 else 'blue'
                     star = ax.scatter(
                         cell_positions[i, 0], cell_positions[i, 1], cell_positions[i, 2],
@@ -490,15 +606,14 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
             ax.set_title(f'3D H2O2 Distribution - Time {time}')
 
             # Limits
-            ax.set_xlim(0, W)
-            ax.set_ylim(0, H)
-            ax.set_zlim(0, D)
+            ax.set_xlim(0, 700)
+            ax.set_ylim(0, 700)
 
             # Aspect: squish Z if requested
             if squished:
-                ax.set_box_aspect((W, H, D))
+                ax.set_box_aspect((700, 700, D))
             else:
-                ax.set_box_aspect((W, H, D*10))
+                ax.set_box_aspect((700, 700, D*10))
 
             # Intracellular colorbar on the left
             cbar_ax = fig.add_axes([0.05, 0.25, 0.02, 0.5])
@@ -513,7 +628,7 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
             else:
                 output_file_3d = output_dir_3d + f"h2o2_3d_t{ZeroPad(tf, int(time))}_unsquished.png"
 
-            plt.savefig(output_file_3d, dpi=150, bbox_inches='tight', pad_inches=0.1)
+            plt.savefig(output_file_3d, dpi=150, bbox_inches='tight', pad_inches=0)
             plt.close()
             print(f"Saved 3D: {output_file_3d}")
 
@@ -536,6 +651,7 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
                     h2o2e_track_877.append([time, extracellular_h2o2])
                     h2o2i_track_877.append([time, cell_h2o2i[i]])
         
+        #for slice plotting
         if plot_3d:
             # --- SLICE THROUGH A LINE THAT PASSES CELL 589 --------------------------------
             # Helper: compute domain-edge endpoints of a line with angle theta (deg) through point p
@@ -639,43 +755,58 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
             else:
                 print(f"[slice] n={pos.size}, min={pos.min():.3e}, max={pos.max():.3e}")
 
-                vmin = 1e-17
-                vmax = 5e-9
+                vmin = 1e-9
+                vmax = 1.006e-9
                 use_log = (vmax / vmin) >= 20
 
                 dz = getattr(g, "_dz", 1.0)
                 dist_axis_phys = dist_axis * getattr(g, "_dx", 1.0)
                 z_axis_phys = zs * dz
-
+                use_log = True
                 norm = None
                 if use_log:
-                    from matplotlib.colors import LogNorm
                     norm = LogNorm(vmin=vmin, vmax=vmax)
+                else:
+                    # CHANGE: Add linear normalization for consistency
+                    norm = Normalize(vmin=vmin, vmax=vmax)
 
-                color_map = intracellular_cmap = LinearSegmentedColormap.from_list('black_to_red', ['black', 'yellow', 'orange', 'red', 'darkred', 'purple'])
+                # For example, to show only the middle 50% of the line:
+                total_length = dist_axis_phys[-1] - dist_axis_phys[0]
+                crop_factor = 0.5  # Change this to control x-axis length (0.5 = 50% of original)
+                center_dist = (dist_axis_phys[-1] + dist_axis_phys[0]) / 2
+                half_crop_length = (total_length * crop_factor) / 2
+                
+                # Find indices for the cropped region
+                crop_start = center_dist - half_crop_length
+                crop_end = center_dist + half_crop_length
+                crop_mask = (dist_axis_phys >= crop_start) & (dist_axis_phys <= crop_end)
+                
+                # Crop the slice image and distance axis
+                slice_abs_cropped = slice_abs[:, crop_mask]
+                dist_axis_phys_cropped = dist_axis_phys[crop_mask]
 
+                # CHANGE: Use Blues colormap to match 3D plot
                 im = ax_slice.imshow(
-                    slice_abs,
+                    slice_abs_cropped,
                     origin='lower',
-                    cmap=color_map,
-                    extent=[dist_axis_phys[0], dist_axis_phys[-1], z_axis_phys[0], z_axis_phys[-1]],
-                    norm=norm,
-                    vmin=None if use_log else vmin,
-                    vmax=None if use_log else vmax,
+                    cmap=shared_cmap,    
+                    extent=[dist_axis_phys_cropped[0], dist_axis_phys_cropped[-1], z_axis_phys[0], z_axis_phys[-1]],
+                    norm=shared_norm,  # Use the norm object
                     interpolation='bicubic'
                 )
 
                 aspect_physical = (z_axis_phys[-1] - z_axis_phys[0]) / (dist_axis_phys[-1] - dist_axis_phys[0] + 1e-12)
                 ax_slice.set_aspect(aspect_physical * 1000)
 
+                # Mark the vertical through Cell 877 (green dashed)
+                seg = p1 - p0
+                x_along_877 = float(np.dot(np.array([cell_positions[i877, 0], cell_positions[i877, 1]]) - p0, seg) / np.linalg.norm(seg))
+                ax_slice.plot([x_along_877, x_along_877], [z_axis_phys[0], z_axis_phys[-1]], 'g--', lw=1.5, label='Through Cell + 1.2 mM')
                 # Mark the vertical through Cell 589 (red dashed)
                 seg = p1 - p0
                 x_along_589 = float(np.dot(np.array([cell_positions[i589, 0], cell_positions[i589, 1]]) - p0, seg) / np.linalg.norm(seg))
-                ax_slice.plot([x_along_589, x_along_589], [z_axis_phys[0], z_axis_phys[-1]], 'r--', lw=1.5, label='Through Cell 589')
+                ax_slice.plot([x_along_589, x_along_589], [z_axis_phys[0], z_axis_phys[-1]], 'r--', lw=1.5, label='Through Cell 50 μM Away')
 
-                # Mark the vertical through Cell 877 (green dashed)
-                x_along_877 = float(np.dot(np.array([cell_positions[i877, 0], cell_positions[i877, 1]]) - p0, seg) / np.linalg.norm(seg))
-                ax_slice.plot([x_along_877, x_along_877], [z_axis_phys[0], z_axis_phys[-1]], 'g--', lw=1.5, label='Through Cell 877')
 
                 ax_slice.legend(loc='upper right')
 
@@ -683,7 +814,7 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
                 cbar.set_label(f'Extracellular H₂O₂ (absolute, {"log" if use_log else "linear"} scale)')
 
                 output_file_slice = output_dir_3d + f"h2o2_slice_cell589_t{ZeroPad(tf, int(time))}.png"
-                plt.savefig(output_file_slice, dpi=150, bbox_inches='tight', pad_inches=0.1)
+                plt.savefig(output_file_slice, dpi=150, bbox_inches='tight', pad_inches=0)
                 plt.close(fig_slice)
                 print(f"Saved slice: {output_file_slice}")
 
@@ -764,6 +895,6 @@ def getCombinedH2O2Images3D(path, t0=0, tf=200, plot_2d=True, plot_3d=True, make
 # ...existing code...
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/13.0/'
+    path = '/Users/huyunchen/Documents/PhD/test/22.0/'
     # Generate both 2D and 3D plots
     getCombinedH2O2Images3D(path, t0=0, tf=600, plot_2d=True, plot_3d=False, make_graph=True, squished=False)
