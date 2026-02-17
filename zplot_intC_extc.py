@@ -1,3 +1,29 @@
+################################################################################
+# File: zplot_intC_extc.py
+# Purpose:
+#   Advanced visualization script for combining intracellular and extracellular
+#   signals (notably H2O2) into 2D/3D plots and image sequences.
+#   Supports rendering:
+#     - extracellular gradient slices/volumes
+#     - intracellular per-cell values overlaid on the tissue/network geometry
+#     - optional movie/image export pipelines
+#
+# Key public API:
+#   - getCombinedH2O2Images3D(path, t0=0, tf=..., plot_2d=True, plot_3d=True, ...)
+#   - helper functions: draw_species_image, network_radius, get_available_species
+#
+# How it fits in the codebase:
+#   Consumes outputs produced by Simulation.save():
+#   - network*.gpickle (cell networks + attributes)
+#   - gradient snapshots (ExtC_Diff saved fields)
+#
+# Inputs/Outputs:
+#   - Reads run folder files across time (gpickle + gradient data)
+#   - Writes combined plots/images (and optionally videos) to disk
+#
+# Notes / gotchas:
+#   - This is analysis-only; avoid coupling runtime simulation logic into it.
+################################################################################
 import simulationMath1 as simMath
 from vpython import *
 import random as r

@@ -3,6 +3,36 @@
 # Author: Douglas E. White
 # Date:   10/16/2013
 ################################################################################
+################################################################################
+# File: Simulation.py
+# Purpose:
+#   Core agent-based simulation engine + time-series loader for saved runs.
+#   - `Simulation` runs the ABM loop (agents, collisions, constraints, diffusion).
+#   - `TimeSeries` loads saved outputs (networks/gradients) for analysis/plotting.
+#
+# Key public API:
+#   - class Simulation: add/remove objects, add gradients/intercellular diffusion,
+#     run/update loop, save outputs.
+#   - class TimeSeries: get_times(), get_gradient_at_time(), get_intC_at_time(),
+#     get_raw_agent_data().
+#
+# How it fits in the codebase:
+#   Model_run.py -> Model_initialParameters.main(...) -> Simulation(...).run()
+#   Uses:
+#     - simulationObjects (agent definitions)
+#     - IntC_diff.IntC_Diff (intercellular transport / gap junction module)
+#     - ExtC_gradient.ExtC_Diff (extracellular diffusion / field gradients)
+#     - FBA_ode (intracellular ODE model for redox/Ca states)
+#
+# Inputs/Outputs:
+#   - Writes network snapshots (networkx graphs) to *.gpickle per time point.
+#   - Writes gradient/field snapshots (pickled) and metadata/header files into
+#     the run folder for downstream visualization scripts.
+#
+# Notes / gotchas:
+#   - Keep file structure stable; many analysis scripts assume these filenames
+#     and the on-disk layout produced by `save()`.
+################################################################################
 import os, sys, shutil
 import platform
 import networkx as nx

@@ -1,3 +1,31 @@
+################################################################################
+# File: Model_initialParameters.py
+# Purpose:
+#   Model “wiring” / initialization layer:
+#   - Defines grid size, timestep, diffusion constants, and run-time settings.
+#   - Loads initial cell locations (e.g., new_populated.txt) and instantiates
+#     StemCell agents with initial intracellular states.
+#   - Creates + registers extracellular gradients (ExtC_Diff) and intercellular
+#     transport modules (IntC_Diff) with the Simulation object.
+#
+# Key public API:
+#   - main(n, path, inhib_value, inhib_type, inhib_time, inhib_time1, c)
+#
+# How it fits in the codebase:
+#   Called by Model_run.py for each run.
+#   Produces a fully configured Simulation instance and starts sim.run().
+#
+# Inputs/Outputs:
+#   Inputs:
+#     - Reads initial cell coordinates from a local text file (CWD-relative).
+#   Outputs:
+#     - Writes a new run folder containing networks/gradients/time series via
+#       Simulation.save() during the run loop.
+#
+# Notes / gotchas:
+#   - Many parameters here are “experimental knobs”; keep names/semantics stable
+#     because analysis scripts often assume specific gradient/species names.
+################################################################################
 import sys
 import random as r
 from Simulation import *

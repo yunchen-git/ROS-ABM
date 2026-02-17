@@ -1,3 +1,26 @@
+################################################################################
+# File: Model_run.py
+# Purpose:
+#   Batch/entry-point script for launching one or more ROS-ABM simulations.
+#   Defines run parameters (save path, inhibition flags, magnitudes, timing)
+#   and calls Model_initialParameters.main(...) to build + run each simulation.
+#
+# Key public API:
+#   - Script entry point under `if __name__ == "__main__":`
+#
+# How it fits in the codebase:
+#   Primary “launcher” for the project.
+#   - Uses CountDirectory.newDirect(...) to create the next numeric run folder.
+#   - Delegates all model construction to Model_initialParameters.py.
+#
+# Inputs/Outputs:
+#   - Creates a new run directory under the configured save path.
+#   - Produces all simulation outputs via Simulation.save() called downstream.
+#
+# Notes / gotchas:
+#   - Keep parameter names/ordering stable: Model_initialParameters.main(...)
+#     is called from here with positional arguments.
+################################################################################
 import Model_initialParameters as mod
 from CountDirectory import newDirect
 import sys

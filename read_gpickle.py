@@ -1,3 +1,26 @@
+################################################################################
+# File: read_gpickle.py
+# Purpose:
+#   Reader/renderer for saved networkx *.gpickle snapshots produced by the ABM.
+#   Generates per-species and per-state images over time (and can be extended
+#   for movies).
+#
+# Key public API:
+#   - read_network(path, t0, tf)
+#   - draw_species_image(...), draw_state_image(...)
+#   - network_avg(...), network_radius(...), get_available_species(...)
+#
+# How it fits in the codebase:
+#   Used by Simulation.py (and other scripts) to inspect/render saved networks.
+#   Assumes node attributes contain per-cell species/state values.
+#
+# Inputs/Outputs:
+#   - Reads network*.gpickle files from a run folder
+#   - Writes rendered images (e.g., PNG) to disk
+#
+# Notes / gotchas:
+#   - Old runs may require older networkx for compatibility (see comments).
+################################################################################
 # This script makes a movie from an exsisting simulation
 import numpy as np
 import os, sys

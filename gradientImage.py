@@ -1,3 +1,23 @@
+################################################################################
+# File: gradientImage.py
+# Purpose:
+#   Thin convenience wrapper script to generate extracellular gradient images
+#   from an existing simulation run folder.
+#
+# Key public API:
+#   - getGradientImages(path)
+#
+# How it fits in the codebase:
+#   Calls Simulation.TimeSeries to load saved data, then delegates image export
+#   to Analysis.save_2D_gradient_images(...).
+#
+# Inputs/Outputs:
+#   - Reads simulation run outputs from disk
+#   - Writes PNG images (gradient snapshots) to the run folder
+#
+# Notes / gotchas:
+#   - The __main__ section contains hard-coded example paths; keep as examples.
+################################################################################
 import Analysis as af
 import Simulation as sim
 import pickle as p

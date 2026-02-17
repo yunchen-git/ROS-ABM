@@ -1,3 +1,24 @@
+################################################################################
+# File: simulationMath1.py
+# Purpose:
+#   Small math/vector utility layer used throughout the ABM:
+#   random points on spheres, vector add/subtract/scale, norms, and distances.
+#
+# Key public API:
+#   - RandomPointOnSphere(dim)
+#   - AddVec, SubtractVec, ScaleVec
+#   - Mag, NormVec, Distance
+#
+# How it fits in the codebase:
+#   Imported by Simulation.py and simulationObjects.py to implement movement,
+#   collision handling, and geometric calculations.
+#
+# Inputs/Outputs:
+#   Pure functions (no I/O).
+#
+# Notes / gotchas:
+#   - This module is intentionally lightweight; avoid introducing new deps here.
+################################################################################
 import math as math
 import random as rand
 import numpy as np

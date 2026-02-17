@@ -1,4 +1,27 @@
 # cython: language_level=3
+################################################################################
+# File: IntC_diff.pyx
+# Purpose:
+#   Cython-accelerated intercellular transport / coupling module.
+#   Manages per-cell intracellular concentrations and computes fluxes between
+#   neighboring cells (e.g., gap-junction-like exchange), optionally applying
+#   inhibition toggles (e.g., GJ/AC modes).
+#
+# Key public API:
+#   - class IntC_Diff:
+#       add_cell(), update_Cflux(), update_C0/C1/C2(), change_C(), save(), etc.
+#
+# How it fits in the codebase:
+#   Registered into Simulation via Simulation.add_interC(...).
+#   Couples to intracellular reaction model via imports from FBA_ode.py.
+#
+# Inputs/Outputs:
+#   - Can serialize its internal state via save() into the run folder.
+#
+# Notes / gotchas:
+#   - This is performance-critical; keep operations vectorized / Cython-friendly.
+#   - Build/compile via setup.py (build_ext --inplace).
+################################################################################
 
 cdef extern from *:
     """

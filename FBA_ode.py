@@ -1,3 +1,29 @@
+################################################################################
+# File: FBA_ode.py
+# Purpose:
+#   Intracellular ODE model for the biochemical state variables used by agents.
+#   Contains parameter builders (k, x0) and ODE right-hand-sides.
+#   Current model includes redox (H2O2 handling and antioxidant systems) and
+#   an extended block for Ca handling / NOX activation using Hill-type gates.
+#
+# Key public API:
+#   - get_k(): returns parameter array
+#   - get_x0(): returns baseline/initial state array
+#   - model(...), model_noref(...): ODE RHS used by solvers
+#   - blap_ode_sys(...): alternative/system RHS used in some coupling contexts
+#
+# How it fits in the codebase:
+#   Used by simulationObjects.StemCell (intracellular updates).
+#   Also imported by IntC_diff.pyx for coupled transport + reaction updates.
+#
+# Inputs/Outputs:
+#   - No file I/O. Pure numerical model used by SciPy integrators.
+#
+# Notes / gotchas:
+#   - This file is a major “coupling point” for biology assumptions. Future
+#     abstraction (e.g., Hill production/consumption surrogates) should be
+#     introduced here *without* changing the Simulation/agent plumbing.
+################################################################################
 import numpy as np
 from scipy.integrate import odeint, solve_ivp
 import random

@@ -1,3 +1,25 @@
+################################################################################
+# File: CountDirectory.py
+# Purpose:
+#   Utility for run folder naming:
+#   scans a save directory for numeric folder names (e.g., "1.0", "2.0") and
+#   returns the next available number to use as a new run ID.
+#
+# Key public API:
+#   - newDirect(path) -> float
+#
+# How it fits in the codebase:
+#   Used by Model_run.py / Model_initialParameters.py to create new run folders
+#   without overwriting prior results.
+#
+# Inputs/Outputs:
+#   - Reads directory listings from disk (os.listdir).
+#   - Returns the next numeric run label (float).
+#
+# Notes / gotchas:
+#   - Non-numeric entries are ignored.
+#   - Raises FileNotFoundError if the path does not exist.
+################################################################################
 import os
 def newDirect(path):
     """

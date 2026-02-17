@@ -1,3 +1,22 @@
+################################################################################
+# File: setup.py
+# Purpose:
+#   Build script for compiling the Cython diffusion modules:
+#   - IntC_diff.pyx (intercellular transport)
+#   - ExtC_gradient.pyx (extracellular diffusion/fields)
+#
+# Key public API:
+#   - Standard setuptools setup(...) entry for `python setup.py build_ext --inplace`
+#
+# How it fits in the codebase:
+#   Produces compiled extension modules used by Simulation.py at runtime.
+#
+# Inputs/Outputs:
+#   - Outputs platform-specific compiled artifacts in-place (e.g., *.so / *.pyd).
+#
+# Notes / gotchas:
+#   - Requires Cython + a working compiler toolchain.
+################################################################################
 try:
     from setuptools import setup
     from setuptools import Extension

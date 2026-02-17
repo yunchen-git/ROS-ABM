@@ -1,4 +1,27 @@
 # cython: language_level=3
+################################################################################
+# File: ExtC_gradient.pyx
+# Purpose:
+#   Cython-accelerated extracellular diffusion / field module.
+#   Maintains a 2D/3D grid for extracellular species (e.g., H2O2 in media),
+#   supports interpolation at agent positions, and updates fields via diffusion.
+#
+# Key public API:
+#   - class ExtC_Diff:
+#       set_initial_conditions(), update(), get_gradient_value_at_point(...),
+#       add_gradient_value_on_cell_surface(...), save(), etc.
+#
+# How it fits in the codebase:
+#   Registered into Simulation via Simulation.add_gradient(...).
+#   Used by analysis/visualization scripts to render extracellular fields.
+#
+# Inputs/Outputs:
+#   - Can serialize field snapshots via save() into the run folder.
+#
+# Notes / gotchas:
+#   - Imports include SciPy/ndimage and optional torch-based operations.
+#   - Build/compile via setup.py (build_ext --inplace).
+################################################################################
 
 cdef extern from *:
     """

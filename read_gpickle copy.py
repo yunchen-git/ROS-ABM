@@ -1,3 +1,27 @@
+################################################################################
+# File: read_gpickle copy.py
+# Purpose:
+#   Extended analysis/visualization utilities for saved networkx *.gpickle runs.
+#   Adds helpers for selecting/tracking specific cells across time and plotting
+#   tracked trajectories/values alongside standard rendering.
+#
+# Key public API:
+#   - read_network(path, t0, tf, target_positions=None)
+#   - selection helpers: select_cell_to_track, select_cells_by_index/position
+#   - find_cell_in_network(...), plot_tracked_cells_data(...)
+#   - draw_species_image(...), draw_state_image(...)
+#
+# How it fits in the codebase:
+#   Consumes the same on-disk network snapshots as read_gpickle.py, but supports
+#   interactive or targeted tracking workflows for analysis.
+#
+# Inputs/Outputs:
+#   - Reads network*.gpickle files from a run folder
+#   - Writes images and plots to disk; may also emit tracking data structures
+#
+# Notes / gotchas:
+#   - Keep filenames/function names stable if downstream notebooks import this.
+################################################################################
 # This script makes a movie from an exsisting simulation
 import numpy as np
 import os, sys

@@ -3,6 +3,33 @@
 # Author: Douglas E. White
 # Date:   10/17/2013
 ################################################################################
+################################################################################
+# File: simulationObjects.py
+# Purpose:
+#   Defines the core simulation agents (spherical objects) used by Simulation.py:
+#   - SimulationObject: base class for all ABM entities (location, radius, ID,
+#     mechanics, constraints, and gradient source/sink hooks).
+#   - StemCell: primary biological agent with intracellular state variables
+#     updated via the ODE model in FBA_ode.py.
+#
+# Key public API:
+#   - class SimulationObject: update(), constraint helpers, gradient source/sink
+#     coefficient setters/getters.
+#   - class StemCell(SimulationObject): update() integrating biochemical state.
+#
+# How it fits in the codebase:
+#   Simulation owns a collection of SimulationObject instances.
+#   StemCell internal chemistry typically uses:
+#     - FBA_ode.get_k(), FBA_ode.get_x0(), FBA_ode.model(...)
+#
+# Inputs/Outputs:
+#   - Operates in-memory; state is serialized indirectly via Simulation.save()
+#     when Simulation writes networks and agent data.
+#
+# Notes / gotchas:
+#   - Keep attribute names stable (IDs, owner_ID, sim_type, concentrations);
+#     networkx node attributes are used by downstream plotting scripts.
+################################################################################
 from simulationMath1 import *
 import random as rand
 import math as math

@@ -1,3 +1,22 @@
+################################################################################
+# File: FBA_ode_moles.py
+# Purpose:
+#   Variant of the intracellular ODE model expressed in mol (amount) units
+#   rather than molar concentration units. Useful for alternative parameter
+#   scalings or validation runs.
+#
+# Key public API:
+#   - get_k(), get_x0(), model(...)
+#
+# How it fits in the codebase:
+#   Not always used by the main ABM loop; kept as an alternate model backend.
+#
+# Inputs/Outputs:
+#   - No file I/O. Numerical RHS for SciPy integrators.
+#
+# Notes / gotchas:
+#   - Keep consistent state ordering with FBA_ode.py when comparing results.
+################################################################################
 import numpy as np
 from scipy.integrate import odeint, solve_ivp
 import random
