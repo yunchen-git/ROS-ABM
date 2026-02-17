@@ -28,6 +28,58 @@ import numpy as np
 from scipy.integrate import odeint, solve_ivp
 import random
 
+CHEM_MODE = "full"
+VALID_CHEM_MODES = {"full", "hill"}
+
+# Keep these aligned with existing state vector semantics.
+H2O2I_INDEX = 1
+CAI_INDEX = 29
+
+HILL_EPS = 1e-12
+HILL_A0 = 0.0
+HILL_A1 = 1.0
+HILL_KC = 0.5
+HILL_N = 2.0
+HILL_BH = 0.2
+HILL_C0 = 0.0
+HILL_C1 = 1.0
+HILL_KH = 0.5
+HILL_M = 2.0
+HILL_BC = 0.2
+
+
+def set_chem_mode(mode):
+        global CHEM_MODE
+        if mode is None:
+                mode = "full"
+        mode = str(mode).strip().lower()
+        if mode not in VALID_CHEM_MODES:
+                raise ValueError(f"Invalid chem_mode '{mode}'. Expected one of {sorted(VALID_CHEM_MODES)}.")
+        CHEM_MODE = mode
+        return CHEM_MODE
+
+
+def get_chem_mode():
+        return CHEM_MODE
+
+
+def _hill_gate(y, k_half, power):
+        y = max(float(y), 0.0)
+        return (y ** power) / ((k_half ** power) + (y ** power) + HILL_EPS)
+
+
+def model_hill(x, t, k, x0, *args, **kwargs):
+        dxdt = np.zeros_like(x)
+
+        h = x[H2O2I_INDEX]
+        c = x[CAI_INDEX]
+
+        dxdt[H2O2I_INDEX] = HILL_A0 + HILL_A1 * _hill_gate(c, HILL_KC, HILL_N) - HILL_BH * h
+        dxdt[CAI_INDEX] = HILL_C0 + HILL_C1 * _hill_gate(h, HILL_KH, HILL_M) - HILL_BC * c
+
+        return dxdt
+
+
 def get_k():
         k = np.zeros(100)
         # --- your original core parameters (kept as you used them) ---
@@ -176,6 +228,9 @@ def get_x0():
 
 # Define the parameterized model (copy your full ODEs here)
 def model_noref(x, t, k, x_base):
+    if CHEM_MODE == "hill":
+        return model_hill(x, t, k, x_base)
+
     dxdt = np.zeros_like(x)
 
     # ===== Calcium–ROS crosstalk using k[...] and x[...] only =====
@@ -339,7 +394,7 @@ def model_noref(x, t, k, x_base):
 
     return dxdt
 
-def model(x, t, k, x0):
+def model_full(x, t, k, x0):
     # if x0 is None:
     #     x0 = get_x0()
     dxdt = np.zeros_like(x)
@@ -438,6 +493,12 @@ def model(x, t, k, x0):
     #dxdt[29] = ((k[0] * 1e-3 * (x[28] - x[29]) * 10e-3 * 1.02e-5 * (1e9)) + k[32])               # calcium media
     
     return dxdt
+
+
+def model(x, t, k, x0, *args, **kwargs):
+    if CHEM_MODE == "hill":
+        return model_hill(x, t, k, x0, *args, **kwargs)
+    return model_full(x, t, k, x0, *args, **kwargs)
 
 def calibrate_k1_for_steady_state(k, x0):
     # geometry
@@ -870,3 +931,13 @@ def blap_ode_sys(x, t, k, x0, celldens):
     dxdt[31] = k[35] * c_area * (x[30] - x[31]) / m_vol  # b-lapHQ-GSH extracellular
     
     return dxdt
+
+
+if __name__ == "__main__":
+    _x0 = get_x0()
+    _k = get_k()
+    _dx_full = model_full(_x0.copy(), 0.0, _k, _x0.copy())
+    _dx_hill = model_hill(_x0.copy(), 0.0, _k, _x0.copy())
+    print(f"H2O2 index: {H2O2I_INDEX}, Ca index: {CAI_INDEX}")
+    print(f"full derivatives: dH={_dx_full[H2O2I_INDEX]}, dCa={_dx_full[CAI_INDEX]}")
+    print(f"hill derivatives: dH={_dx_hill[H2O2I_INDEX]}, dCa={_dx_hill[CAI_INDEX]}")

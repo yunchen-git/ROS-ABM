@@ -43,6 +43,7 @@ if __name__ == '__main__':
     inh_time1=1000
     inhib_type=None
     magnitudes = [1]
+    chem_mode = "full"  # set to "hill" for reduced Hill-minimal H2O2-Ca mode
     ##Current settings don't cause any inhibition.
     ##Possible settings include 'AC' which inhibits production rates and
     ## 'GJ which inhibits transport. Unless you want on/off though you can obtain
@@ -57,4 +58,4 @@ if __name__ == '__main__':
         #print("test")
         for i in range(length):
             x=newDirect(new_path)
-            mod.main(x,new_path,inh_val[0],inhib_type,inh_time,inh_time1, c)
+            mod.main(x,new_path,inh_val[0],inhib_type,inh_time,inh_time1, c, chem_mode=chem_mode)

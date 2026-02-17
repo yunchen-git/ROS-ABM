@@ -38,8 +38,9 @@ from IntC_diff import IntC_Diff
 from ExtC_gradient import ExtC_Diff
 from CountDirectory import newDirect
 from read_gpickle import network_radius
+import FBA_ode
 
-def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
+def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="full"):
     #Start time, end time, time step
     ts = 0
     te = 300
@@ -52,6 +53,7 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
 
     ddim = 1.0                      #Grid spacing in um
     sync_time=[500,500]             # This isn't used
+    FBA_ode.set_chem_mode(chem_mode)
     #Now make a new simulation, instance of Simulation class
     
     sim = Simulation(n,
