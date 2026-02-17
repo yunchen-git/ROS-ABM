@@ -25,8 +25,6 @@
 #     introduced here *without* changing the Simulation/agent plumbing.
 ################################################################################
 import numpy as np
-from scipy.integrate import odeint, solve_ivp
-import random
 
 CHEM_MODE = "full"
 VALID_CHEM_MODES = {"full", "hill"}
@@ -236,16 +234,13 @@ def model_noref(x, t, k, x_base):
     # ===== Calcium–ROS crosstalk using k[...] and x[...] only =====
     H   = x[1]     # H2O2 cytosol
     C   = x[29]    # Ca cytosol
-    Cext= x[30]    # Ca extracellular (constant ~1-2 mM)
     Cer = x[31]    # Ca ER pool
 
     # --- Unpack from k ---
     V_IP3R     = k[34]; K_IP3R_H = k[35]; nH = k[36]; K_er = k[37]
-    V_SERCA   = k[38]; K_ser    = k[39]; K_SERCA_H = k[40]; m_inhib = k[41]
+    V_SERCA   = k[38]; K_SERCA_H = k[40]; m_inhib = k[41]
     P_TRPM2   = k[42]; K_TRPM2_H= k[43]; p_TRPM2 = k[44]
     P_SOCE    = k[45]; K_store  = k[46]
-    k_out     = k[47]
-    Vmax_NOX5 = k[48]; K_Ca     = k[49]; m_nox = k[50]
 
     ## --- Helper gates (pure functions of species & k) ---
     Ca_gate_IP3R = (x[29])**k[54] / (k[57]**k[54] + (x[29])**k[54]) if x[29] > 0 else 0.0 # Activated by cyt Ca
@@ -554,12 +549,6 @@ def get_blap_k(protein_abund, blap_conc, extraC, intC, parameter_pctchange=None,
     time_series : ndarray
         Array containing time points and state variables
     """
-    # Establish genes of interest and index
-    genes = ["GPX1", "GPX2", "GPX3", "GPX4", "GPX5", "GPX6", "GPX7", "GPX8", "PRDX1", "PRDX2",
-             "PRDX2", "PRDX3", "PRDX6", "CAT", "TXN", "TXN2", "TXNRD1", "TXNRD2", "TXNRD3", "GLRX", 
-             "GLRX2", "G6PD", "GLUD1", "GSR", "GSTP1", "POR", "NQO1", "SOD1", "SOD2", "SOD3", 
-             "AQP3", "AQP8", "AQP9", "GCLC"]
-    
     # Define parameter values
     k = np.zeros(36)
     

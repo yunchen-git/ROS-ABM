@@ -33,7 +33,6 @@
 from simulationMath1 import *
 import random as rand
 import math as math
-import numpy as np
 from FBA_ode import get_k, get_x0
 class SimulationObject(object):
     """ Base class from which all simulation obejcts must inherit
@@ -338,7 +337,6 @@ class StemCell(SimulationObject):
         if(self.state == "T"):
             #change the current sytate to D
             self.state = "D"
-            self.update_d
             #self.set_gradient_source_sink_coeff("D", 0, 1e-9)
             self.division_time = 51*60*60 #in seconds
 

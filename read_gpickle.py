@@ -23,20 +23,17 @@
 ################################################################################
 # This script makes a movie from an exsisting simulation
 import numpy as np
-import os, sys
+import os
 # Old simulations require networkx=version1.11
 # Can be installed in a separate venv using the command conda install networkx=version1.11
-import networkx as nx
 import cv2
 import pickle
-import json 
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 
 
 def read_network(path, t0, tf):
     center = np.zeros(2)
-    tracked_cell_data = []
 
     # get center and radius of the last available network
     last_available_n = None

@@ -26,18 +26,11 @@
 #   - Many parameters here are “experimental knobs”; keep names/semantics stable
 #     because analysis scripts often assume specific gradient/species names.
 ################################################################################
-import sys
-import random as r
 from Simulation import *
 from simulationObjects import *
-import networkx as nx
 import numpy as np
-import pickle
-import platform
 from IntC_diff import IntC_Diff
 from ExtC_gradient import ExtC_Diff
-from CountDirectory import newDirect
-from read_gpickle import network_radius
 import FBA_ode
 
 def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="full"):
@@ -226,13 +219,4 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="ful
         sim.collide_lowDens()
     
     sim.run(x,y,z)
-
-  #set the seperator
-    if(platform.system() == "Windows"):
-        #windows
-        sep = "\\"
-    else:
-        #linux/unix
-        sep = "/"   
-
 

@@ -24,31 +24,21 @@
 # Notes / gotchas:
 #   - This is analysis-only; avoid coupling runtime simulation logic into it.
 ################################################################################
-import simulationMath1 as simMath
 from vpython import *
-import random as r
-import time as t_m
-from PIL import ImageGrab, Image, ImageDraw, ImageFont
 import numpy as np
-import networkx as nx
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d import proj3d
 from scipy.ndimage import map_coordinates
 import matplotlib.colors as mcolors
 from matplotlib.colors import LogNorm
-from matplotlib.ticker import FormatStrFormatter, LogFormatterSciNotation
-from matplotlib.ticker import ScalarFormatter
+from matplotlib.ticker import FormatStrFormatter
 import math
 import os
-import Analysis as af
 import Simulation as sim
 import pickle as p
 import cv2
 import pandas as pd
 from matplotlib.colors import Normalize
-from ExtC_gradient import ExtC_Diff
 
 import atexit,gc
 @atexit.register
@@ -75,7 +65,7 @@ def ZeroPad(maxTime, time):
         d2 = int(math.floor(l))
     #now append 0's the fron of the current time proportional to the difference
     s = ""
-    for i in range(0, d1-d2):
+    for _ in range(0, d1-d2):
         s = s + "0"
     s = s + repr(time)
     return s
@@ -240,7 +230,7 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
     z_slice_info = None
     
     # First pass: collect all data and find min/max
-    for time_idx, time in enumerate(times):
+    for _time_idx, time in enumerate(times):
         if time < t0 or time > tf:
             continue
         
@@ -622,7 +612,7 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
                 except Exception:
                     pass
 
-            cid_sizes = fig.canvas.mpl_connect('draw_event', _update_cell_marker_sizes)
+            fig.canvas.mpl_connect('draw_event', _update_cell_marker_sizes)
             _update_cell_marker_sizes(None)
 
             # Labels / title

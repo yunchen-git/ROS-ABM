@@ -22,7 +22,6 @@
 import math as math
 import random as rand
 import numpy as np
-from scipy import ndimage
 
 def RandomPointOnSphere(dim):
     """ Computes a random point on a sphere

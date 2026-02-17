@@ -18,8 +18,6 @@
 #   - Keep consistent state ordering with FBA_ode.py when comparing results.
 ################################################################################
 import numpy as np
-from scipy.integrate import odeint, solve_ivp
-import random
 
 def get_k():
         # constants

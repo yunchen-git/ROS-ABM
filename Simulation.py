@@ -33,26 +33,22 @@
 #   - Keep file structure stable; many analysis scripts assume these filenames
 #     and the on-disk layout produced by `save()`.
 ################################################################################
-import os, sys, shutil
+import os
 import platform
 import networkx as nx
 import numpy as np
-import FBA_ode
 from simulationMath1 import *
 from simulationObjects import *
 from IntC_diff import IntC_Diff
 from ExtC_gradient import ExtC_Diff
 from scipy.spatial import *
-from matplotlib import pyplot as plt
 from scipy.integrate import solve_ivp
-from scipy.integrate import odeint
 import pickle
 import math as math
-import random as rand
 import time
 from read_gpickle import read_network
 from gradientImage import getGradientImages
-from FBA_ode import model, get_x0, get_k, model_noref
+from FBA_ode import get_x0, get_k, model_noref
 
 #create the time series class
 class TimeSeries(object):
@@ -144,7 +140,7 @@ class TimeSeries(object):
             self._intC_names = data
         #now for all the ranges in time loop over the list
         num_times = int((end_time - start_time) / time_step) + 1 #inclusive
-        for i in range(0, num_times):
+        for _ in range(0, num_times):
             #read the line
             line = f.readline()
             if(line != ""):
@@ -425,9 +421,7 @@ class Simulation(object):
 
     def cellProfiler_fix(self,n):
         net=self.network
-        agents=self.objects
         clusters=nx.connected_components(net)
-        clust_size=0
         for i in range(len(clusters)):
             if i!= n:
                 clust=clusters[i]
@@ -481,7 +475,6 @@ class Simulation(object):
 
         # Convert from PPM to micromolar
         protein_vals = protein_vals * 5.29e-4
-        protein_averages = np.mean(protein_vals, axis=1)
 
         # # # check if same as matlab
         # # Save gene indices with gene names
@@ -512,7 +505,6 @@ class Simulation(object):
         except OSError:
             #direcotry already exsists... overwrite it
             print("Directory already exsists... overwriting directory")
-        struct_path=os.getcwd()
         
         # final_path=self.path + self._sep + self.name+self._sep+"copiedTM"
         # try:
@@ -702,7 +694,7 @@ class Simulation(object):
         print ("Gradient Diffusion Time: {}".format(t1-t0))
         #RUN A FASTER UPDATE LOOP     
         split = 1
-        for p in range(0, split):
+        for _ in range(0, split):
             dt = self.time_step / float(split)
             #print(dt)
             for i in range(0, len(self.objects)):
@@ -793,7 +785,6 @@ class Simulation(object):
             n=3
 
         points = np.zeros((len(self.objects), n))
-        index_to_object = dict()
         for i in range(0, len(self.objects)):
                 points[i]=self.objects[i].location
         
@@ -1202,7 +1193,6 @@ class Simulation(object):
         self._header.write("," + n_path)
         #Then save the gradient files
         for i in range(0, len(self.gradients)):
-            molecule = self.gradients[i].name
             grad_path = self.gradients[i].save(base_path, repr(self.time))
             self._header.write("," + grad_path)
         self._header.write(",")

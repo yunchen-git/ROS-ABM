@@ -20,7 +20,6 @@
 ################################################################################
 import Analysis as af
 import Simulation as sim
-import pickle as p
 
 def getGradientImages(path):
     data=sim.TimeSeries(path)

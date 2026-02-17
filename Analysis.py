@@ -22,20 +22,13 @@
 #   - Assumes specific gradient names exist (e.g., H2O2-related fields).
 ################################################################################
 
-import simulationMath1 as simMath
 from vpython import *
-import random as r
-import time as t_m
-from PIL import ImageGrab, Image, ImageDraw, ImageFont
 import numpy as np
-import networkx as nx
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import math
 import os
-import Analysis as af
 import Simulation as sim
-import pickle as p
 
 import atexit,gc
 @atexit.register
@@ -62,7 +55,7 @@ def ZeroPad(maxTime, time):
         d2 = int(math.floor(l))
     #now append 0's the fron of the current time proportional to the difference
     s = ""
-    for i in range(0, d1-d2):
+    for _ in range(0, d1-d2):
         s = s + "0"
     s = s + repr(time)
     return s
@@ -92,7 +85,6 @@ def save_2D_gradient_images(name, save_path, data, axis):
         #print(len(g.C.shape))
         if g.C.shape==3:
             if(axis == "xy"):
-                n=2     
                 plane=g.C[:, :, z//2]  # Select the middle z-slice for 2D display
     ##            for k in range(1,n):
     ##                plane=plane+g.C[:,:,k]/(n+1)
