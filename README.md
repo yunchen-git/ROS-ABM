@@ -25,6 +25,11 @@ Main run path:
 
 `Model_run.py` -> `Model_initialParameters.main(...)` -> `Simulation.run(...)` -> `FBA_ode` RHS + Cython diffusion modules
 
+Architecture references:
+- `docs/architecture/current_execution_pipeline.md`
+- `docs/architecture/folder_migration_plan.md`
+- `docs/architecture/jax_parallel_backend_plan.md`
+
 Key runtime modules:
 - `Simulation.py`: ABM loop, save/load, network updates.
 - `simulationObjects.py`: cell agent definitions (`StemCell`).
@@ -87,6 +92,7 @@ Note:
 - Postprocess hooks are still invoked automatically at run completion, but visualization dependencies are loaded lazily when those hooks execute (not during `Simulation.py` import).
 - If visualization dependencies are missing, failures are expected when postprocess hooks run.
 - See `docs/data_dependencies.md` for startup and external dataset requirements.
+- Legacy backend remains the reference/default path; `ros_abm.backends.jax_exp` is reserved for experimental opt-in work.
 
 ## Setup (Recommended Isolated Workflow)
 
