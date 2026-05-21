@@ -428,7 +428,7 @@ def plot_tracked_cells_data(tracked_cells_data, path, initial_positions=None):
         times, h2o2, cai, states = zip(*data)
         if initial_positions and cell_id in initial_positions:
             x, y = initial_positions[cell_id]
-            label = f'Cell {cell_id+1} (x={x:.2f}, y={y:.2f}, ID={indices})'
+            label = f'Cell {cell_id+1} (x={x:.2f}, y={y:.2f})'
         else:
             label = f'Cell {cell_id+1}'
         plt.plot(times, cai, marker='o', color=colors[i], linewidth=2, label=label + ' iCa2+')
