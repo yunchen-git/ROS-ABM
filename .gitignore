@@ -6,3 +6,6 @@ __pycache__/
 build/
 *.so
 *.c
+
+__pycache__/
+*.pyc
