@@ -438,7 +438,7 @@ class Simulation(object):
                     self.remove(clust[j])
         self.update_object_queue()
     
-    def load_gene_expression_data(self):
+    def load_gene_expression_data(self, metadata_path=None, expression_dir=None, cwd=None):
         """Load gene expression data for ROS-related genes and process for use in simulation"""
         import pandas as pd
         
@@ -452,12 +452,20 @@ class Simulation(object):
             "AQP3", "AQP8", "AQP9", "GCLC"
         ]
         
+        if cwd is None:
+            cwd = os.getcwd()
+
         # Load metadata
         #metadata_file = os.path.join(os.getcwd(), "2021-06-08_scrnaseqdata.csv")
-        metadata = pd.read_csv('/Users/huyunchen/Library/CloudStorage/OneDrive-GeorgiaInstituteofTechnology/Melissa Kemp Lab/Reference Models/kemplab github/Raddatz AD Antioxidants 2023/AntioxidantsODE-main/2021-06-08_scrnaseqdata.csv')
+        if metadata_path is None:
+            metadata_path = '/Users/huyunchen/Library/CloudStorage/OneDrive-GeorgiaInstituteofTechnology/Melissa Kemp Lab/Reference Models/kemplab github/Raddatz AD Antioxidants 2023/AntioxidantsODE-main/2021-06-08_scrnaseqdata.csv'
+        metadata = pd.read_csv(metadata_path)
 
         # Directory with expression data
-        files = os.path.join(os.getcwd(), "HNSCC_Broad_scRNAseq")
+        if expression_dir is None:
+            files = os.path.join(cwd, "HNSCC_Broad_scRNAseq")
+        else:
+            files = expression_dir
         
         gene_index = []
         # Load first cell data to get gene indices
