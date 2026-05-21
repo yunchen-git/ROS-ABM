@@ -32,20 +32,70 @@ import numpy as np
 from IntC_diff import IntC_Diff
 from ExtC_gradient import ExtC_Diff
 import FBA_ode
+import os
+from dataclasses import dataclass, field
 
-def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="full"):
+
+def resolve_cell_path(cell_path=None, cwd=None):
+    if cell_path is not None:
+        return cell_path
+    if cwd is None:
+        cwd = os.getcwd()
+    return cwd + os.sep + 'new_populated.txt'
+
+
+@dataclass
+class ModelSettings:
+    ts: float = 0
+    te: float = 300
+    dt: float = 1
+    x: float = 750
+    y: float = 750
+    z: float = 0
+    ddim: float = 1.0
+    sync_time: list = field(default_factory=lambda: [500, 500])
+    num_cell_types: int = 2
+    channel_count: float = 1000.0
+    channel_permeability: float = 5e-9
+    pluripotent_params: tuple = (4.89e-6, 0.03, 1.3e-7)
+    differentiated_params: tuple = (6.0e-6, 0.04, 1.3e-7)
+    open_probabilities: tuple = (0.45, 0.85)
+    division_times_hours: tuple = (18, 51)
+    D_camp: float = 444
+    D_h2o2i: float = 1000
+    D_h2o2e: float = 1800
+    D_Ca: float = 760
+    ddim_e: float = 1.0
+    initial_h2o2e: float = 1e-9
+    perturbation_cell_index: int = 877
+    circle_radius: float = 50.0
+    cell_radius: float = 6.5
+    point_z: float = 0
+    division_set: float = 0
+    default_cell_state: str = "U"
+    special_h2o2i: float = 1e-9
+    special_camp: float = 1
+    special_ca: float = 1e-7
+    default_h2o2i: float = 1e-9
+    default_camp_base: float = 0.595
+    default_camp_random_scale: float = 0.05
+    default_ca: float = 1e-7
+
+
+def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="full", cell_path=None):
+    settings = ModelSettings()
     #Start time, end time, time step
-    ts = 0
-    te = 300
-    dt = 1
+    ts = settings.ts
+    te = settings.te
+    dt = settings.dt
 
-    x = 750
-    y = 750
-    z = 0
+    x = settings.x
+    y = settings.y
+    z = settings.z
     grid_size = [x, y, z]
 
-    ddim = 1.0                      #Grid spacing in um
-    sync_time=[500,500]             # This isn't used
+    ddim = settings.ddim            #Grid spacing in um
+    sync_time=settings.sync_time    # This isn't used
     FBA_ode.set_chem_mode(chem_mode)
     #Now make a new simulation, instance of Simulation class
     
@@ -62,15 +112,15 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="ful
     #Parameters for intercellular diffusion
     #Index 0 represents a pluripotent cell
     #Index 1 represents a differentiated cell
-    num_cell_types = 2
+    num_cell_types = settings.num_cell_types
   
     # Probability of a channel being open in each cell types
     open_prob=np.zeros([num_cell_types])
 
     #Number of active channels at interface
-    N=1000. ## arbitrary value 
+    N=settings.channel_count ## arbitrary value 
     #Intrinsic permeability of channel to diffusing substance
-    Y=5e-9  ## arbitrary value
+    Y=settings.channel_permeability  ## arbitrary value
     Pmax=Y*N
     ## Each cell type has a set of production and degradation parameters
     ## First 3 represent production following an inhibition curve (1-Hill) to represent a decrease in
@@ -82,31 +132,31 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="ful
     celltype_param=np.zeros([num_cell_types,4])
     
     #Pluripotent phenotype parameters
-    celltype_param[0,0]=4.89e-6
-    celltype_param[0,1]=0.03
+    celltype_param[0,0]=settings.pluripotent_params[0]
+    celltype_param[0,1]=settings.pluripotent_params[1]
     celltype_param[0,2]=int(c)
-    celltype_param[0,3]=1.3e-7
+    celltype_param[0,3]=settings.pluripotent_params[2]
      
-    open_prob[0]=0.45
+    open_prob[0]=settings.open_probabilities[0]
     ##Differentiated phenotype parameters
-    celltype_param[1,0]=6.0e-6
-    celltype_param[1,1]=0.04
+    celltype_param[1,0]=settings.differentiated_params[0]
+    celltype_param[1,1]=settings.differentiated_params[1]
     celltype_param[1,2]=int(c)
-    celltype_param[1,3]=1.3e-7
+    celltype_param[1,3]=settings.differentiated_params[2]
     
-    open_prob[1]=0.85
+    open_prob[1]=settings.open_probabilities[1]
     
-    division_times = np.array([18, 51], dtype=np.int32)
+    division_times = np.array(settings.division_times_hours, dtype=np.int32)
     division_times = division_times * 60 * 60 # convert to minutes then seconds
     fastest_division_time= np.min(division_times) #18.0*60*60 #18 hours in seconds
     
-    D_camp = 444 ##um^2/sec diffusion coefficient for cyclic AMP Dworkin & Keller 1977 J. Bio Chem
-    D_h2o2i = 1000 ##um^2/sec diffusion coefficient for H2O2
-    D_h2o2e = 1800 ##um^2/sec diffusion coefficient for H2O2 in the extracellular space 
-    D_Ca = 760 ##um^2/sec diffusion coefficient for Calcium
+    D_camp = settings.D_camp ##um^2/sec diffusion coefficient for cyclic AMP Dworkin & Keller 1977 J. Bio Chem
+    D_h2o2i = settings.D_h2o2i ##um^2/sec diffusion coefficient for H2O2
+    D_h2o2e = settings.D_h2o2e ##um^2/sec diffusion coefficient for H2O2 in the extracellular space 
+    D_Ca = settings.D_Ca ##um^2/sec diffusion coefficient for Calcium
     
-    cell_path = os.getcwd() + os.sep + 'new_populated.txt' #'RA0_4.5.txt'
-    cells = np.loadtxt(cell_path, delimiter=',')
+    resolved_cell_path = resolve_cell_path(cell_path=cell_path)
+    cells = np.loadtxt(resolved_cell_path, delimiter=',')
     locations = cells[:,1:3]
 
     num = cells.shape[0]
@@ -130,9 +180,9 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="ful
                     celltype_param,division_times,sync_time)
     sim.add_interC(Ca)
 
-    ddim_e = 1.0
+    ddim_e = settings.ddim_e
     #H2O2e = ExtC_Diff("H2O2e", D_h2o2e, max_x + 0.01 * max_x, max_y + 0.01 * max_y, z, ddim)
-    H2O2e = ExtC_Diff("H2O2e", D_h2o2e, x, y, z, ddim_e, 1e-9)
+    H2O2e = ExtC_Diff("H2O2e", D_h2o2e, x, y, z, ddim_e, settings.initial_h2o2e)
     sim.add_gradient(H2O2e)
 
     # GSH = IntC_Diff("GSH",maxCells,D_h2o2, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
@@ -159,9 +209,9 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="ful
 
     # Define the center of the circle (you can change these coordinates)
     # Using cell 92's position as the center, or you can specify your own coordinates
-    center_x = locations[877, 0]  # or specify like 350.0
-    center_y = locations[877, 1]  # or specify like 350.0
-    circle_radius = 50.0  # 50 μm radius for 100 μm diameter
+    center_x = locations[settings.perturbation_cell_index, 0]  # or specify like 350.0
+    center_y = locations[settings.perturbation_cell_index, 1]  # or specify like 350.0
+    circle_radius = settings.circle_radius  # 50 μm radius for 100 μm diameter
 
     # Find all cells within the circle
     high_h2o2_cells = []
@@ -176,25 +226,25 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="ful
         ID=i
         c = rand.random()
         point=[locations[i,0], locations[i,1], 0]
-        point[2] = 0#z/2  # Add some variation in z-axis
-        radius=6.5 
-        div_set=0#r.random()*19.*60*60 #randomly assign a division time between 0 and 19 hours
+        point[2] = settings.point_z#z/2  # Add some variation in z-axis
+        radius=settings.cell_radius 
+        div_set=settings.division_set#r.random()*19.*60*60 #randomly assign a division time between 0 and 19 hours
 
-        if i == 877:#877:#1890:#9116:#1890: 
+        if i == settings.perturbation_cell_index:#877:#1890:#9116:#1890: 
         #if i in high_h2o2_cells:  # Check if cell is in the high H2O2i circle
-            sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=div_set)
-            sim_obj.setC(1e-9,'H2O2i')
-            sim_obj.setC(1,'cAMP')
-            sim_obj.setC(1e-7,'Ca')
+            sim_obj=StemCell(point,radius,ID,settings.default_cell_state,inhib_value=inhib_value, division_set=div_set)
+            sim_obj.setC(settings.special_h2o2i,'H2O2i')
+            sim_obj.setC(settings.special_camp,'cAMP')
+            sim_obj.setC(settings.special_ca,'Ca')
             #sim_obj.set_gradient_source_sink_coeff("H2O2e", 2.08e-12, 0.0)
             #sim.gradients[0].set_gradient_value_at_point(point, 5.25)
             #sim_obj.set_gradient_source_sink_coeff("eCa", 1e-4, 0.0)
             #H2O2i.change_C(ID, 1.0e-4)
         else:
-            sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=div_set)   #create instance of StemCell class
-            sim_obj.setC(1e-9,'H2O2i')
-            sim_obj.setC(0.595+0.05*c,'cAMP')
-            sim_obj.setC(1e-7,'Ca')
+            sim_obj=StemCell(point,radius,ID,settings.default_cell_state,inhib_value=inhib_value, division_set=div_set)   #create instance of StemCell class
+            sim_obj.setC(settings.default_h2o2i,'H2O2i')
+            sim_obj.setC(settings.default_camp_base+settings.default_camp_random_scale*c,'cAMP')
+            sim_obj.setC(settings.default_ca,'Ca')
             #sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
         
         sim.inc_current_ID()
