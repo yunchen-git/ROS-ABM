@@ -25,23 +25,44 @@ import Model_initialParameters as mod
 from CountDirectory import newDirect
 import getpass
 import os
+from dataclasses import dataclass, field
+
+
+def resolve_output_base_path(output_base_path=None):
+    if output_base_path is None:
+        return os.path.expanduser('~/Documents/PhD/test')
+    return os.path.expanduser(output_base_path)
+
+
+@dataclass
+class RunSettings:
+    length: int = 1
+    output_base_path: str = '~/Documents/PhD/test'
+    inh_val: list = field(default_factory=lambda: [1.0])
+    per_inh: list = field(default_factory=lambda: [1.0])
+    inh_time: int = 1000
+    inh_time1: int = 1000
+    inhib_type: str | None = None
+    magnitudes: list = field(default_factory=lambda: [1])
+    chem_mode: str = "full"
 
 
 if __name__ == '__main__':
-    length=1
+    settings = RunSettings()
+    length = settings.length
     user=getpass.getuser()
     
     ##Set save path for simulations. If you create a new, empty folder 
     ##then everytime you run this code it will make a new Simulation folder
-    path=os.path.expanduser('~/Documents/PhD/test')
+    path = resolve_output_base_path(settings.output_base_path)
 
-    inh_val=[1.0]
-    per_inh=[1.0]
-    inh_time=1000
-    inh_time1=1000
-    inhib_type=None
-    magnitudes = [1]
-    chem_mode = "full"  # set to "hill" for reduced Hill-minimal H2O2-Ca mode
+    inh_val = settings.inh_val
+    per_inh = settings.per_inh
+    inh_time = settings.inh_time
+    inh_time1 = settings.inh_time1
+    inhib_type = settings.inhib_type
+    magnitudes = settings.magnitudes
+    chem_mode = settings.chem_mode  # set to "hill" for reduced Hill-minimal H2O2-Ca mode
     ##Current settings don't cause any inhibition.
     ##Possible settings include 'AC' which inhibits production rates and
     ## 'GJ which inhibits transport. Unless you want on/off though you can obtain

@@ -60,6 +60,19 @@ Operational implication:
 
 - Runs are expected to be launched from repository root unless paths are changed explicitly.
 
+Override hooks may exist for path injection, but omitted overrides must preserve the defaults above.
+
+## Settings defaults surfaced in code
+
+Current literal defaults are now surfaced through in-file settings dataclasses and must remain behavior-equivalent unless explicitly approved:
+
+- `Model_run.RunSettings` for launcher/runtime knobs (for example output root, run count, inhibition flags, chemistry mode).
+- `Model_initialParameters.ModelSettings` for model wiring defaults (grid/time constants, diffusion constants, perturbation index, initial concentrations).
+
+Contract:
+
+- Omitting overrides must produce the same run behavior and output layout as legacy literals.
+
 ## Guardrail intent
 
 Until an approved migration plan is executed, the items in this document should be preserved to avoid downstream breakage.
