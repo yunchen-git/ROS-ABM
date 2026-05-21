@@ -11,6 +11,20 @@ def _parse_module(rel_path):
     return src, ast.parse(src)
 
 
+def _parse_model_initialparameters_impl():
+    root = _repo_root()
+    root_path = root / "Model_initialParameters.py"
+    canonical_path = root / "ros_abm/backends/legacy/runtime/model_initial_parameters.py"
+
+    root_src = root_path.read_text(encoding="utf-8")
+    shim_marker = "from ros_abm.backends.legacy.runtime.model_initial_parameters import *"
+    if shim_marker in root_src and canonical_path.exists():
+        src = canonical_path.read_text(encoding="utf-8")
+        return src, ast.parse(src)
+
+    return root_src, ast.parse(root_src)
+
+
 def _collect_module_constants(tree):
     constants = {}
     for node in tree.body:
@@ -78,7 +92,7 @@ def _resolve_subscript_index(node, constants):
 
 
 def test_perturbation_trigger_semantics_are_preserved():
-    src, tree = _parse_module("Model_initialParameters.py")
+    src, tree = _parse_model_initialparameters_impl()
     constants = _collect_module_constants(tree)
 
     model_settings = _find_class(tree, "ModelSettings")
@@ -128,7 +142,7 @@ def test_perturbation_trigger_semantics_are_preserved():
 
 
 def test_interc_ordering_assumption_is_preserved():
-    _, tree = _parse_module("Model_initialParameters.py")
+    _, tree = _parse_model_initialparameters_impl()
     constants = _collect_module_constants(tree)
 
     main_fn = None

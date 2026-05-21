@@ -33,6 +33,12 @@ def test_import_fba_ode_smoke():
     assert module.__name__ == "FBA_ode"
 
 
+def test_import_simulation_math_smoke():
+    _require_core_runtime_dependencies()
+    module = importlib.import_module("simulationMath1")
+    assert module.__name__ == "simulationMath1"
+
+
 def test_import_count_directory_newdirect_smoke():
     from CountDirectory import newDirect
 
