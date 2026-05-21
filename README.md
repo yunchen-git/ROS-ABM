@@ -29,6 +29,7 @@ Architecture references:
 - `docs/architecture/current_execution_pipeline.md`
 - `docs/architecture/folder_migration_plan.md`
 - `docs/architecture/jax_parallel_backend_plan.md`
+- `docs/architecture/compatibility_shims.md`
 
 Key runtime modules:
 - `Simulation.py`: ABM loop, save/load, network updates.
@@ -65,17 +66,18 @@ Analysis/visualization scripts:
 5. `simulationObjects.py`: agent definitions; key classes are `SimulationObject` and `StemCell`.
 6. `simulationMath1.py`: math/geometry utilities; key functions include `RandomPointOnSphere`, `AddVec`, `Mag`, and `Distance`.
 7. `FBA_ode.py`: intracellular chemistry module; key APIs are `get_k`, `get_x0`, `model`, `model_full`, `model_hill`, and `set_chem_mode`.
-8. `FBA_ode_moles.py`: alternate mol-unit intracellular model; key APIs are `get_k`, `get_x0`, and `model`.
+8. `FBA_ode_moles.py`: legacy compatibility shim for `ros_abm.backends.legacy.ode.fba_ode_moles`; key APIs are `get_k`, `get_x0`, and `model`.
 9. `IntC_diff.pyx`: Cython intercellular diffusion/transport module; main class `IntC_Diff` with `update_C0`, `update_C1`, `update_C2`, and `save`.
 10. `ExtC_gradient.pyx`: Cython extracellular diffusion field module; main class `ExtC_Diff` with `update`, interpolation helpers, and `save`.
 11. `setup.py`: Cython build script; compiles `IntC_diff.pyx` and `ExtC_gradient.pyx` via `python setup.py build_ext --inplace`.
-12. `CountDirectory.py`: utility for run folder numbering; key function `newDirect(path)`.
+12. `CountDirectory.py`: legacy compatibility shim for `ros_abm.backends.legacy.runtime.count_directory`; key function `newDirect(path)`.
 13. `Analysis.py`: gradient post-processing helpers; key functions `save_2D_gradient_images(...)` and `getGradientImages(...)`.
 14. `gradientImage.py`: thin wrapper around analysis image generation; key function `getGradientImages(path)`.
 15. `read_gpickle.py`: baseline network snapshot rendering; key functions `read_network(...)`, `draw_species_image(...)`, and `draw_state_image(...)`.
-16. `read_gpickle copy.py`: extended network analysis/tracking workflow; adds cell-selection and trajectory plotting helpers.
+16. `read_gpickle copy.py`: legacy analysis compatibility surface for tracking helpers; currently wraps canonical tracking logic from `read_gpickle.py` and is not yet migrated.
 17. `zplot_intC_extc.py`: advanced combined intracellular/extracellular visualization; key entry `getCombinedH2O2Images3D(...)`.
-18. `new_populated.txt`: initial cell coordinate data loaded during model initialization.
+18. `analysis_wave_metrics.py`: legacy compatibility shim for `ros_abm.analysis.wave_metrics`; key APIs are `run_analysis(...)` and `main()`.
+19. `new_populated.txt`: initial cell coordinate data loaded during model initialization.
 
 ## Requirements
 
