@@ -35,6 +35,17 @@ import FBA_ode
 import os
 from dataclasses import dataclass, field
 
+PERTURBATION_CELL_INDEX = 877
+
+INTERC_SPECIES_CAMP = "cAMP"
+INTERC_SPECIES_H2O2I = "H2O2i"
+INTERC_SPECIES_CA = "Ca"
+INTERC_SPECIES_ORDER = (
+    INTERC_SPECIES_CAMP,
+    INTERC_SPECIES_H2O2I,
+    INTERC_SPECIES_CA,
+)
+
 
 def resolve_cell_path(cell_path=None, cwd=None):
     if cell_path is not None:
@@ -67,7 +78,7 @@ class ModelSettings:
     D_Ca: float = 760
     ddim_e: float = 1.0
     initial_h2o2e: float = 1e-9
-    perturbation_cell_index: int = 877
+    perturbation_cell_index: int = PERTURBATION_CELL_INDEX
     circle_radius: float = 50.0
     cell_radius: float = 6.5
     point_z: float = 0
@@ -168,15 +179,15 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="ful
         maxCells= int(num * 2 ** ((te+1)/fastest_division_time)) # Calculating the maximum possible number of cells
 
     ## Initializing the intercellular diffusion module
-    XI = IntC_Diff("cAMP",maxCells,D_camp, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
+    XI = IntC_Diff(INTERC_SPECIES_CAMP,maxCells,D_camp, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
                     celltype_param,division_times,sync_time)
     sim.add_interC(XI)
     
-    H2O2i = IntC_Diff("H2O2i",maxCells,D_h2o2i, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
+    H2O2i = IntC_Diff(INTERC_SPECIES_H2O2I,maxCells,D_h2o2i, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
                     celltype_param,division_times,sync_time)
     sim.add_interC(H2O2i)
 
-    Ca = IntC_Diff("Ca",maxCells,D_Ca, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
+    Ca = IntC_Diff(INTERC_SPECIES_CA,maxCells,D_Ca, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
                     celltype_param,division_times,sync_time)
     sim.add_interC(Ca)
 
@@ -233,18 +244,18 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="ful
         if i == settings.perturbation_cell_index:#877:#1890:#9116:#1890: 
         #if i in high_h2o2_cells:  # Check if cell is in the high H2O2i circle
             sim_obj=StemCell(point,radius,ID,settings.default_cell_state,inhib_value=inhib_value, division_set=div_set)
-            sim_obj.setC(settings.special_h2o2i,'H2O2i')
-            sim_obj.setC(settings.special_camp,'cAMP')
-            sim_obj.setC(settings.special_ca,'Ca')
+            sim_obj.setC(settings.special_h2o2i,INTERC_SPECIES_H2O2I)
+            sim_obj.setC(settings.special_camp,INTERC_SPECIES_CAMP)
+            sim_obj.setC(settings.special_ca,INTERC_SPECIES_CA)
             #sim_obj.set_gradient_source_sink_coeff("H2O2e", 2.08e-12, 0.0)
             #sim.gradients[0].set_gradient_value_at_point(point, 5.25)
             #sim_obj.set_gradient_source_sink_coeff("eCa", 1e-4, 0.0)
             #H2O2i.change_C(ID, 1.0e-4)
         else:
             sim_obj=StemCell(point,radius,ID,settings.default_cell_state,inhib_value=inhib_value, division_set=div_set)   #create instance of StemCell class
-            sim_obj.setC(settings.default_h2o2i,'H2O2i')
-            sim_obj.setC(settings.default_camp_base+settings.default_camp_random_scale*c,'cAMP')
-            sim_obj.setC(settings.default_ca,'Ca')
+            sim_obj.setC(settings.default_h2o2i,INTERC_SPECIES_H2O2I)
+            sim_obj.setC(settings.default_camp_base+settings.default_camp_random_scale*c,INTERC_SPECIES_CAMP)
+            sim_obj.setC(settings.default_ca,INTERC_SPECIES_CA)
             #sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
         
         sim.inc_current_ID()

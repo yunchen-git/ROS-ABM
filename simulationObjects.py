@@ -34,6 +34,9 @@ from simulationMath1 import *
 import random as rand
 import math as math
 from FBA_ode import get_k, get_x0
+
+ODE_STATE_INDEX_H2O2I = 1
+
 class SimulationObject(object):
     """ Base class from which all simulation obejcts must inherit
     """
@@ -94,7 +97,7 @@ class SimulationObject(object):
     def setC(self,C,name):
         self.C[name]=C
         if name == 'H2O2i':
-            self.x0[1] = C
+            self.x0[ODE_STATE_INDEX_H2O2I] = C
 
     def update_d(self, sim):
         nbs=sim.network.neighbors(self)
