@@ -1,0 +1,14 @@
+numpy
+scipy
+networkx
+cython
+setuptools
+wheel
+matplotlib
+opencv-python
+vpython
+pandas
+torch
+pillow
+pytest
+
