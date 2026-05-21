@@ -46,9 +46,18 @@ from scipy.integrate import solve_ivp
 import pickle
 import math as math
 import time
-from read_gpickle import read_network
-from gradientImage import getGradientImages
 from FBA_ode import get_x0, get_k, model_noref
+
+
+def read_network(*args, **kwargs):
+    from read_gpickle import read_network as _read_network
+    return _read_network(*args, **kwargs)
+
+
+def getGradientImages(*args, **kwargs):
+    from gradientImage import getGradientImages as _getGradientImages
+    return _getGradientImages(*args, **kwargs)
+
 
 #create the time series class
 class TimeSeries(object):
