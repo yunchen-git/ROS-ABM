@@ -32,72 +32,24 @@ from scipy.ndimage import map_coordinates
 import matplotlib.colors as mcolors
 from matplotlib.colors import LogNorm
 from matplotlib.ticker import FormatStrFormatter
-import math
 import os
+import atexit
 import Simulation as sim
 import pickle as p
 import cv2
 import pandas as pd
 from matplotlib.colors import Normalize
 
-import atexit,gc
-@atexit.register
-def garbage_collect():
-    gc.collect()
+from legacy_shared_utils import (
+    ZeroPad,
+    garbage_collect,
+    get_available_species,
+    network_avg,
+    network_radius,
+)
 
-def ZeroPad(maxTime, time):
-    """ Zero pads the current number
-        Returns the current number as an string weith the correct number
-        of 0s appended
-    """
-    #figure out the max number of diogits in the final time
-    l = math.log(maxTime, 10)
-    if(abs(l - math.ceil(l)) < 0.000001):
-        l = math.ceil(l)
-    d1 = int(math.floor(l))
-    #figure out the number of diogits in the current time
-    if(time == 0):
-        d2 = 0
-    else:
-        l = math.log(time, 10)
-        if(abs(l - math.ceil(l)) < 0.000001):
-            l = math.ceil(l)
-        d2 = int(math.floor(l))
-    #now append 0's the fron of the current time proportional to the difference
-    s = ""
-    for _ in range(0, d1-d2):
-        s = s + "0"
-    s = s + repr(time)
-    return s
 
-def network_avg(network):
-    center = np.zeros(2)
-    for node in network.nodes():
-        center += node.location[0:2]
-    #Normalize
-    center = center / len(network.nodes())
-    return center
-
-def network_radius(network):
-    #first get the center
-    center = network_avg(network)
-    #gets the maximum radial size of the network
-    radius = -1
-    for node in network.nodes():
-        r = node.location[0:2] - center
-        radius = max(np.linalg.norm(r), radius)
-    return radius
-
-def get_available_species(network):
-    nodes = network.nodes()
-    if not nodes:
-        print("Warning: Network has no nodes")
-        return []
-    
-    # Get the first node to determine available species
-    first_node = list(nodes)[0]
-    available_species = list(first_node.C.keys())
-    return available_species
+atexit.register(garbage_collect)
 
 def s_for_radius_in_data_units_3d(ax, r_data, at_xyz=None, clip=(1.0, 113.83443722989533)):
     """
