@@ -48,6 +48,30 @@ import math as math
 import time
 from FBA_ode import get_x0, get_k, model_noref
 
+PERTURBATION_CELL_INDEX = 877
+PERTURBATION_INJECTION_TIME = 5
+PERTURBATION_INJECTION_H2O2I = 0.0012
+
+INTERC_SPECIES_CAMP = "cAMP"
+INTERC_SPECIES_H2O2I = "H2O2i"
+INTERC_SPECIES_CA = "Ca"
+INTERC_SPECIES_ORDER = (
+    INTERC_SPECIES_CAMP,
+    INTERC_SPECIES_H2O2I,
+    INTERC_SPECIES_CA,
+)
+INTERC_INDEX_CAMP = 0
+INTERC_INDEX_H2O2I = 1
+INTERC_INDEX_CA = 2
+
+ODE_STATE_INDEX_H2O2E = 0
+ODE_STATE_INDEX_H2O2I = 1
+ODE_STATE_INDEX_CA = 29
+
+SOLVER_METHOD = "Radau"
+SOLVER_ATOL = 1e-10
+SOLVER_RTOL = 1e-8
+
 
 def read_network(*args, **kwargs):
     from read_gpickle import read_network as _read_network
@@ -342,7 +366,7 @@ class Simulation(object):
                 state=1
 
             for i in range(len(self.interC)):
-                if self.interC[i].name =='cAMP':
+                if self.interC[i].name == INTERC_SPECIES_CAMP:
                     self.interC[i].add_cell(sim_object.ID,sim_object.C[self.interC[i].name],state,sim_object.division_timer,1.0,1.0)
                 else:
                     self.interC[i].add_cell(sim_object.ID,sim_object.C[self.interC[i].name],state,sim_object.division_timer,1.0,1.0)
@@ -632,21 +656,21 @@ class Simulation(object):
         x0_baseline = get_x0()
         k = get_k()
         for i in range(len(self.interC)):
-            if self.interC[i].name=='cAMP':
+            if self.interC[i].name == INTERC_SPECIES_CAMP:
                 self.interC[i].update_C2(nbs2,n,1)#,division_timer)
-            elif self.interC[i].name=='H2O2i':
+            elif self.interC[i].name == INTERC_SPECIES_H2O2I:
                 #self.interC[i].update_C0(nbs2,n,0.5)#,division_timer)                                                   #GJC for H2O2i
                 for j in range(0, len(self.objects)):
                     x0 = self.objects[j].x0
 
-                    x0[0] = self.gradients[0].get_gradient_value_on_surface_shell(self.objects[j])
-                    x0[1] = self.interC[i].get_C(j)
-                    x0[29] = self.interC[2].get_C(j)  # Ca
+                    x0[ODE_STATE_INDEX_H2O2E] = self.gradients[0].get_gradient_value_on_surface_shell(self.objects[j])
+                    x0[ODE_STATE_INDEX_H2O2I] = self.interC[i].get_C(j)
+                    x0[ODE_STATE_INDEX_CA] = self.interC[INTERC_INDEX_CA].get_C(j)  # Ca
 
-                    if self.time == 5 and j == 877:
-                        x0[1] = 0.0012
-                    if j == 877:
-                        print(self.time, x0[0], x0[1], x0[29], j)
+                    if self.time == PERTURBATION_INJECTION_TIME and j == PERTURBATION_CELL_INDEX:
+                        x0[ODE_STATE_INDEX_H2O2I] = PERTURBATION_INJECTION_H2O2I
+                    if j == PERTURBATION_CELL_INDEX:
+                        print(self.time, x0[ODE_STATE_INDEX_H2O2E], x0[ODE_STATE_INDEX_H2O2I], x0[ODE_STATE_INDEX_CA], j)
                     
                     # if x0[1]>1e-8:
                     #     k[31] = 1e-4
@@ -656,24 +680,24 @@ class Simulation(object):
                                     lambda t, y: model_noref(y, t, k, x0_baseline),  # Remove x0 from lambda arguments
                                     (0, 1),  # t_span should be a tuple (start, end)
                                     x0,
-                                    method='Radau',
+                                    method=SOLVER_METHOD,
                                     t_eval=t,
-                                    atol=1e-10,
-                                    rtol=1e-8
+                                    atol=SOLVER_ATOL,
+                                    rtol=SOLVER_RTOL
                                 )
                     
                     xnew = solution.y[:, -1]  # Get the last time point
                     
                     #xnew = self.interC[i].update_Cflux(j, x0, 200) 
                     
-                    self.interC[i].change_C(j, xnew[1])
-                    self.interC[2].change_C(j, xnew[29])
+                    self.interC[i].change_C(j, xnew[ODE_STATE_INDEX_H2O2I])
+                    self.interC[INTERC_INDEX_CA].change_C(j, xnew[ODE_STATE_INDEX_CA])
                     #print(xnew[29])
-                    h2o2e_add = (xnew[0] - x0[0])
+                    h2o2e_add = (xnew[ODE_STATE_INDEX_H2O2E] - x0[ODE_STATE_INDEX_H2O2E])
 
                     self.objects[j].x0 = xnew
-                    if j == 877:
-                        print(self.time, xnew[0], xnew[1], xnew[29], j, h2o2e_add)
+                    if j == PERTURBATION_CELL_INDEX:
+                        print(self.time, xnew[ODE_STATE_INDEX_H2O2E], xnew[ODE_STATE_INDEX_H2O2I], xnew[ODE_STATE_INDEX_CA], j, h2o2e_add)
                     # self.objects[j].C['H2O2i'] = float(xnew[1])
                     # self.objects[j].C['Ca'] = float(xnew[29])
 

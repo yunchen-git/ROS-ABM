@@ -81,9 +81,12 @@ Recommended:
 Python packages used by this codebase:
 - Core runtime/build: `numpy`, `scipy`, `networkx`, `cython`, `setuptools`, `wheel`
 - Visualization/analysis scripts: `matplotlib`, `opencv-python`, `vpython`, `pandas`, `torch`, `pillow`
+- Canonical install surfaces: `requirements.txt` and `requirements-dev.txt`
 
 Note:
-- `Simulation.py` imports post-processing modules at import time, so visualization dependencies are currently needed even for standard runs.
+- Postprocess hooks are still invoked automatically at run completion, but visualization dependencies are loaded lazily when those hooks execute (not during `Simulation.py` import).
+- If visualization dependencies are missing, failures are expected when postprocess hooks run.
+- See `docs/data_dependencies.md` for startup and external dataset requirements.
 
 ## Setup (Recommended Isolated Workflow)
 
@@ -216,6 +219,7 @@ In `Model_initialParameters.py`:
 - Run from repository root. `Model_initialParameters.py` loads `new_populated.txt` from the current working directory (`os.getcwd()`).
 - Current setup references cell index `877` for a localized perturbation. Ensure `new_populated.txt` has enough rows or adjust this index.
 - Do not change on-disk output naming/layout if downstream scripts or notebooks depend on current paths.
+- See `docs/data_dependencies.md` for required startup data and optional external dataset wiring.
 
 ## Minimal Smoke Test
 

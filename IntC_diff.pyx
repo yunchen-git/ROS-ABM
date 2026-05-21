@@ -47,6 +47,11 @@ from FBA_ode import model, blap_ode_sys
 
 import gc, atexit
 
+SOLVER_METHOD = "Radau"
+SOLVER_ATOL = 1e-10
+SOLVER_RTOL_CFLUX = 1e-8
+SOLVER_RTOL_SCFLUX = 1e-4
+
 #-----------------------------------------------------------------------
 
 """
@@ -259,10 +264,10 @@ class IntC_Diff(object):
                 lambda t, y: model(y, t, k, x_0),
                 [0, tend],
                 x_0,
-                method='Radau',
+                method=SOLVER_METHOD,
                 t_eval=t,
-                atol=1e-10,
-                rtol=1e-8
+                atol=SOLVER_ATOL,
+                rtol=SOLVER_RTOL_CFLUX
             )
             final_values = result.y[:, -1]  # Get the last time point values
             #print(result.y.shape)  # Debugging: print the shape of the result
@@ -304,10 +309,10 @@ class IntC_Diff(object):
                 lambda t, y: blap_ode_sys(y, t, k, x0, cell_density),
                 [0, tend],
                 x0,
-                method='Radau',
+                method=SOLVER_METHOD,
                 t_eval=t,
-                atol=1e-10,
-                rtol=1e-4
+                atol=SOLVER_ATOL,
+                rtol=SOLVER_RTOL_SCFLUX
             )
             final_values = result.y[:, -1]  # Get the last time point values
             C[n, 0] = final_values[1]  # Last time point, H2O2 cytosol concentration

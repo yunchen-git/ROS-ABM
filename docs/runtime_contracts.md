@@ -62,6 +62,10 @@ Operational implication:
 
 Override hooks may exist for path injection, but omitted overrides must preserve the defaults above.
 
+See also:
+
+- `docs/data_dependencies.md` for startup data requirements and external dataset guidance.
+
 ## Settings defaults surfaced in code
 
 Current literal defaults are now surfaced through in-file settings dataclasses and must remain behavior-equivalent unless explicitly approved:
