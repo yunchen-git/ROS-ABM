@@ -29,6 +29,7 @@ Architecture references:
 - `docs/architecture/current_execution_pipeline.md`
 - `docs/architecture/folder_migration_plan.md`
 - `docs/architecture/jax_parallel_backend_plan.md`
+- `docs/architecture/jax_solver_safety.md`
 - `docs/architecture/compatibility_shims.md`
 
 Key runtime modules:
@@ -95,6 +96,7 @@ Note:
 - If visualization dependencies are missing, failures are expected when postprocess hooks run.
 - See `docs/data_dependencies.md` for startup and external dataset requirements.
 - Legacy backend remains the reference/default path; `ros_abm.backends.jax_exp` is reserved for experimental opt-in work.
+- JAX solver safety limits: `docs/architecture/jax_solver_safety.md`
 
 ## Setup (Recommended Isolated Workflow)
 
