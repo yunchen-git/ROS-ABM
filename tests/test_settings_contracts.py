@@ -51,6 +51,7 @@ def test_runsettings_defaults_preserve_legacy_literals(monkeypatch):
     assert settings.inhib_type is None
     assert settings.magnitudes == [1]
     assert settings.chem_mode == "full"
+    assert settings.use_vectorized_hill is False
 
 
 def test_modelsettings_defaults_preserve_legacy_literals(monkeypatch):

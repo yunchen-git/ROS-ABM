@@ -66,6 +66,7 @@ class RunConfig:
     inhib_type: str | None = None
     magnitudes: list = field(default_factory=lambda: [1])
     chem_mode: str = "full"
+    use_vectorized_hill: bool = False
     seed: int | None = None
     run_postprocess: bool = True
     model: ModelConfig = field(default_factory=ModelConfig)

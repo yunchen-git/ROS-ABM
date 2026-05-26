@@ -48,7 +48,7 @@ from scipy.integrate import solve_ivp
 import pickle
 import math as math
 import time
-from FBA_ode import get_x0, get_k, make_model_rhs
+from FBA_ode import get_x0, get_k, make_model_rhs, hill_step_vectorized
 from run_config import PerturbationConfig
 from species_registry import (
     EXT_GRADIENT_H2O2E,
@@ -340,6 +340,7 @@ class Simulation(object):
         self.perturbation = perturbation if perturbation is not None else PerturbationConfig()
         self.run_config = run_config
         self.chem_mode = getattr(run_config, "chem_mode", "full") if run_config is not None else "full"
+        self.use_vectorized_hill = bool(getattr(run_config, "use_vectorized_hill", False))
         self.grid_size = grid_size
         self.max_x = grid_size[0]
         self.max_y = grid_size[1]
@@ -384,6 +385,12 @@ class Simulation(object):
             bool(self._perturbation_value("enabled"))
             and self.time == self._perturbation_value("injection_time")
             and self._is_perturbation_cell(cell_index)
+        )
+
+    def _should_use_vectorized_hill(self):
+        return (
+            str(self.chem_mode).strip().lower() == "hill"
+            and bool(getattr(self, "use_vectorized_hill", False))
         )
 
     def _write_run_config_manifest(self):
@@ -727,49 +734,52 @@ class Simulation(object):
                 ca_interC = self.get_intC_by_name(INTERC_SPECIES_CA)
                 h2o2e_gradient = self.get_gradient_by_name(EXT_GRADIENT_H2O2E)
                 #self.interC[i].update_C0(nbs2,n,0.5)#,division_timer)                                                   #GJC for H2O2i
-                for j in range(0, len(self.objects)):
-                    x0 = self.objects[j].x0
+                if self._should_use_vectorized_hill():
+                    self._update_vectorized_hill_for_h2o2i(self.interC[i], ca_interC, h2o2e_gradient)
+                else:
+                    for j in range(0, len(self.objects)):
+                        x0 = self.objects[j].x0
 
-                    x0[ODE_STATE_H2O2E] = h2o2e_gradient.get_gradient_value_on_surface_shell(self.objects[j])
-                    x0[ODE_STATE_H2O2I] = self.interC[i].get_C(j)
-                    x0[ODE_STATE_CA_I] = ca_interC.get_C(j)  # Ca
+                        x0[ODE_STATE_H2O2E] = h2o2e_gradient.get_gradient_value_on_surface_shell(self.objects[j])
+                        x0[ODE_STATE_H2O2I] = self.interC[i].get_C(j)
+                        x0[ODE_STATE_CA_I] = ca_interC.get_C(j)  # Ca
 
-                    if self._should_apply_perturbation(j):
-                        x0[ODE_STATE_H2O2I] = self._perturbation_value("injection_h2o2i")
-                    if self._is_perturbation_cell(j):
-                        print(self.time, x0[ODE_STATE_H2O2E], x0[ODE_STATE_H2O2I], x0[ODE_STATE_CA_I], j)
-                    
-                    # if x0[1]>1e-8:
-                    #     k[31] = 1e-4
+                        if self._should_apply_perturbation(j):
+                            x0[ODE_STATE_H2O2I] = self._perturbation_value("injection_h2o2i")
+                        if self._is_perturbation_cell(j):
+                            print(self.time, x0[ODE_STATE_H2O2E], x0[ODE_STATE_H2O2I], x0[ODE_STATE_CA_I], j)
 
-                    t = np.linspace(0, 1, 2)
-                    solution = solve_ivp(
-                                    model_rhs,
-                                    (0, 1),  # t_span should be a tuple (start, end)
-                                    x0,
-                                    method=SOLVER_METHOD,
-                                    t_eval=t,
-                                    atol=SOLVER_ATOL,
-                                    rtol=SOLVER_RTOL
-                                )
-                    
-                    xnew = solution.y[:, -1]  # Get the last time point
-                    
-                    #xnew = self.interC[i].update_Cflux(j, x0, 200)
+                        # if x0[1]>1e-8:
+                        #     k[31] = 1e-4
 
-                    self.interC[i].change_C(j, xnew[ODE_STATE_H2O2I])
-                    ca_interC.change_C(j, xnew[ODE_STATE_CA_I])
-                    #print(xnew[29])
-                    h2o2e_add = (xnew[ODE_STATE_H2O2E] - x0[ODE_STATE_H2O2E])
+                        t = np.linspace(0, 1, 2)
+                        solution = solve_ivp(
+                                        model_rhs,
+                                        (0, 1),  # t_span should be a tuple (start, end)
+                                        x0,
+                                        method=SOLVER_METHOD,
+                                        t_eval=t,
+                                        atol=SOLVER_ATOL,
+                                        rtol=SOLVER_RTOL
+                                    )
 
-                    self.objects[j].x0 = xnew
-                    if self._is_perturbation_cell(j):
-                        print(self.time, xnew[ODE_STATE_H2O2E], xnew[ODE_STATE_H2O2I], xnew[ODE_STATE_CA_I], j, h2o2e_add)
-                    # self.objects[j].C['H2O2i'] = float(xnew[1])
-                    # self.objects[j].C['Ca'] = float(xnew[29])
+                        xnew = solution.y[:, -1]  # Get the last time point
 
-                    #self.gradients[0].set_gradient_value_at_point(self.objects[j].location, xnew[0]) #update H2O2e concentration
-                    h2o2e_gradient.add_gradient_value_on_cell_surface(self.objects[j], h2o2e_add)
+                        #xnew = self.interC[i].update_Cflux(j, x0, 200)
+
+                        self.interC[i].change_C(j, xnew[ODE_STATE_H2O2I])
+                        ca_interC.change_C(j, xnew[ODE_STATE_CA_I])
+                        #print(xnew[29])
+                        h2o2e_add = (xnew[ODE_STATE_H2O2E] - x0[ODE_STATE_H2O2E])
+
+                        self.objects[j].x0 = xnew
+                        if self._is_perturbation_cell(j):
+                            print(self.time, xnew[ODE_STATE_H2O2E], xnew[ODE_STATE_H2O2I], xnew[ODE_STATE_CA_I], j, h2o2e_add)
+                        # self.objects[j].C['H2O2i'] = float(xnew[1])
+                        # self.objects[j].C['Ca'] = float(xnew[29])
+
+                        #self.gradients[0].set_gradient_value_at_point(self.objects[j].location, xnew[0]) #update H2O2e concentration
+                        h2o2e_gradient.add_gradient_value_on_cell_surface(self.objects[j], h2o2e_add)
 
                 self.interC[i].update_C0(nbs2,n,1)#,division_timer)                   #GJC for H2O2i
             else:
@@ -777,6 +787,34 @@ class Simulation(object):
             #print(self.interC)
         t1=time.time()
         print("Inter Transport Time: {}".format(t1-t0))
+
+    def _update_vectorized_hill_for_h2o2i(self, h2o2i_interC, ca_interC, h2o2e_gradient):
+        if not self.objects:
+            return
+
+        x_matrix = np.vstack([np.array(obj.x0, dtype=float, copy=True) for obj in self.objects])
+        for j in range(0, len(self.objects)):
+            x_matrix[j, ODE_STATE_H2O2E] = h2o2e_gradient.get_gradient_value_on_surface_shell(self.objects[j])
+            x_matrix[j, ODE_STATE_H2O2I] = h2o2i_interC.get_C(j)
+            x_matrix[j, ODE_STATE_CA_I] = ca_interC.get_C(j)
+
+            if self._should_apply_perturbation(j):
+                x_matrix[j, ODE_STATE_H2O2I] = self._perturbation_value("injection_h2o2i")
+            if self._is_perturbation_cell(j):
+                print(self.time, x_matrix[j, ODE_STATE_H2O2E], x_matrix[j, ODE_STATE_H2O2I], x_matrix[j, ODE_STATE_CA_I], j)
+
+        xnew_matrix = hill_step_vectorized(x_matrix, 1.0)
+
+        for j in range(0, len(self.objects)):
+            xnew = xnew_matrix[j]
+            h2o2i_interC.change_C(j, xnew[ODE_STATE_H2O2I])
+            ca_interC.change_C(j, xnew[ODE_STATE_CA_I])
+            h2o2e_add = xnew[ODE_STATE_H2O2E] - x_matrix[j, ODE_STATE_H2O2E]
+
+            self.objects[j].x0 = xnew
+            if self._is_perturbation_cell(j):
+                print(self.time, xnew[ODE_STATE_H2O2E], xnew[ODE_STATE_H2O2I], xnew[ODE_STATE_CA_I], j, h2o2e_add)
+            h2o2e_gradient.add_gradient_value_on_cell_surface(self.objects[j], h2o2e_add)
 
     def _update_extracellular_gradients(self):
         print("Updating gradients...")

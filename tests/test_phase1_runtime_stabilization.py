@@ -26,6 +26,7 @@ def simulation_with_stubs(monkeypatch):
     fba_stub.get_k = lambda: []
     fba_stub.model_noref = lambda y, t, k, x0: y
     fba_stub.make_model_rhs = lambda mode, k, x0: lambda t, y: y
+    fba_stub.hill_step_vectorized = lambda x_matrix, dt: x_matrix
 
     monkeypatch.setitem(sys.modules, "simulationObjects", simulation_objects_stub)
     monkeypatch.setitem(sys.modules, "IntC_diff", intc_stub)
@@ -50,6 +51,7 @@ def test_run_config_default_construction():
     assert cfg.inhib_type is None
     assert cfg.magnitudes == [1]
     assert cfg.chem_mode == "full"
+    assert cfg.use_vectorized_hill is False
     assert cfg.seed is None
     assert cfg.run_postprocess is True
     assert cfg.model.te == 300
@@ -118,6 +120,7 @@ def test_run_manifest_serializes_config(simulation_with_stubs, tmp_path):
     data = json.loads((tmp_path / "tiny" / "run_config.json").read_text(encoding="utf-8"))
     assert data["seed"] == 7
     assert data["run_postprocess"] is False
+    assert data["use_vectorized_hill"] is False
     assert data["model"]["te"] == 1
     assert data["model"]["dt"] == 1
     assert data["perturbation"]["enabled"] is True

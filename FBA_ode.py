@@ -52,6 +52,7 @@ HILL_C1 = 1.0
 HILL_KH = 0.5
 HILL_M = 2.0
 HILL_BC = 0.2
+HILL_RK4_SUBSTEPS = 32
 
 
 def _normalize_chem_mode(mode):
@@ -76,6 +77,69 @@ def get_chem_mode():
 def _hill_gate(y, k_half, power):
         y = max(float(y), 0.0)
         return (y ** power) / ((k_half ** power) + (y ** power) + HILL_EPS)
+
+
+def _hill_gate_vectorized(y, k_half, power):
+        y = np.maximum(np.asarray(y, dtype=float), 0.0)
+        return (y ** power) / ((k_half ** power) + (y ** power) + HILL_EPS)
+
+
+def hill_derivatives_vectorized(h2o2_i, ca_i):
+        h = np.asarray(h2o2_i, dtype=float)
+        c = np.asarray(ca_i, dtype=float)
+
+        dhdt = HILL_A0 + HILL_A1 * _hill_gate_vectorized(c, HILL_KC, HILL_N) - HILL_BH * h
+        dcadt = HILL_C0 + HILL_C1 * _hill_gate_vectorized(h, HILL_KH, HILL_M) - HILL_BC * c
+        return dhdt, dcadt
+
+
+def model_hill_vectorized(x_matrix):
+        x_matrix = np.asarray(x_matrix, dtype=float)
+        if x_matrix.ndim != 2:
+                raise ValueError("model_hill_vectorized expects a 2D cell-by-state matrix")
+
+        dxdt = np.zeros_like(x_matrix)
+        dhdt, dcadt = hill_derivatives_vectorized(
+                x_matrix[:, ODE_STATE_H2O2I],
+                x_matrix[:, ODE_STATE_CA_I],
+        )
+        dxdt[:, ODE_STATE_H2O2I] = dhdt
+        dxdt[:, ODE_STATE_CA_I] = dcadt
+        return dxdt
+
+
+def hill_step_vectorized(x_matrix, dt, substeps=HILL_RK4_SUBSTEPS):
+        xnew = np.array(x_matrix, dtype=float, copy=True)
+        if xnew.ndim != 2:
+                raise ValueError("hill_step_vectorized expects a 2D cell-by-state matrix")
+        if substeps < 1:
+                raise ValueError("substeps must be at least 1")
+
+        h = xnew[:, ODE_STATE_H2O2I].copy()
+        c = xnew[:, ODE_STATE_CA_I].copy()
+        step = float(dt) / int(substeps)
+
+        for _ in range(int(substeps)):
+                k1h, k1c = hill_derivatives_vectorized(h, c)
+                k2h, k2c = hill_derivatives_vectorized(
+                        h + 0.5 * step * k1h,
+                        c + 0.5 * step * k1c,
+                )
+                k3h, k3c = hill_derivatives_vectorized(
+                        h + 0.5 * step * k2h,
+                        c + 0.5 * step * k2c,
+                )
+                k4h, k4c = hill_derivatives_vectorized(
+                        h + step * k3h,
+                        c + step * k3c,
+                )
+
+                h = h + (step / 6.0) * (k1h + 2.0 * k2h + 2.0 * k3h + k4h)
+                c = c + (step / 6.0) * (k1c + 2.0 * k2c + 2.0 * k3c + k4c)
+
+        xnew[:, ODE_STATE_H2O2I] = h
+        xnew[:, ODE_STATE_CA_I] = c
+        return xnew
 
 
 def model_hill(x, t, k, x0, *args, **kwargs):
