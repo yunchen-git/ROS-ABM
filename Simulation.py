@@ -607,7 +607,7 @@ class Simulation(object):
         except OSError:
             #direcotry already exsists... overwrite it
             print("Directory already exsists... overwriting directory")
-        
+
         # final_path=self.path + self._sep + self.name+self._sep+"copiedTM"
         # try:
         #     shutil.copytree(struct_path,final_path)
@@ -674,26 +674,32 @@ class Simulation(object):
     def update(self):
         """ Updates all of the objects in the simulation
         """
-        #update the gradients
-        agents=self.objects
-        n=len(agents)
-        
+        agents = self.objects
+        n = len(agents)
+        nbs2 = self._build_neighbor_pairs()
+        self._update_intercellular_and_intracellular_chemistry(nbs2, n)
+        self._update_extracellular_gradients()
+        self._update_agent_biology()
+
+    def _build_neighbor_pairs(self):
         """
         Gap Junction inhibition (GJ) or Adenylyl Cyclase inhibition (AC)
         """
 
         #Update nieghbor matrix for intercellular module
-        nbs1=[]
-        edges = self.network.edges()      
+        nbs1 = []
+        edges = self.network.edges()
         for edge in edges:
             #first find the distance of the edge
             obj1 = edge[0]
             obj2 = edge[1]
-            i=obj1.ID
-            j=obj2.ID
-            nbs1.append([i,j])
-        nbs2=np.asarray(nbs1, dtype=np.int32)
+            i = obj1.ID
+            j = obj2.ID
+            nbs1.append([i, j])
+        nbs2 = np.asarray(nbs1, dtype=np.int32)
+        return nbs2
 
+    def _update_intercellular_and_intracellular_chemistry(self, nbs2, n):
         # division_timer = []
         # for i in range(len(self.objects)):
         #     division_timer.append(self.objects[i].division_timer)
@@ -714,7 +720,7 @@ class Simulation(object):
         #     self.gradients[i]._x = max_x + 0.1 * max_x
         #     self.gradients[i]._y = max_y + 0.1 * max_y
         # print(max_x,max_y)
-        
+
         t0=time.time()
         x0_baseline = get_x0()
         k = get_k()
@@ -773,6 +779,8 @@ class Simulation(object):
             #print(self.interC)
         t1=time.time()
         print("Inter Transport Time: {}".format(t1-t0))
+
+    def _update_extracellular_gradients(self):
         print("Updating gradients...")
         t0=time.time()
         if(len(self.gradients) > 0):
@@ -796,6 +804,8 @@ class Simulation(object):
             #self.objects[92].set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
         t1=time.time()
         print ("Gradient Diffusion Time: {}".format(t1-t0))
+
+    def _update_agent_biology(self):
         #RUN A FASTER UPDATE LOOP     
         split = 1
         for _ in range(0, split):

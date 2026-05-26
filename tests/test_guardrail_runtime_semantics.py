@@ -106,8 +106,8 @@ def test_perturbation_trigger_semantics_are_preserved():
 
     sim_src, sim_tree = _parse_module("Simulation.py")
     sim_cls = _find_class(sim_tree, "Simulation")
-    update_fn = _find_method(sim_cls, "update")
-    update_src = ast.get_source_segment(sim_src, update_fn)
+    chemistry_fn = _find_method(sim_cls, "_update_intercellular_and_intracellular_chemistry")
+    update_src = ast.get_source_segment(sim_src, chemistry_fn)
 
     assert "self._should_apply_perturbation(j)" in update_src
     assert 'self._perturbation_value("injection_h2o2i")' in update_src
@@ -154,10 +154,10 @@ def test_solver_method_and_tolerances_defaults_are_preserved():
     constants = _collect_module_constants(tree)
 
     sim_cls = _find_class(tree, "Simulation")
-    update_fn = _find_method(sim_cls, "update")
+    chemistry_fn = _find_method(sim_cls, "_update_intercellular_and_intracellular_chemistry")
 
     solve_calls = []
-    for node in ast.walk(update_fn):
+    for node in ast.walk(chemistry_fn):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "solve_ivp":
             solve_calls.append(node)
 
