@@ -3,6 +3,16 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
+from species_registry import (
+    EXT_GRADIENT_H2O2E,
+    INTERC_SPECIES_CAMP,
+    INTERC_SPECIES_CA,
+    INTERC_SPECIES_H2O2I,
+    ODE_STATE_CA_I,
+    ODE_STATE_H2O2E,
+    ODE_STATE_H2O2I,
+)
+
 
 def test_update_calls_operator_methods_in_order(simulation_module, monkeypatch):
     calls = []
@@ -62,6 +72,88 @@ def test_build_neighbor_pairs_preserves_int32_dtype(simulation_module):
 
     assert nbs2.dtype == np.int32
     np.testing.assert_array_equal(nbs2, np.array([[1, 3], [5, 8]], dtype=np.int32))
+
+
+def test_intercellular_chemistry_uses_name_based_ca_lookup(simulation_module, monkeypatch):
+    calls = []
+
+    class InterC:
+        def __init__(self, name, value):
+            self.name = name
+            self.value = value
+            self.changed = []
+
+        def update_C2(self, *args):
+            calls.append((self.name, "update_C2"))
+
+        def update_C1(self, *args):
+            calls.append((self.name, "update_C1"))
+
+        def update_C0(self, *args):
+            calls.append((self.name, "update_C0"))
+
+        def get_C(self, index):
+            calls.append((self.name, "get_C", index))
+            return self.value
+
+        def change_C(self, index, value):
+            self.changed.append((index, value))
+            calls.append((self.name, "change_C", index, value))
+
+    class H2O2eGradient:
+        name = EXT_GRADIENT_H2O2E
+
+        def __init__(self):
+            self.added = []
+
+        def get_gradient_value_on_surface_shell(self, obj):
+            return 1.0
+
+        def add_gradient_value_on_cell_surface(self, obj, value):
+            self.added.append((obj, value))
+
+    def fake_solve_ivp(rhs, t_span, x0, **kwargs):
+        xnew = x0.copy()
+        xnew[ODE_STATE_H2O2E] = x0[ODE_STATE_H2O2E] + 0.25
+        xnew[ODE_STATE_H2O2I] = 2.5
+        xnew[ODE_STATE_CA_I] = 3.5
+        return SimpleNamespace(y=np.column_stack([x0, xnew]))
+
+    monkeypatch.setattr(simulation_module, "get_x0", lambda: np.zeros(32))
+    monkeypatch.setattr(simulation_module, "get_k", lambda: np.zeros(100))
+    monkeypatch.setattr(simulation_module, "make_model_rhs", lambda mode, k, x_base: lambda t, y: y)
+    monkeypatch.setattr(simulation_module, "solve_ivp", fake_solve_ivp)
+
+    camp = InterC(INTERC_SPECIES_CAMP, 0.1)
+    ca = InterC(INTERC_SPECIES_CA, 1.25)
+    h2o2i = InterC(INTERC_SPECIES_H2O2I, 0.5)
+    gradient = H2O2eGradient()
+
+    sim = object.__new__(simulation_module.Simulation)
+    sim.objects = [SimpleNamespace(x0=np.zeros(32))]
+    sim.interC = [camp, ca, h2o2i]
+    sim._intC_by_name = {
+        INTERC_SPECIES_CAMP: camp,
+        INTERC_SPECIES_CA: ca,
+        INTERC_SPECIES_H2O2I: h2o2i,
+    }
+    sim._gradients_by_name = {EXT_GRADIENT_H2O2E: gradient}
+    sim.gradients = [gradient]
+    sim.time = 0
+    sim.chem_mode = "full"
+    sim.perturbation = {
+        "enabled": False,
+        "cell_index": 877,
+        "injection_time": 5,
+        "injection_h2o2i": 0.0012,
+    }
+
+    sim._update_intercellular_and_intracellular_chemistry(np.zeros((0, 2), dtype=np.int32), 1)
+
+    assert (INTERC_SPECIES_CA, "get_C", 0) in calls
+    assert ca.changed == [(0, 3.5)]
+    assert h2o2i.changed == [(0, 2.5)]
+    assert gradient.added == [(sim.objects[0], 0.25)]
 
 
 @pytest.mark.parametrize(

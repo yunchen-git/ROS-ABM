@@ -25,6 +25,7 @@ def simulation_with_stubs(monkeypatch):
     fba_stub.get_x0 = lambda: []
     fba_stub.get_k = lambda: []
     fba_stub.model_noref = lambda y, t, k, x0: y
+    fba_stub.make_model_rhs = lambda mode, k, x0: lambda t, y: y
 
     monkeypatch.setitem(sys.modules, "simulationObjects", simulation_objects_stub)
     monkeypatch.setitem(sys.modules, "IntC_diff", intc_stub)
