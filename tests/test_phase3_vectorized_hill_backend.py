@@ -22,6 +22,8 @@ from species_registry import (
 
 
 HILL_RADUA_ONE_STEP_ATOL = 1e-8
+HILL_RADUA_TEN_STEP_ATOL = 1e-8
+RELATIVE_ERROR_FLOOR = 1e-12
 
 
 def _state_matrix(pairs):
@@ -31,6 +33,59 @@ def _state_matrix(pairs):
         matrix[row, ODE_STATE_H2O2I] = h2o2_i
         matrix[row, ODE_STATE_CA_I] = ca_i
     return matrix
+
+
+def _scalar_hill_step(matrix):
+    k = FBA_ode.get_k()
+    base = FBA_ode.get_x0()
+    expected = []
+    for row in matrix:
+        solution = solve_ivp(
+            lambda t, y: FBA_ode.model_hill(y, t, k, base),
+            (0, 1),
+            row.copy(),
+            method="Radau",
+            t_eval=[0, 1],
+            atol=1e-10,
+            rtol=1e-8,
+        )
+        expected.append(solution.y[:, -1])
+    return np.vstack(expected)
+
+
+def _scalar_hill_steps(matrix, steps):
+    out = matrix.copy()
+    for _ in range(steps):
+        out = _scalar_hill_step(out)
+    return out
+
+
+def _vectorized_hill_steps(matrix, steps, substeps=FBA_ode.HILL_RK4_SUBSTEPS):
+    out = matrix.copy()
+    for _ in range(steps):
+        out = FBA_ode.hill_step_vectorized(out, 1.0, substeps=substeps)
+    return out
+
+
+def _species_error_summary(actual, expected, state_index):
+    abs_error = np.abs(actual[:, state_index] - expected[:, state_index])
+    denom = np.maximum(np.abs(expected[:, state_index]), RELATIVE_ERROR_FLOOR)
+    rel_error = abs_error / denom
+    return {
+        "max_abs_error": float(np.max(abs_error)),
+        "max_rel_error": float(np.max(rel_error)),
+        "reference_min": float(np.min(expected[:, state_index])),
+        "reference_max": float(np.max(expected[:, state_index])),
+    }
+
+
+def _format_species_error(name, summary):
+    return (
+        f"{name} max_abs_error={summary['max_abs_error']:.6g}, "
+        f"max_rel_error={summary['max_rel_error']:.6g}, "
+        f"reference_min={summary['reference_min']:.6g}, "
+        f"reference_max={summary['reference_max']:.6g}"
+    )
 
 
 def test_model_hill_vectorized_derivative_matches_scalar_model_hill():
@@ -74,29 +129,45 @@ def test_vectorized_hill_one_step_matches_scalar_radau_within_1e_8():
         (0.5, 0.5),
     ]
     matrix = _state_matrix(pairs)
-    k = FBA_ode.get_k()
-    base = FBA_ode.get_x0()
+    expected = _scalar_hill_step(matrix)
+    actual = _vectorized_hill_steps(matrix, steps=1)
 
-    expected = []
-    for row in matrix:
-        solution = solve_ivp(
-            lambda t, y: FBA_ode.model_hill(y, t, k, base),
-            (0, 1),
-            row.copy(),
-            method="Radau",
-            t_eval=[0, 1],
-            atol=1e-10,
-            rtol=1e-8,
-        )
-        expected.append(solution.y[:, -1])
-    expected = np.vstack(expected)
+    h2o2i = _species_error_summary(actual, expected, ODE_STATE_H2O2I)
+    ca_i = _species_error_summary(actual, expected, ODE_STATE_CA_I)
 
-    actual = FBA_ode.hill_step_vectorized(matrix, 1.0)
-    max_abs = np.max(np.abs(actual[:, [ODE_STATE_H2O2I, ODE_STATE_CA_I]] - expected[:, [ODE_STATE_H2O2I, ODE_STATE_CA_I]]))
+    assert h2o2i["max_abs_error"] <= HILL_RADUA_ONE_STEP_ATOL, (
+        "vectorized Hill one-step drift exceeded tolerance vs scalar Radau: "
+        f"{_format_species_error('H2O2i', h2o2i)}"
+    )
+    assert ca_i["max_abs_error"] <= HILL_RADUA_ONE_STEP_ATOL, (
+        "vectorized Hill one-step drift exceeded tolerance vs scalar Radau: "
+        f"{_format_species_error('Ca_i', ca_i)}"
+    )
 
-    assert max_abs <= HILL_RADUA_ONE_STEP_ATOL, (
-        f"vectorized Hill one-step drift {max_abs:g} exceeded "
-        f"{HILL_RADUA_ONE_STEP_ATOL:g} vs scalar Radau"
+
+def test_vectorized_hill_ten_step_drift_matches_scalar_radau_within_1e_8():
+    pairs = [
+        (1e-9, 1e-7),
+        (1e-3, 1e-7),
+        (1e-9, 1e-3),
+        (0.1, 0.2),
+        (0.0, 0.0),
+    ]
+    matrix = _state_matrix(pairs)
+
+    expected = _scalar_hill_steps(matrix, steps=10)
+    actual = _vectorized_hill_steps(matrix, steps=10)
+
+    h2o2i = _species_error_summary(actual, expected, ODE_STATE_H2O2I)
+    ca_i = _species_error_summary(actual, expected, ODE_STATE_CA_I)
+
+    assert h2o2i["max_abs_error"] <= HILL_RADUA_TEN_STEP_ATOL, (
+        "vectorized Hill ten-step drift exceeded tolerance vs scalar Radau: "
+        f"{_format_species_error('H2O2i', h2o2i)}"
+    )
+    assert ca_i["max_abs_error"] <= HILL_RADUA_TEN_STEP_ATOL, (
+        "vectorized Hill ten-step drift exceeded tolerance vs scalar Radau: "
+        f"{_format_species_error('Ca_i', ca_i)}"
     )
 
 
