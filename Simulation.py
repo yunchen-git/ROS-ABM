@@ -48,28 +48,22 @@ from scipy.integrate import solve_ivp
 import pickle
 import math as math
 import time
-from FBA_ode import get_x0, get_k, model_noref
+from FBA_ode import get_x0, get_k, make_model_rhs
 from run_config import PerturbationConfig
+from species_registry import (
+    EXT_GRADIENT_H2O2E,
+    INTERC_SPECIES_CAMP,
+    INTERC_SPECIES_CA,
+    INTERC_SPECIES_H2O2I,
+    INTERC_SPECIES_ORDER,
+    ODE_STATE_CA_I,
+    ODE_STATE_H2O2E,
+    ODE_STATE_H2O2I,
+)
 
 PERTURBATION_CELL_INDEX = 877
 PERTURBATION_INJECTION_TIME = 5
 PERTURBATION_INJECTION_H2O2I = 0.0012
-
-INTERC_SPECIES_CAMP = "cAMP"
-INTERC_SPECIES_H2O2I = "H2O2i"
-INTERC_SPECIES_CA = "Ca"
-INTERC_SPECIES_ORDER = (
-    INTERC_SPECIES_CAMP,
-    INTERC_SPECIES_H2O2I,
-    INTERC_SPECIES_CA,
-)
-INTERC_INDEX_CAMP = 0
-INTERC_INDEX_H2O2I = 1
-INTERC_INDEX_CA = 2
-
-ODE_STATE_INDEX_H2O2E = 0
-ODE_STATE_INDEX_H2O2I = 1
-ODE_STATE_INDEX_CA = 29
 
 SOLVER_METHOD = "Radau"
 SOLVER_ATOL = 1e-10
@@ -345,6 +339,7 @@ class Simulation(object):
         self.inhib_type=inhib_type
         self.perturbation = perturbation if perturbation is not None else PerturbationConfig()
         self.run_config = run_config
+        self.chem_mode = getattr(run_config, "chem_mode", "full") if run_config is not None else "full"
         self.grid_size = grid_size
         self.max_x = grid_size[0]
         self.max_y = grid_size[1]
@@ -724,29 +719,32 @@ class Simulation(object):
         t0=time.time()
         x0_baseline = get_x0()
         k = get_k()
+        model_rhs = make_model_rhs(self.chem_mode, k, x0_baseline)
         for i in range(len(self.interC)):
             if self.interC[i].name == INTERC_SPECIES_CAMP:
                 self.interC[i].update_C2(nbs2,n,1)#,division_timer)
             elif self.interC[i].name == INTERC_SPECIES_H2O2I:
+                ca_interC = self.get_intC_by_name(INTERC_SPECIES_CA)
+                h2o2e_gradient = self.get_gradient_by_name(EXT_GRADIENT_H2O2E)
                 #self.interC[i].update_C0(nbs2,n,0.5)#,division_timer)                                                   #GJC for H2O2i
                 for j in range(0, len(self.objects)):
                     x0 = self.objects[j].x0
 
-                    x0[ODE_STATE_INDEX_H2O2E] = self.gradients[0].get_gradient_value_on_surface_shell(self.objects[j])
-                    x0[ODE_STATE_INDEX_H2O2I] = self.interC[i].get_C(j)
-                    x0[ODE_STATE_INDEX_CA] = self.interC[INTERC_INDEX_CA].get_C(j)  # Ca
+                    x0[ODE_STATE_H2O2E] = h2o2e_gradient.get_gradient_value_on_surface_shell(self.objects[j])
+                    x0[ODE_STATE_H2O2I] = self.interC[i].get_C(j)
+                    x0[ODE_STATE_CA_I] = ca_interC.get_C(j)  # Ca
 
                     if self._should_apply_perturbation(j):
-                        x0[ODE_STATE_INDEX_H2O2I] = self._perturbation_value("injection_h2o2i")
+                        x0[ODE_STATE_H2O2I] = self._perturbation_value("injection_h2o2i")
                     if self._is_perturbation_cell(j):
-                        print(self.time, x0[ODE_STATE_INDEX_H2O2E], x0[ODE_STATE_INDEX_H2O2I], x0[ODE_STATE_INDEX_CA], j)
+                        print(self.time, x0[ODE_STATE_H2O2E], x0[ODE_STATE_H2O2I], x0[ODE_STATE_CA_I], j)
                     
                     # if x0[1]>1e-8:
                     #     k[31] = 1e-4
 
                     t = np.linspace(0, 1, 2)
                     solution = solve_ivp(
-                                    lambda t, y: model_noref(y, t, k, x0_baseline),  # Remove x0 from lambda arguments
+                                    model_rhs,
                                     (0, 1),  # t_span should be a tuple (start, end)
                                     x0,
                                     method=SOLVER_METHOD,
@@ -757,21 +755,21 @@ class Simulation(object):
                     
                     xnew = solution.y[:, -1]  # Get the last time point
                     
-                    #xnew = self.interC[i].update_Cflux(j, x0, 200) 
-                    
-                    self.interC[i].change_C(j, xnew[ODE_STATE_INDEX_H2O2I])
-                    self.interC[INTERC_INDEX_CA].change_C(j, xnew[ODE_STATE_INDEX_CA])
+                    #xnew = self.interC[i].update_Cflux(j, x0, 200)
+
+                    self.interC[i].change_C(j, xnew[ODE_STATE_H2O2I])
+                    ca_interC.change_C(j, xnew[ODE_STATE_CA_I])
                     #print(xnew[29])
-                    h2o2e_add = (xnew[ODE_STATE_INDEX_H2O2E] - x0[ODE_STATE_INDEX_H2O2E])
+                    h2o2e_add = (xnew[ODE_STATE_H2O2E] - x0[ODE_STATE_H2O2E])
 
                     self.objects[j].x0 = xnew
                     if self._is_perturbation_cell(j):
-                        print(self.time, xnew[ODE_STATE_INDEX_H2O2E], xnew[ODE_STATE_INDEX_H2O2I], xnew[ODE_STATE_INDEX_CA], j, h2o2e_add)
+                        print(self.time, xnew[ODE_STATE_H2O2E], xnew[ODE_STATE_H2O2I], xnew[ODE_STATE_CA_I], j, h2o2e_add)
                     # self.objects[j].C['H2O2i'] = float(xnew[1])
                     # self.objects[j].C['Ca'] = float(xnew[29])
 
                     #self.gradients[0].set_gradient_value_at_point(self.objects[j].location, xnew[0]) #update H2O2e concentration
-                    self.gradients[0].add_gradient_value_on_cell_surface(self.objects[j], h2o2e_add)
+                    h2o2e_gradient.add_gradient_value_on_cell_surface(self.objects[j], h2o2e_add)
 
                 self.interC[i].update_C0(nbs2,n,1)#,division_timer)                   #GJC for H2O2i
             else:
@@ -1041,7 +1039,7 @@ class Simulation(object):
                     # 3D gradient
                     x, y, z = self.gradients[i].get_object_position_on_grid(dist_vec)
                     mask[int(x), int(y), int(z)] = 1
-                if self.gradients[i].name == "H2O2e":
+                if self.gradients[i].name == EXT_GRADIENT_H2O2E:
                     mask = np.zeros(shp)  # Reset mask for Ca2+
             #now pass this in to the set inital values function
             self.gradients[i].set_initial_conditions(mask)

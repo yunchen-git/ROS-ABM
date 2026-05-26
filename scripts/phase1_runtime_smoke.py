@@ -9,6 +9,12 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from run_config import RunConfig
+from species_registry import (
+    EXT_GRADIENT_H2O2E,
+    INTERC_SPECIES_CAMP,
+    INTERC_SPECIES_CA,
+    INTERC_SPECIES_H2O2I,
+)
 import Model_initialParameters
 
 
@@ -62,12 +68,10 @@ def main():
     assert (run_dir / "info.sim").exists()
     assert (run_dir / "run_config.json").exists()
     assert list(run_dir.glob("network*.gpickle"))
-    assert list(run_dir.glob("H2O2e_*"))
-    assert (
-        list(run_dir.glob("cAMP_*"))
-        or list(run_dir.glob("H2O2i_*"))
-        or list(run_dir.glob("Ca_*"))
-    )
+    assert list(run_dir.glob(f"{EXT_GRADIENT_H2O2E}_*"))
+    assert list(run_dir.glob(f"{INTERC_SPECIES_CAMP}_*"))
+    assert list(run_dir.glob(f"{INTERC_SPECIES_H2O2I}_*"))
+    assert list(run_dir.glob(f"{INTERC_SPECIES_CA}_*"))
 
     print(f"real runtime smoke OK: {run_dir}")
 

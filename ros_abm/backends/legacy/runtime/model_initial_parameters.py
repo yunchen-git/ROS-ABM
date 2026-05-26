@@ -40,17 +40,15 @@ from run_config import (
     RunConfig,
     PERTURBATION_CELL_INDEX as DEFAULT_PERTURBATION_CELL_INDEX,
 )
+from species_registry import (
+    EXT_GRADIENT_H2O2E,
+    INTERC_SPECIES_CAMP,
+    INTERC_SPECIES_CA,
+    INTERC_SPECIES_H2O2I,
+    INTERC_SPECIES_ORDER,
+)
 
 PERTURBATION_CELL_INDEX = DEFAULT_PERTURBATION_CELL_INDEX
-
-INTERC_SPECIES_CAMP = "cAMP"
-INTERC_SPECIES_H2O2I = "H2O2i"
-INTERC_SPECIES_CA = "Ca"
-INTERC_SPECIES_ORDER = (
-    INTERC_SPECIES_CAMP,
-    INTERC_SPECIES_H2O2I,
-    INTERC_SPECIES_CA,
-)
 
 
 def resolve_cell_path(cell_path=None, cwd=None):
@@ -224,7 +222,7 @@ def main_config(cfg: RunConfig):
 
     ddim_e = settings.ddim_e
     #H2O2e = ExtC_Diff("H2O2e", D_h2o2e, max_x + 0.01 * max_x, max_y + 0.01 * max_y, z, ddim)
-    H2O2e = ExtC_Diff("H2O2e", D_h2o2e, x, y, z, ddim_e, settings.initial_h2o2e)
+    H2O2e = ExtC_Diff(EXT_GRADIENT_H2O2E, D_h2o2e, x, y, z, ddim_e, settings.initial_h2o2e)
     sim.add_gradient(H2O2e)
 
     # GSH = IntC_Diff("GSH",maxCells,D_h2o2, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
@@ -293,7 +291,7 @@ def main_config(cfg: RunConfig):
         #sim_obj.setC(3.68e-4,'GSH')
 
         # sim_obj.setC(0.0,'superoxide_i')
-        sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
+        sim_obj.set_gradient_source_sink_coeff(EXT_GRADIENT_H2O2E, 0.0, 0.0)
 
         sim.add(sim_obj)
 

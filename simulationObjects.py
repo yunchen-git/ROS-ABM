@@ -34,8 +34,12 @@ from simulationMath1 import *
 import random as rand
 import math as math
 from FBA_ode import get_k, get_x0
-
-ODE_STATE_INDEX_H2O2I = 1
+from species_registry import (
+    INTERC_SPECIES_CAMP,
+    INTERC_SPECIES_CA,
+    INTERC_SPECIES_H2O2I,
+    ODE_STATE_H2O2I,
+)
 
 class SimulationObject(object):
     """ Base class from which all simulation obejcts must inherit
@@ -96,8 +100,8 @@ class SimulationObject(object):
 
     def setC(self,C,name):
         self.C[name]=C
-        if name == 'H2O2i':
-            self.x0[ODE_STATE_INDEX_H2O2I] = C
+        if name == INTERC_SPECIES_H2O2I:
+            self.x0[ODE_STATE_H2O2I] = C
 
     def update_d(self, sim):
         nbs=sim.network.neighbors(self)
@@ -287,7 +291,7 @@ class StemCell(SimulationObject):
 
         # Store concentration in stem cell object from the intercellular diffusion module
         for interC in sim.interC:
-            if interC.name != 'H2O2i' and interC.name != 'Ca':
+            if interC.name != INTERC_SPECIES_H2O2I and interC.name != INTERC_SPECIES_CA:
             #print(f"for {self.ID} getting C {interC.name}, {interC.get_C(self.ID)}")
                 self.C[interC.name]=interC.get_C(self.ID)
             else:
@@ -347,7 +351,7 @@ class StemCell(SimulationObject):
         # an elevated intracellular concentration
         threshold=0.74
         #print(self.kth)
-        if self.C['cAMP']>threshold:
+        if self.C[INTERC_SPECIES_CAMP]>threshold:
             #print(f"self.C['cAMP'] {self.C['cAMP']}")
             ni=4.
             ki=2.0
@@ -355,7 +359,7 @@ class StemCell(SimulationObject):
             tC=self.thresCount
             self.influ= tC**ni/(ki**ni+tC**ni)
             #print(ki)
-        elif self.C['cAMP'] <=threshold and self.influ>0:
+        elif self.C[INTERC_SPECIES_CAMP] <=threshold and self.influ>0:
             ni=4.
             ki=2.0
             self.thresCount-=1

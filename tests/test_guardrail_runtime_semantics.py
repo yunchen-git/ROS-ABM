@@ -111,13 +111,15 @@ def test_perturbation_trigger_semantics_are_preserved():
 
     assert "self._should_apply_perturbation(j)" in update_src
     assert 'self._perturbation_value("injection_h2o2i")' in update_src
-    assert "ODE_STATE_INDEX_H2O2I" in update_src
+    assert "ODE_STATE_H2O2I" in update_src
     assert "PERTURBATION_CELL_INDEX" not in update_src
     assert "PERTURBATION_INJECTION_TIME" not in update_src
     assert "PERTURBATION_INJECTION_H2O2I" not in update_src
 
 
 def test_interc_ordering_assumption_is_preserved():
+    import species_registry
+
     _, tree = _parse_model_initialparameters_impl()
     constants = _collect_module_constants(tree)
 
@@ -136,6 +138,8 @@ def test_interc_ordering_assumption_is_preserved():
             call = node.value
             if isinstance(call, ast.Call) and isinstance(call.func, ast.Name) and call.func.id == "IntC_Diff" and call.args:
                 species = _resolve(call.args[0], constants)
+                if species is None and isinstance(call.args[0], ast.Name):
+                    species = getattr(species_registry, call.args[0].id, None)
                 if isinstance(species, str):
                     var_to_species[node.targets[0].id] = species
         if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call):
@@ -146,7 +150,7 @@ def test_interc_ordering_assumption_is_preserved():
                     if isinstance(arg, ast.Name) and arg.id in var_to_species:
                         registered_species.append(var_to_species[arg.id])
 
-    assert registered_species[:3] == ["cAMP", "H2O2i", "Ca"]
+    assert registered_species[:3] == list(species_registry.INTERC_SPECIES_ORDER)
 
 
 def test_solver_method_and_tolerances_defaults_are_preserved():

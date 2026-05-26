@@ -26,12 +26,20 @@
 ################################################################################
 import numpy as np
 
+from species_registry import (
+        ODE_STATE_CA_E,
+        ODE_STATE_CA_ER,
+        ODE_STATE_CA_I,
+        ODE_STATE_H2O2E,
+        ODE_STATE_H2O2I,
+)
+
 CHEM_MODE = "full"
 VALID_CHEM_MODES = {"full", "hill"}
 
 # Keep these aligned with existing state vector semantics.
-H2O2I_INDEX = 1
-CAI_INDEX = 29
+H2O2I_INDEX = ODE_STATE_H2O2I
+CAI_INDEX = ODE_STATE_CA_I
 
 HILL_EPS = 1e-12
 HILL_A0 = 0.0
@@ -46,14 +54,18 @@ HILL_M = 2.0
 HILL_BC = 0.2
 
 
-def set_chem_mode(mode):
-        global CHEM_MODE
+def _normalize_chem_mode(mode):
         if mode is None:
                 mode = "full"
         mode = str(mode).strip().lower()
         if mode not in VALID_CHEM_MODES:
                 raise ValueError(f"Invalid chem_mode '{mode}'. Expected one of {sorted(VALID_CHEM_MODES)}.")
-        CHEM_MODE = mode
+        return mode
+
+
+def set_chem_mode(mode):
+        global CHEM_MODE
+        CHEM_MODE = _normalize_chem_mode(mode)
         return CHEM_MODE
 
 
@@ -69,11 +81,11 @@ def _hill_gate(y, k_half, power):
 def model_hill(x, t, k, x0, *args, **kwargs):
         dxdt = np.zeros_like(x)
 
-        h = x[H2O2I_INDEX]
-        c = x[CAI_INDEX]
+        h = x[ODE_STATE_H2O2I]
+        c = x[ODE_STATE_CA_I]
 
-        dxdt[H2O2I_INDEX] = HILL_A0 + HILL_A1 * _hill_gate(c, HILL_KC, HILL_N) - HILL_BH * h
-        dxdt[CAI_INDEX] = HILL_C0 + HILL_C1 * _hill_gate(h, HILL_KH, HILL_M) - HILL_BC * c
+        dxdt[ODE_STATE_H2O2I] = HILL_A0 + HILL_A1 * _hill_gate(c, HILL_KC, HILL_N) - HILL_BH * h
+        dxdt[ODE_STATE_CA_I] = HILL_C0 + HILL_C1 * _hill_gate(h, HILL_KH, HILL_M) - HILL_BC * c
 
         return dxdt
 
@@ -175,8 +187,8 @@ def get_x0():
         # initial conditions
         x0 = np.zeros(32)  # Defining the array, x0, that will house initial concentrations
         # Cytoplasm
-        x0[0] = 1e-9  # H2O2media 
-        x0[1] = 1e-9  # H2O2cytosol
+        x0[ODE_STATE_H2O2E] = 1e-9  # H2O2media
+        x0[ODE_STATE_H2O2I] = 1e-9  # H2O2cytosol
 
         x0[2] = 5e-5  # GPXr 
         x0[3] = 1e-14  # GPXo 
@@ -217,24 +229,41 @@ def get_x0():
 
         x0[28] = 1e-9 # steady state h2o2 intracellular
 
-        x0[29] = 1e-7 # calcium intracellular
-        x0[30] = 1.5e-3 # calcium extracellular
-        x0[31] = 1.0e-4 # calcium ER [M] ~ 0.1 mM
+        x0[ODE_STATE_CA_I] = 1e-7 # calcium intracellular
+        x0[ODE_STATE_CA_E] = 1.5e-3 # calcium extracellular
+        x0[ODE_STATE_CA_ER] = 1.0e-4 # calcium ER [M] ~ 0.1 mM
 
 
         return x0
 
 # Define the parameterized model (copy your full ODEs here)
-def model_noref(x, t, k, x_base):
-    if CHEM_MODE == "hill":
+def model_noref_for_mode(x, t, k, x_base, chem_mode):
+    if _normalize_chem_mode(chem_mode) == "hill":
         return model_hill(x, t, k, x_base)
+    return model_noref_full(x, t, k, x_base)
+
+
+def make_model_rhs(chem_mode, k, x_base):
+    mode = _normalize_chem_mode(chem_mode)
+
+    def rhs(t, y):
+        return model_noref_for_mode(y, t, k, x_base, mode)
+
+    return rhs
+
+
+def model_noref(x, t, k, x_base):
+    return model_noref_for_mode(x, t, k, x_base, CHEM_MODE)
+
+
+def model_noref_full(x, t, k, x_base):
 
     dxdt = np.zeros_like(x)
 
     # ===== Calcium–ROS crosstalk using k[...] and x[...] only =====
-    H   = x[1]     # H2O2 cytosol
-    C   = x[29]    # Ca cytosol
-    Cer = x[31]    # Ca ER pool
+    H   = x[ODE_STATE_H2O2I]     # H2O2 cytosol
+    C   = x[ODE_STATE_CA_I]    # Ca cytosol
+    Cer = x[ODE_STATE_CA_ER]    # Ca ER pool
 
     # --- Unpack from k ---
     V_IP3R     = k[34]; K_IP3R_H = k[35]; nH = k[36]; K_er = k[37]
@@ -243,13 +272,13 @@ def model_noref(x, t, k, x_base):
     P_SOCE    = k[45]; K_store  = k[46]
 
     ## --- Helper gates (pure functions of species & k) ---
-    Ca_gate_IP3R = (x[29])**k[54] / (k[57]**k[54] + (x[29])**k[54]) if x[29] > 0 else 0.0 # Activated by cyt Ca
-    Ca_IP3R_inhib = 1.0/(1.0 + (x[29]/k[53])**2) if x[29] > 0 else 0.0 # Inhibited by high Ca
+    Ca_gate_IP3R = (C)**k[54] / (k[57]**k[54] + (C)**k[54]) if C > 0 else 0.0 # Activated by cyt Ca
+    Ca_IP3R_inhib = 1.0/(1.0 + (C/k[53])**2) if C > 0 else 0.0 # Inhibited by high Ca
     h2o2_gate_IP3R = (H**nH)/(K_IP3R_H**nH + H**nH) if H > 0 else 0.0 # activation by H2o2
     H2O2_inhibit_IP3R = (k[51]**k[52]) / (k[51]**k[52] + H**k[52]) if H > 0 else 0.0 # inhibition by very high H2O2
     SERCA_inhb = 1.0/(1.0 + (H/K_SERCA_H)**m_inhib) if H > 0 else 1.0
     H2O2_gate_TRPM2 = (H**p_TRPM2)/(K_TRPM2_H**p_TRPM2 + H**p_TRPM2) if H > 0 else 0.0
-    Ca_gate_TRPM2 = (x[29]**k[69])/((k[68]**k[69]) + (x[29]**k[69])) if x[29] > 0 else 0.0
+    Ca_gate_TRPM2 = (C**k[69])/((k[68]**k[69]) + (C**k[69])) if C > 0 else 0.0
     SOCE_drive = K_store/(K_store + Cer)       # ramps as ER depletes
 
     # --- Fluxes (units consistent with your H2O2 model scaling) ---
@@ -257,24 +286,24 @@ def model_noref(x, t, k, x_base):
         * Ca_IP3R_inhib * H2O2_inhibit_IP3R * (Cer - C) / (K_er + Cer) if (Cer - C) > 0 else 0.0 # ER -> cyt release via IP3R
     #print(Ca_gate_IP3R,h2o2_gate_IP3R,Ca_IP3R_inhib,H2O2_inhibit_IP3R,J_IP3R)
     J_SERCA   = V_SERCA * (C**k[47]/(k[39]**k[47] + C**k[47])) * SERCA_inhb if C > 0 else 0.0 # cyt -> ER uptake by SERCA
-    J_in_TRPM2= P_TRPM2 * H2O2_gate_TRPM2 * Ca_gate_TRPM2 * (x[30] - x[29]) if (x[30] - x[29]) > 0 else 0.0 # PM influx via TRPM2
-    J_in_SOCE = P_SOCE  * SOCE_drive * (x[30] - x[29]) if (x[30] - x[29]) > 0 else 0.0 # PM influx via SOCE to restore ER
+    J_in_TRPM2= P_TRPM2 * H2O2_gate_TRPM2 * Ca_gate_TRPM2 * (x[ODE_STATE_CA_E] - C) if (x[ODE_STATE_CA_E] - C) > 0 else 0.0 # PM influx via TRPM2
+    J_in_SOCE = P_SOCE  * SOCE_drive * (x[ODE_STATE_CA_E] - C) if (x[ODE_STATE_CA_E] - C) > 0 else 0.0 # PM influx via SOCE to restore ER
 
     # --- ER capacity gating for SERCA (prevents overfilling) ---
-    cap = 1.0 - (x[31] / k[55])         # linear headroom fraction
+    cap = 1.0 - (Cer / k[55])         # linear headroom fraction
     cap = 0.0 if cap < 0.0 else cap   # clamp to [0, 1]
     J_SERCA *= cap                    # SERCA stops as ER approaches capacity
 
     # --- Overflow if ER exceeds the cap (hard push back to cytosol) ---
-    J_over = k[56] * cap * x[31] if cap < 0.0 else 0.0
-    J_out = k[58] * (x[29])/ (5e-6 + (x[29]))  if x[29] > 0 else 0.0 # cytosolic Ca extrusion (PMCA/NCX lumped)
+    J_over = k[56] * cap * Cer if cap < 0.0 else 0.0
+    J_out = k[58] * (C)/ (5e-6 + (C))  if C > 0 else 0.0 # cytosolic Ca extrusion (PMCA/NCX lumped)
     # --- NOX5 Ca-dependent ROS production ---
     nox2 = k[32] * (x[1]**6)/(k[33]**6 + x[1]**6) if x[1] > 0 else 0.0 #nox2
     # NOX5 with NADPH limitation
-    nox5 = k[48] * (x[29]**k[50])/(k[49]**k[50] + x[29]**k[50]) \
-                * (x[22]/(k[62] + x[22])) if x[29] > 0 or x[22] > 0 else 0.0
+    nox5 = k[48] * (C**k[50])/(k[49]**k[50] + C**k[50]) \
+                * (x[22]/(k[62] + x[22])) if C > 0 or x[22] > 0 else 0.0
 
-    km_duox = k[66] - (k[66] - k[67]) * (x[29]**k[65])/(k[64]**k[65] + x[29]**k[65]) if x[29] > 0 else k[67]
+    km_duox = k[66] - (k[66] - k[67]) * (C**k[65])/(k[64]**k[65] + C**k[65]) if C > 0 else k[67]
     duox = k[63] * x[22]/(km_duox + x[22])
 
     dxdt[0] = (k[0]*(x[1] - x[0]) * 10e-3 * 5.3e-6 * (1e9)) + nox2 + duox   # extracellular peroxide
@@ -382,9 +411,9 @@ def model_noref(x, t, k, x_base):
     dxdt[27] = 0
 
     # --- Calcium balances --
-    dxdt[29] = J_IP3R + J_in_TRPM2 + J_in_SOCE + J_over - J_SERCA - J_out            # d[Ca_cyt]/dt
-    dxdt[30] = 0                                                     # d[Ca_ext]/dt
-    dxdt[31] = J_SERCA - J_IP3R - J_over                           # d[Ca_ER]/dt
+    dxdt[ODE_STATE_CA_I] = J_IP3R + J_in_TRPM2 + J_in_SOCE + J_over - J_SERCA - J_out            # d[Ca_cyt]/dt
+    dxdt[ODE_STATE_CA_E] = 0                                                     # d[Ca_ext]/dt
+    dxdt[ODE_STATE_CA_ER] = J_SERCA - J_IP3R - J_over                           # d[Ca_ER]/dt
     #print(dxdt[29], dxdt[31])
 
     return dxdt
@@ -490,10 +519,14 @@ def model_full(x, t, k, x0):
     return dxdt
 
 
-def model(x, t, k, x0, *args, **kwargs):
-    if CHEM_MODE == "hill":
+def model_for_mode(x, t, k, x0, chem_mode, *args, **kwargs):
+    if _normalize_chem_mode(chem_mode) == "hill":
         return model_hill(x, t, k, x0, *args, **kwargs)
     return model_full(x, t, k, x0, *args, **kwargs)
+
+
+def model(x, t, k, x0, *args, **kwargs):
+    return model_for_mode(x, t, k, x0, CHEM_MODE, *args, **kwargs)
 
 def calibrate_k1_for_steady_state(k, x0):
     # geometry
