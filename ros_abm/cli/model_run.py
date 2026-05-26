@@ -25,7 +25,8 @@ import Model_initialParameters as mod
 from CountDirectory import newDirect
 import getpass
 import os
-from dataclasses import dataclass, field
+from dataclasses import replace
+from run_config import RunConfig
 
 
 def resolve_output_base_path(output_base_path=None):
@@ -34,21 +35,11 @@ def resolve_output_base_path(output_base_path=None):
     return os.path.expanduser(output_base_path)
 
 
-@dataclass
-class RunSettings:
-    length: int = 1
-    output_base_path: str = '~/Documents/PhD/test'
-    inh_val: list = field(default_factory=lambda: [1.0])
-    per_inh: list = field(default_factory=lambda: [1.0])
-    inh_time: int = 1000
-    inh_time1: int = 1000
-    inhib_type: str | None = None
-    magnitudes: list = field(default_factory=lambda: [1])
-    chem_mode: str = "full"
+RunSettings = RunConfig
 
 
 def main():
-    settings = RunSettings()
+    settings = RunConfig()
     length = settings.length
     user=getpass.getuser()
 
@@ -77,7 +68,15 @@ def main():
         #print("test")
         for _ in range(length):
             x=newDirect(new_path)
-            mod.main(x,new_path,inh_val[0],inhib_type,inh_time,inh_time1, c, chem_mode=chem_mode)
+            run_cfg = replace(
+                settings,
+                run_name=x,
+                output_path=new_path,
+                inhib_value=inh_val[0],
+                magnitude=c,
+                chem_mode=chem_mode,
+            )
+            mod.main_config(run_cfg)
 
 
 if __name__ == '__main__':

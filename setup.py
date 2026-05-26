@@ -15,10 +15,16 @@
 #   - Outputs platform-specific compiled artifacts in-place (e.g., *.so / *.pyd).
 #
 # Notes / gotchas:
-#   - Requires Cython + a working compiler toolchain.
+#   - Uses tracked generated C sources by default for stable local rebuilds.
+#   - Set ROS_ABM_USE_CYTHON=1 to regenerate C from .pyx sources.
+#   - Requires a working compiler toolchain.
 ################################################################################
+import os
+from pathlib import Path
+
 try:
-    from setuptools import setup
+    from setuptools import Extension, setup
+    from setuptools.command.build_ext import build_ext as _build_ext
 except ImportError:
     # from distutils.core import setup
     # from distutils.extension import Extension
@@ -26,7 +32,6 @@ except ImportError:
     
 import numpy as np
 
-from Cython.Build import cythonize
 """
 This script is meant to compile the intercellular diffusion module and extracellular diffusion module to C-code. 
 
@@ -36,8 +41,48 @@ To compile go to a command console and:
 
 """
 
+CYTHON_SOURCES = ["IntC_diff.pyx", "ExtC_gradient.pyx"]
+GENERATED_C_SOURCES = ["IntC_diff.c", "ExtC_gradient.c"]
+
+use_cython = os.environ.get("ROS_ABM_USE_CYTHON") == "1"
+generated_c_available = all(Path(source).exists() for source in GENERATED_C_SOURCES)
+cythonize = None
+
+if use_cython or not generated_c_available:
+    try:
+        from Cython.Build import cythonize
+    except ImportError as exc:
+        raise RuntimeError(
+            "Cython is required when generated C sources are unavailable "
+            "or ROS_ABM_USE_CYTHON=1 is set."
+        ) from exc
+    sources = CYTHON_SOURCES
+else:
+    sources = GENERATED_C_SOURCES
+
+extensions = [
+    Extension(
+        source.rsplit(".", 1)[0],
+        [source],
+        include_dirs=[np.get_include()],
+        define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
+    )
+    for source in sources
+]
+
+if cythonize is not None:
+    extensions = cythonize(extensions, compiler_directives={"language_level": "3"})
+
+
+class ForceBuildExt(_build_ext):
+    """Rebuild in-place extensions so stale tracked binaries do not mask ABI drift."""
+
+    def finalize_options(self):
+        super().finalize_options()
+        self.force = True
+
+
 setup(
-    ext_modules=cythonize(["IntC_diff.pyx", "ExtC_gradient.pyx"], compiler_directives={'language_level': "3"}),
-    include_dirs=[np.get_include()],
-    define_macros=[('NPY_NO_DEPRECATED_API', 'NPY_1_7_API_VERSION')]
+    ext_modules=extensions,
+    cmdclass={"build_ext": ForceBuildExt},
 )

@@ -9,21 +9,32 @@ def _require_core_runtime_dependencies():
     pytest.importorskip("networkx")
 
 
+def _import_or_skip_runtime_module(name):
+    try:
+        return importlib.import_module(name)
+    except ImportError as exc:
+        if "numpy.core.multiarray failed to import" in str(exc):
+            pytest.skip(f"{name} compiled extension is incompatible with this NumPy runtime: {exc}")
+        if isinstance(exc, ModuleNotFoundError) and exc.name == "torch":
+            pytest.skip(f"{name} requires torch in this runtime: {exc}")
+        raise
+
+
 def test_import_simulation_smoke():
     _require_core_runtime_dependencies()
-    module = importlib.import_module("Simulation")
+    module = _import_or_skip_runtime_module("Simulation")
     assert module.__name__ == "Simulation"
 
 
 def test_import_model_run_smoke():
     _require_core_runtime_dependencies()
-    module = importlib.import_module("Model_run")
+    module = _import_or_skip_runtime_module("Model_run")
     assert module.__name__ == "Model_run"
 
 
 def test_import_model_initialparameters_smoke():
     _require_core_runtime_dependencies()
-    module = importlib.import_module("Model_initialParameters")
+    module = _import_or_skip_runtime_module("Model_initialParameters")
     assert module.__name__ == "Model_initialParameters"
 
 
@@ -47,11 +58,11 @@ def test_import_count_directory_newdirect_smoke():
 
 def test_import_intc_diff_smoke():
     _require_core_runtime_dependencies()
-    module = importlib.import_module("IntC_diff")
+    module = _import_or_skip_runtime_module("IntC_diff")
     assert hasattr(module, "IntC_Diff")
 
 
 def test_import_extc_gradient_smoke():
     _require_core_runtime_dependencies()
-    module = importlib.import_module("ExtC_gradient")
+    module = _import_or_skip_runtime_module("ExtC_gradient")
     assert hasattr(module, "ExtC_Diff")

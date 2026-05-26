@@ -33,9 +33,15 @@ from IntC_diff import IntC_Diff
 from ExtC_gradient import ExtC_Diff
 import FBA_ode
 import os
-from dataclasses import dataclass, field
+import random
+from run_config import (
+    ModelConfig,
+    PerturbationConfig,
+    RunConfig,
+    PERTURBATION_CELL_INDEX as DEFAULT_PERTURBATION_CELL_INDEX,
+)
 
-PERTURBATION_CELL_INDEX = 877
+PERTURBATION_CELL_INDEX = DEFAULT_PERTURBATION_CELL_INDEX
 
 INTERC_SPECIES_CAMP = "cAMP"
 INTERC_SPECIES_H2O2I = "H2O2i"
@@ -55,46 +61,69 @@ def resolve_cell_path(cell_path=None, cwd=None):
     return cwd + os.sep + 'new_populated.txt'
 
 
-@dataclass
-class ModelSettings:
-    ts: float = 0
-    te: float = 300
-    dt: float = 1
-    x: float = 750
-    y: float = 750
-    z: float = 0
-    ddim: float = 1.0
-    sync_time: list = field(default_factory=lambda: [500, 500])
-    num_cell_types: int = 2
-    channel_count: float = 1000.0
-    channel_permeability: float = 5e-9
-    pluripotent_params: tuple = (4.89e-6, 0.03, 1.3e-7)
-    differentiated_params: tuple = (6.0e-6, 0.04, 1.3e-7)
-    open_probabilities: tuple = (0.45, 0.85)
-    division_times_hours: tuple = (18, 51)
-    D_camp: float = 444
-    D_h2o2i: float = 1000
-    D_h2o2e: float = 1800
-    D_Ca: float = 760
-    ddim_e: float = 1.0
-    initial_h2o2e: float = 1e-9
-    perturbation_cell_index: int = PERTURBATION_CELL_INDEX
-    circle_radius: float = 50.0
-    cell_radius: float = 6.5
-    point_z: float = 0
-    division_set: float = 0
-    default_cell_state: str = "U"
-    special_h2o2i: float = 1e-9
-    special_camp: float = 1
-    special_ca: float = 1e-7
-    default_h2o2i: float = 1e-9
-    default_camp_base: float = 0.595
-    default_camp_random_scale: float = 0.05
-    default_ca: float = 1e-7
+ModelSettings = ModelConfig
+
+
+def _first_or_default(values, default):
+    try:
+        return values[0]
+    except (IndexError, TypeError):
+        return default
+
+
+def _resolve_setup_perturbation_cell_index(settings, perturbation):
+    if (
+        settings.perturbation_cell_index != DEFAULT_PERTURBATION_CELL_INDEX
+        and perturbation.cell_index == DEFAULT_PERTURBATION_CELL_INDEX
+    ):
+        return settings.perturbation_cell_index
+    return perturbation.cell_index
 
 
 def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="full", cell_path=None):
-    settings = ModelSettings()
+    cfg = RunConfig(
+        output_base_path=path,
+        output_path=path,
+        inh_val=[inhib_value],
+        inh_time=inhib_time,
+        inh_time1=inhib_time1,
+        inhib_type=inhib_type,
+        magnitudes=[c],
+        chem_mode=chem_mode,
+        run_name=n,
+        inhib_value=inhib_value,
+        magnitude=c,
+        cell_path=cell_path,
+    )
+    return main_config(cfg)
+
+
+def main_config(cfg: RunConfig):
+    settings = cfg.model
+    perturbation = cfg.perturbation
+    rng = random.Random(cfg.seed)
+    n = cfg.run_name if cfg.run_name is not None else 1.0
+    path = cfg.output_path if cfg.output_path is not None else cfg.output_base_path
+    path = os.path.expanduser(path)
+    inhib_value = (
+        cfg.inhib_value
+        if cfg.inhib_value is not None
+        else _first_or_default(cfg.inh_val, 1.0)
+    )
+    inhib_type = cfg.inhib_type
+    inhib_time = cfg.inh_time
+    inhib_time1 = cfg.inh_time1
+    magnitude = (
+        cfg.magnitude
+        if cfg.magnitude is not None
+        else _first_or_default(cfg.magnitudes, 1)
+    )
+    chem_mode = cfg.chem_mode
+    cell_path = cfg.cell_path
+    perturbation_cell_index = _resolve_setup_perturbation_cell_index(
+        settings,
+        perturbation,
+    )
     #Start time, end time, time step
     ts = settings.ts
     te = settings.te
@@ -118,7 +147,9 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="ful
                      grid_size,
                      inhib_type,
                      inhib_time=inhib_time,
-                     inhib_time1=inhib_time1)
+                     inhib_time1=inhib_time1,
+                     perturbation=perturbation,
+                     run_config=cfg)
 
     #Parameters for intercellular diffusion
     #Index 0 represents a pluripotent cell
@@ -145,14 +176,14 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="ful
     #Pluripotent phenotype parameters
     celltype_param[0,0]=settings.pluripotent_params[0]
     celltype_param[0,1]=settings.pluripotent_params[1]
-    celltype_param[0,2]=int(c)
+    celltype_param[0,2]=int(magnitude)
     celltype_param[0,3]=settings.pluripotent_params[2]
      
     open_prob[0]=settings.open_probabilities[0]
     ##Differentiated phenotype parameters
     celltype_param[1,0]=settings.differentiated_params[0]
     celltype_param[1,1]=settings.differentiated_params[1]
-    celltype_param[1,2]=int(c)
+    celltype_param[1,2]=int(magnitude)
     celltype_param[1,3]=settings.differentiated_params[2]
     
     open_prob[1]=settings.open_probabilities[1]
@@ -220,8 +251,8 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="ful
 
     # Define the center of the circle (you can change these coordinates)
     # Using cell 92's position as the center, or you can specify your own coordinates
-    center_x = locations[settings.perturbation_cell_index, 0]  # or specify like 350.0
-    center_y = locations[settings.perturbation_cell_index, 1]  # or specify like 350.0
+    center_x = locations[perturbation_cell_index, 0]  # or specify like 350.0
+    center_y = locations[perturbation_cell_index, 1]  # or specify like 350.0
     circle_radius = settings.circle_radius  # 50 μm radius for 100 μm diameter
 
     # Find all cells within the circle
@@ -235,13 +266,13 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="ful
 
     for i in range(0,num):
         ID=i
-        c = rand.random()
+        random_fraction = rng.random()
         point=[locations[i,0], locations[i,1], 0]
         point[2] = settings.point_z#z/2  # Add some variation in z-axis
         radius=settings.cell_radius 
         div_set=settings.division_set#r.random()*19.*60*60 #randomly assign a division time between 0 and 19 hours
 
-        if i == settings.perturbation_cell_index:#877:#1890:#9116:#1890: 
+        if i == perturbation_cell_index:#877:#1890:#9116:#1890: 
         #if i in high_h2o2_cells:  # Check if cell is in the high H2O2i circle
             sim_obj=StemCell(point,radius,ID,settings.default_cell_state,inhib_value=inhib_value, division_set=div_set)
             sim_obj.setC(settings.special_h2o2i,INTERC_SPECIES_H2O2I)
@@ -254,7 +285,7 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c, chem_mode="ful
         else:
             sim_obj=StemCell(point,radius,ID,settings.default_cell_state,inhib_value=inhib_value, division_set=div_set)   #create instance of StemCell class
             sim_obj.setC(settings.default_h2o2i,INTERC_SPECIES_H2O2I)
-            sim_obj.setC(settings.default_camp_base+settings.default_camp_random_scale*c,INTERC_SPECIES_CAMP)
+            sim_obj.setC(settings.default_camp_base+settings.default_camp_random_scale*random_fraction,INTERC_SPECIES_CAMP)
             sim_obj.setC(settings.default_ca,INTERC_SPECIES_CA)
             #sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
         

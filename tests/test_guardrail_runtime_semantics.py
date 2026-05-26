@@ -92,53 +92,29 @@ def _resolve_subscript_index(node, constants):
 
 
 def test_perturbation_trigger_semantics_are_preserved():
+    import run_config
+
     src, tree = _parse_model_initialparameters_impl()
-    constants = _collect_module_constants(tree)
+    perturbation = run_config.PerturbationConfig()
 
-    model_settings = _find_class(tree, "ModelSettings")
-    perturb_default = None
-    for node in model_settings.body:
-        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id == "perturbation_cell_index":
-            perturb_default = _resolve(node.value, constants)
-            break
-    assert perturb_default == 877
-
-    assert "settings.perturbation_cell_index" in src
+    assert perturbation.enabled is True
+    assert perturbation.cell_index == 877
+    assert perturbation.injection_time == 5
+    assert perturbation.injection_h2o2i == 0.0012
+    assert run_config.ModelConfig().perturbation_cell_index == 877
+    assert "perturbation_cell_index" in src
 
     sim_src, sim_tree = _parse_module("Simulation.py")
-    sim_constants = _collect_module_constants(sim_tree)
     sim_cls = _find_class(sim_tree, "Simulation")
     update_fn = _find_method(sim_cls, "update")
+    update_src = ast.get_source_segment(sim_src, update_fn)
 
-    found_gate = False
-    found_injected_value = False
-    for node in ast.walk(update_fn):
-        if not isinstance(node, ast.If):
-            continue
-        compares = [n for n in ast.walk(node.test) if isinstance(n, ast.Compare) and len(n.ops) == 1 and isinstance(n.ops[0], ast.Eq)]
-        has_time_gate = False
-        has_cell_gate = False
-        for cmp_node in compares:
-            left = _attr_path(cmp_node.left)
-            right = _resolve(cmp_node.comparators[0], sim_constants)
-            if left == "self.time" and right == 5:
-                has_time_gate = True
-            if left == "j" and right == 877:
-                has_cell_gate = True
-        if has_time_gate and has_cell_gate:
-            found_gate = True
-            for body_node in ast.walk(ast.Module(body=node.body, type_ignores=[])):
-                if isinstance(body_node, ast.Assign) and len(body_node.targets) == 1:
-                    target = body_node.targets[0]
-                    if isinstance(target, ast.Subscript) and _attr_path(target.value) == "x0":
-                        idx = _resolve_subscript_index(target, sim_constants)
-                        val = _resolve(body_node.value, sim_constants)
-                        if idx == 1 and val == 0.0012:
-                            found_injected_value = True
-            break
-
-    assert found_gate
-    assert found_injected_value
+    assert "self._should_apply_perturbation(j)" in update_src
+    assert 'self._perturbation_value("injection_h2o2i")' in update_src
+    assert "ODE_STATE_INDEX_H2O2I" in update_src
+    assert "PERTURBATION_CELL_INDEX" not in update_src
+    assert "PERTURBATION_INJECTION_TIME" not in update_src
+    assert "PERTURBATION_INJECTION_H2O2I" not in update_src
 
 
 def test_interc_ordering_assumption_is_preserved():
@@ -147,7 +123,7 @@ def test_interc_ordering_assumption_is_preserved():
 
     main_fn = None
     for node in tree.body:
-        if isinstance(node, ast.FunctionDef) and node.name == "main":
+        if isinstance(node, ast.FunctionDef) and node.name == "main_config":
             main_fn = node
             break
     assert main_fn is not None

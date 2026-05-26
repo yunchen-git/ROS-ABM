@@ -84,14 +84,15 @@ Analysis/visualization scripts:
 
 Recommended:
 - Python 3.10+ in a virtual environment.
-- A working C/C++ toolchain for Cython extension builds.
+- A working C/C++ toolchain for compiled extension builds; Cython is needed when regenerating C from `.pyx` sources.
 
 Python packages used by this codebase:
-- Core runtime/build: `numpy`, `scipy`, `networkx`, `cython`, `setuptools`, `wheel`
-- Visualization/analysis scripts: `matplotlib`, `opencv-python`, `vpython`, `pandas`, `torch`, `pillow`
+- Core runtime/build: `numpy`, `scipy`, `networkx`, `torch`, `cython`, `setuptools`, `wheel`
+- Runtime postprocess/analysis scripts: `matplotlib`, `opencv-python`, `vpython`, `pandas`, `pillow`
 - Canonical install surfaces: `requirements.txt` and `requirements-dev.txt`
 
 Note:
+- `ExtC_gradient` imports `torch` when the compiled extension is imported, so `torch` is a hard runtime dependency for the real simulation path.
 - Postprocess hooks are still invoked automatically at run completion, but visualization dependencies are loaded lazily when those hooks execute (not during `Simulation.py` import).
 - If visualization dependencies are missing, failures are expected when postprocess hooks run.
 - See `docs/data_dependencies.md` for startup and external dataset requirements.
@@ -109,13 +110,27 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 python -m pip install --upgrade pip setuptools wheel
-python -m pip install numpy scipy networkx cython matplotlib opencv-python vpython pandas torch pillow
+python -m pip install -r requirements.txt
 ```
 
-Build Cython extensions:
+Build compiled diffusion extensions:
 
 ```bash
 python setup.py build_ext --inplace
+```
+
+The default build uses tracked generated C sources for stable local rebuilds. Set `ROS_ABM_USE_CYTHON=1` only when intentionally regenerating C from `.pyx` sources.
+
+## Validation
+
+Run validation inside the activated project virtual environment:
+
+```bash
+python -m pip install -r requirements.txt
+python setup.py build_ext --inplace
+python scripts/check_runtime_env.py
+python scripts/phase1_runtime_smoke.py
+python -m pytest
 ```
 
 ## Running Simulations

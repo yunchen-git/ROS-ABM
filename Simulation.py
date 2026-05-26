@@ -35,8 +35,10 @@
 ################################################################################
 import os
 import platform
+import json
 import networkx as nx
 import numpy as np
+from dataclasses import asdict, is_dataclass
 from simulationMath1 import *
 from simulationObjects import *
 from IntC_diff import IntC_Diff
@@ -47,6 +49,7 @@ import pickle
 import math as math
 import time
 from FBA_ode import get_x0, get_k, model_noref
+from run_config import PerturbationConfig
 
 PERTURBATION_CELL_INDEX = 877
 PERTURBATION_INJECTION_TIME = 5
@@ -81,6 +84,20 @@ def read_network(*args, **kwargs):
 def getGradientImages(*args, **kwargs):
     from gradientImage import getGradientImages as _getGradientImages
     return _getGradientImages(*args, **kwargs)
+
+
+def _json_safe(value):
+    if is_dataclass(value):
+        return _json_safe(asdict(value))
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return repr(value)
 
 
 #create the time series class
@@ -158,7 +175,8 @@ class TimeSeries(object):
         print(data)
         data = data[1].strip("\n")
         data = data.split(",")
-        if(data[0] == "" or data[0] == " "):
+        data = [name.strip() for name in data if name.strip() != ""]
+        if(len(data) == 0):
             self._grad_names = []
         else:
             self._grad_names = data
@@ -167,7 +185,8 @@ class TimeSeries(object):
         print(data)
         data = data[1].strip("\n")
         data = data.split(",")
-        if(data[0] == "" or data[0] == " "):
+        data = [name.strip() for name in data if name.strip() != ""]
+        if(len(data) == 0):
             self._intC_names = []
         else:
             self._intC_names = data
@@ -207,17 +226,19 @@ class TimeSeries(object):
                     #then add it to the path
                     g_path = self.path + self.__sep + path
                     grad_paths[self._grad_names[j]] = g_path
+                cursor = n1 + 2
+                while cursor < len(data) and data[cursor].strip() == "":
+                    cursor += 1
                 for j in range(0, n2):
-                    if self._grad_names=='H2O2e':
-                        #add this path to the grad path list
-                        g_path = data[j+n1+2].strip("\n")
-                        #rebuild the path
-                        paths = g_path.split(self._sep)
-                        #just take the last part
-                        path = paths[-1]
-                        #then add it to the path
-                        g_path = self.path + self.__sep + path
-                        intC_paths[self._grad_names[j]] = g_path
+                    #add this path to the intercellular path list
+                    g_path = data[cursor + j].strip("\n")
+                    #rebuild the path
+                    paths = g_path.split(self._sep)
+                    #just take the last part
+                    path = paths[-1]
+                    #then add it to the path
+                    g_path = self.path + self.__sep + path
+                    intC_paths[self._intC_names[j]] = g_path
                 self._gradients[time] = grad_paths
                 self._interC[time]=intC_paths
         #once this is done close this file
@@ -228,7 +249,7 @@ class TimeSeries(object):
         """
         time_series = []
         for i in range(0, len(self._networks.keys())):
-            time = self._networks.keys()[i]
+            time = list(self._networks.keys())[i]
             #print(time)
             tp  = self.get_time_point(time)
             time_series.append(tp)
@@ -295,7 +316,7 @@ class Simulation(object):
     """ A class for running simulations
     """
 
-    def __init__(self, name, path, start_time, end_time, time_step, grid_size, inhib_type, inhib_time=1.0,inhib_time1=24.0,inhib_duration=6.0):
+    def __init__(self, name, path, start_time, end_time, time_step, grid_size, inhib_type, inhib_time=1.0,inhib_time1=24.0,inhib_duration=6.0, perturbation=None, run_config=None):
         """ Initialization function for the simulation setup.
             name - the simulation name (string)
             path - the path to save the simulation information to (string)
@@ -322,6 +343,8 @@ class Simulation(object):
         self.inhib_time1=inhib_time1
         self.inhib_duration=inhib_duration
         self.inhib_type=inhib_type
+        self.perturbation = perturbation if perturbation is not None else PerturbationConfig()
+        self.run_config = run_config
         self.grid_size = grid_size
         self.max_x = grid_size[0]
         self.max_y = grid_size[1]
@@ -352,6 +375,44 @@ class Simulation(object):
         else:
             #linux/unix
             self._sep = "/"
+
+    def _perturbation_value(self, name):
+        if isinstance(self.perturbation, dict):
+            return self.perturbation[name]
+        return getattr(self.perturbation, name)
+
+    def _is_perturbation_cell(self, cell_index):
+        return cell_index == self._perturbation_value("cell_index")
+
+    def _should_apply_perturbation(self, cell_index):
+        return (
+            bool(self._perturbation_value("enabled"))
+            and self.time == self._perturbation_value("injection_time")
+            and self._is_perturbation_cell(cell_index)
+        )
+
+    def _write_run_config_manifest(self):
+        manifest_path = self.path + self._sep + self.name + self._sep + "run_config.json"
+        manifest = self.run_config
+        if manifest is None:
+            manifest = {
+                "simulation": {
+                    "name": self.name,
+                    "path": self.path,
+                    "start_time": self.start_time,
+                    "end_time": self.end_time,
+                    "time_step": self.time_step,
+                    "grid_size": self.grid_size,
+                    "inhib_type": self.inhib_type,
+                    "inhib_time": self.inhib_time,
+                    "inhib_time1": self.inhib_time1,
+                    "inhib_duration": self.inhib_duration,
+                },
+                "perturbation": self.perturbation,
+            }
+        with open(manifest_path, "w", encoding="utf-8") as f:
+            json.dump(_json_safe(manifest), f, indent=2, sort_keys=True)
+            f.write("\n")
 
     def add(self, sim_object):
         """ Adds the specified object to the list
@@ -555,6 +616,7 @@ class Simulation(object):
         #     shutil.rmtree(final_path)
         #     shutil.copytree(struct_path,final_path)
 
+        self._write_run_config_manifest()
         #create the simulation header file
         self._create_header_file()
         #save the inital state configuration
@@ -591,8 +653,9 @@ class Simulation(object):
         self._header.flush()
         self._header.close()
 
-        read_network(self.path + self._sep + self.name + self._sep, int(self.start_time), int(self.end_time))
-        getGradientImages(self.path + self._sep + self.name + self._sep)
+        if self.run_config is None or self.run_config.run_postprocess:
+            read_network(self.path + self._sep + self.name + self._sep, int(self.start_time), int(self.end_time))
+            getGradientImages(self.path + self._sep + self.name + self._sep)
 
     def update_object_queue(self):
         """ Updates the object add and remove queue
@@ -667,9 +730,9 @@ class Simulation(object):
                     x0[ODE_STATE_INDEX_H2O2I] = self.interC[i].get_C(j)
                     x0[ODE_STATE_INDEX_CA] = self.interC[INTERC_INDEX_CA].get_C(j)  # Ca
 
-                    if self.time == PERTURBATION_INJECTION_TIME and j == PERTURBATION_CELL_INDEX:
-                        x0[ODE_STATE_INDEX_H2O2I] = PERTURBATION_INJECTION_H2O2I
-                    if j == PERTURBATION_CELL_INDEX:
+                    if self._should_apply_perturbation(j):
+                        x0[ODE_STATE_INDEX_H2O2I] = self._perturbation_value("injection_h2o2i")
+                    if self._is_perturbation_cell(j):
                         print(self.time, x0[ODE_STATE_INDEX_H2O2E], x0[ODE_STATE_INDEX_H2O2I], x0[ODE_STATE_INDEX_CA], j)
                     
                     # if x0[1]>1e-8:
@@ -696,7 +759,7 @@ class Simulation(object):
                     h2o2e_add = (xnew[ODE_STATE_INDEX_H2O2E] - x0[ODE_STATE_INDEX_H2O2E])
 
                     self.objects[j].x0 = xnew
-                    if j == PERTURBATION_CELL_INDEX:
+                    if self._is_perturbation_cell(j):
                         print(self.time, xnew[ODE_STATE_INDEX_H2O2E], xnew[ODE_STATE_INDEX_H2O2I], xnew[ODE_STATE_INDEX_CA], j, h2o2e_add)
                     # self.objects[j].C['H2O2i'] = float(xnew[1])
                     # self.objects[j].C['Ca'] = float(xnew[29])

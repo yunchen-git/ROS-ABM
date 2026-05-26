@@ -2,10 +2,17 @@
 .venv/
 
 __pycache__/
+.pytest_cache/
 *.pyc
 build/
+dist/
+*.egg-info/
 *.so
+*.pyd
+*.dylib
+*.dll
 *.c
+Documents/
 
 __pycache__/
 *.pyc
