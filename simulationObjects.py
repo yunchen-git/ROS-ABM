@@ -7,7 +7,7 @@ from simulationMath1 import *
 import random as rand
 import math as math
 import numpy as np
-from FBA_ode import get_k, get_x0
+from ODEs import get_k, get_x0
 class SimulationObject(object):
     """ Base class from which all simulation obejcts must inherit
     """

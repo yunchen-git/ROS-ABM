@@ -19,8 +19,8 @@ from libc.stdlib cimport abs
 from libc.math cimport fabs
 #from libc.math cimport fmin
 
-import FBA_ode
-from FBA_ode import model, blap_ode_sys
+import ODEs
+from ODEs import model, blap_ode_sys
 
 import gc, atexit
 
@@ -195,7 +195,7 @@ class IntC_Diff(object):
         cdef int tend = te
         
         #cdef np.ndarray x0 = np.copy(FBA_ode.get_x0())
-        cdef np.ndarray k = FBA_ode.get_k()
+        cdef np.ndarray k = ODEs.get_k()
         cdef np.ndarray x_0 = x0
         
         # Initialize x0 with extraC and self.C
@@ -271,8 +271,8 @@ class IntC_Diff(object):
         cdef double cell_density = 1.0e9
         extraC = extraC
 
-        cdef np.ndarray x0 = np.copy(FBA_ode.get_blap_x(protein_vals, 3, extraC, C[n,0]))
-        cdef np.ndarray k = FBA_ode.get_blap_k(protein_vals, 3, extraC, C[n,0])
+        cdef np.ndarray x0 = np.copy(ODEs.get_blap_x(protein_vals, 3, extraC, C[n,0]))
+        cdef np.ndarray k = ODEs.get_blap_k(protein_vals, 3, extraC, C[n,0])
         
         t = np.linspace(0, tend, tend+1)  # With te=3600, this gives 3601 points
 

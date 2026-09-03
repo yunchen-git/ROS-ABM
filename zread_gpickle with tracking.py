@@ -463,7 +463,7 @@ def get_available_species(network):
     return available_species
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/h2o2 propagation review/+calcium propagation/bolus, baseline model/'
+    path = '/Users/huyunchen/Documents/PhD/test/8.0/'
 
     # First, display info about the initial network to help with cell selection
     temp = path + "network0.0.gpickle"

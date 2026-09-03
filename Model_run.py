@@ -24,6 +24,7 @@ if __name__ == '__main__':
     ##Possible settings include 'AC' which inhibits production rates and
     ## 'GJ which inhibits transport. Unless you want on/off though you can obtain
     ## this effect by changing other parameters
+    
     if not os.path.exists(path):
         os.makedirs(path)
     

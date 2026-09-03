@@ -198,25 +198,9 @@ def get_available_species(network):
     return available_species
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/12.0/'
+    path = '/Users/huyunchen/Documents/PhD/test/8.0/'
     read_network(path, 0, 200)
 
-    """ 
-    I think below is for saving as txt instead of pic, not used as of 09apr2025
-    """
-    #path = f'/Users/andrew/PycharmProjects/pythonABM_CG/outputs/{sys.argv[1]}.0/'
-    # if sys.argv[1] == 'png':
-    #     path = f'/Users/huyunchen/Library/CloudStorage/OneDrive-GeorgiaInstituteofTechnology/Melissa Kemp Lab/Models/Glen CM Nat Comm 2018/mESC-Intercellular-Differentiation-master/Tests/10.0/{sys.argv[2]}.0/'
-    #     t0 = input('initial step: ')
-    #     tf = input('end step: ')
-    #     read_network(path, int(t0), int(tf))
-    # elif sys.argv[1] == 'txt':
-    #     network_name = input('Reference network name: ')
-    #     if len(sys.argv) > 2:
-    #         path = sys.argv[2]
-    #     else:
-    #         path = os.getcwd()
-    #     make_txt(network_name, path)
         
 
         

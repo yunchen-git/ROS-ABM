@@ -8,8 +8,7 @@ import pickle
 import platform
 from IntC_diff import IntC_Diff
 from ExtC_gradient import ExtC_Diff
-from CountDirectory import newDirect
-from read_gpickle import network_radius
+from zread_gpickle import network_radius
 
 def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     #Start time, end time, time step
@@ -82,7 +81,7 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     D_h2o2e = 1800 ##um^2/sec diffusion coefficient for H2O2 in the extracellular space 
     D_Ca = 760 ##um^2/sec diffusion coefficient for Calcium
     
-    cell_path = os.getcwd() + os.sep + 'new_populated.txt' #'RA0_4.5.txt'
+    cell_path = os.getcwd() + os.sep + 'cell_populations.txt' 
     cells = np.loadtxt(cell_path, delimiter=',')
     locations = cells[:,1:3]
 
@@ -108,31 +107,8 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     sim.add_interC(Ca)
 
     ddim_e = 1.0
-    #H2O2e = ExtC_Diff("H2O2e", D_h2o2e, max_x + 0.01 * max_x, max_y + 0.01 * max_y, z, ddim)
     H2O2e = ExtC_Diff("H2O2e", D_h2o2e, x, y, z, ddim_e, 1e-9)
     sim.add_gradient(H2O2e)
-
-    # GSH = IntC_Diff("GSH",maxCells,D_h2o2, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
-    #                 celltype_param,division_times,sync_time)
-    # sim.add_interC(GSH)
-
-    # iCa = IntC_Diff("iCa",maxCells, 300, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
-    #                 celltype_param,division_times,sync_time)
-    # sim.add_interC(iCa)
-
-    # eCa = ExtC_Diff("eCa", 300, x, y, z, ddim)
-    # sim.add_gradient(eCa)
-
-    # superoxide_i = IntC_Diff("superoxide_i",maxCells,D_h2o2,grid_dim,ddim,Pmax,open_prob,              #create instance of IntC_Diff class
-    #                 celltype_param,division_times,sync_time)
-    # sim.add_interC(superoxide_i)
-
-    # superoxide_e = ExtC_Diff("superoxide_e", D_h2o2, x, y, z, ddim)
-    # sim.add_gradient(superoxide_e)
-
-    # dist=range(num)
-    # r.shuffle(dist)
-    #print(XI.vx)
 
     # Define the center of the circle (you can change these coordinates)
     # Using cell 92's position as the center, or you can specify your own coordinates
@@ -172,23 +148,10 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
             sim_obj.setC(1e-9,'H2O2i')
             sim_obj.setC(0.595+0.05*c,'cAMP')
             sim_obj.setC(1e-7,'Ca')
-            #sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
         
         sim.inc_current_ID()
-        #sim_obj.setC(3.68e-4,'GSH')
-
-        # sim_obj.setC(0.0,'superoxide_i')
         sim_obj.set_gradient_source_sink_coeff("H2O2e", 0.0, 0.0)
-
         sim.add(sim_obj)
-
-        # print(f"object self.C: {ID} {sim_obj.C}")                           #StemCell object
-        # print(f"XI self.C: {ID} {XI.get_C(ID)}")                            #IntC_Diff object
-        # #print(f"len sim.interC[0].C: {ID} {len(sim.interC[0].C)}")          #IntC_Diff object
-        # print(f"sim self.C: {ID} {np.array(sim.interC[0].C[i])}")
-        #print(f"sim self.C: {ID} {sim.interC[0]}")                          #IntC_Diff object
-
-
     try:
         sim.collide(x,y,z)
     except Exception as e:

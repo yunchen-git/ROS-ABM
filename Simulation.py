@@ -7,7 +7,7 @@ import os, sys, shutil
 import platform
 import networkx as nx
 import numpy as np
-import FBA_ode
+import ODEs
 from simulationMath1 import *
 from simulationObjects import *
 from IntC_diff import IntC_Diff
@@ -20,9 +20,9 @@ import pickle
 import math as math
 import random as rand
 import time
-from read_gpickle import read_network
-from gradientImage import getGradientImages
-from FBA_ode import model, get_x0, get_k, model_noref
+from zread_gpickle import read_network
+from zgradient_Image import getGradientImages
+from ODEs import model, get_x0, get_k, model_noref
 
 #create the time series class
 class TimeSeries(object):

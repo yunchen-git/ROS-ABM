@@ -16,7 +16,7 @@ from matplotlib.ticker import FormatStrFormatter, LogFormatterSciNotation
 from matplotlib.ticker import ScalarFormatter
 import math
 import os
-import Analysis as af
+import zgradient_images as af
 import Simulation as sim
 import pickle as p
 import cv2
