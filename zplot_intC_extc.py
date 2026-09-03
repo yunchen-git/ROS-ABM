@@ -895,6 +895,6 @@ def getCombinedH2O2Images3D(path, t0=0, tf=200, plot_2d=True, plot_3d=True, make
 # ...existing code...
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/22.0/'
+    path = '/Users/huyunchen/Documents/PhD/test/8.0/'
     # Generate both 2D and 3D plots
     getCombinedH2O2Images3D(path, t0=0, tf=600, plot_2d=True, plot_3d=False, make_graph=True, squished=False)

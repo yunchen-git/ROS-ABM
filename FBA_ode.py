@@ -5,42 +5,40 @@ import random
 def get_k():
         k = np.zeros(100)
         # --- your original core parameters (kept as you used them) ---
-        k[0] = 2e-2     # H2O2 PM permeability (cm/s)
-        k[1] = 11.1e-7   # Basal intracellular H2O2 production (M/s)
-        k[2] = 2.1e7    # GPx_red + H2O2 (M^-1 s^-1)
-        k[3] = 4e4      # GPx_ox + GSH (M^-1 s^-1)
-        k[4] = 1e7      # GPx-SSG + GSH (M^-1 s^-1)
-        k[5] = 3.4e7    # Catalase * H2O2 (M^-1 s^-1)
-        k[6] = 5.7e-5   # Km NADP+ (M)
-        k[7] = 1.0e-4   # Prx oxidation by H2O2 (M^-1 s^-1)  (placeholder you tuned)
-        k[8] = 4.9e-9   # Prx over-oxidation (M^-1 s^-1)
-        k[9] = 3e-3     # Srx repair (s^-1)
-        k[10] = 15      # Prx-SOH -> Prx-SS (s^-1)
-        k[11] = 2.2e-6  # Trx reduces Prx-SS (M^-1 s^-1)
-        k[12] = 7.4e-5  # GSH auto-ox (s^-1)
-        k[13] = 26      # Prot-SH + H2O2 (M^-1 s^-1)
-        k[14] = 1.2e5   # Prot-SOH + GSH (M^-1 s^-1)
-        k[15] = 9.1e4   # GrxSH deglut. Prot-SSG (M^-1 s^-1)
-        k[16] = 3.7e4   # GSH deglut. Grx-SSG (M^-1 s^-1)
-        k[17] = 62      # Prot-(SH)2 + H2O2 (M^-1 s^-1)
-        k[18] = 62      # Prot-SS + Trx (M^-1 s^-1)
-        k[19] = 3.2e6   # GR (M^-1 s^-1)
-        k[20] = 2e7     # TrxR (M^-1 s^-1)
-        k[21] = 3.75e-4 # G6PD NADPH prod (M/s)
-        k[22] = 3e-3    # Peroxisome membrane permeability (cm/s)
-        k[23] = 4.1e-7  # GSH synthesis (M/s)
-        k[24] = 1.2e-8  # GSSG efflux (M/s)
-        k[25] = 1.2e-7  # GSH+GSSG efflux (M/s)
-
-        # Superoxide terms left off (29..31 zero) in your latest
-        k[28] = 0
-        k[29] = 0
-        k[30] = 0
-        k[31] = 0
-
-        # NOX2 Hill-on-H2O2 gate (used by you)
-        k[32] = 5e-7    # V_NOX2 (M/s).       # was 5e-8
-        k[33] = 1e-7    # K_act_NOX2 (M)        # was 1e-7
+        k[0] = 2e-2 # Permeability constant (plasma membrane) (cm/s)
+        k[1] = 14.75e-7 # Intracellular peroxide production (M/s)
+        k[2] = 2.1e7 # GPx_red reacting with H2O2in (M-1*s-1)
+        k[3] = 4e4 # GPx_ox reacting with GSH (M-1*s-1)
+        k[4] = 1e7 # GPx-SSG reacting with GSH (M-1*s-1)
+        k[5] = 3.4e7 # Catalase reacts with H2O2 inside peroxisome (M-1*s-1)
+        k[6] = 5.7e-5 # Km of NADP+ (M)
+        k[7] = 100e-6 # Peroxiredoxin is oxidized by H2O2 (M-1*s-1)
+        k[8] = 0.0049e-6 # Oxidized peroxiredoxin is over-oxidized by H2O2 (M-1*s-1)
+        k[9] = 3e-3 # Reduction of overoxidized Prx by Srx enzyme (s-1)
+        k[10] = 15 # Self-catalyzed disulfide formation of Prx-SS from Prx-SOH (s-1)
+        k[11] = 2.1e-6 # Peroxiredoxin is reduced by Thioredoxin (M-1*s-1)
+        k[12] = 7.4e-05 # Auto-oxidation of GSH (s-1)
+        k[13] = 1e4 # Protein monothiol oxidized by H2O2 (M-1*s-1)
+        k[14] = 1.2e5 # Oxidized Protein monothiol glutathionylated by GSH (M-1*s-1)
+        k[15] = 9.1e4 # Grx-SH de-glutathionylates Protein-SSG (M-1*s-1)
+        k[16] = 3.7e4 # GSH de-glutathionylates Grx-SSG (M-1*s-1)
+        k[17] = 5e5 # Protein dithiol oxidized by H2O2 (M-1*s-1)
+        k[18] = 1e5 # Protein disulfide reduced by Trx (M-1*s-1)
+        k[19] = 3.2e6 # GSSG reduced by GR (M-1*s-1)
+        k[20] = 2e7 # Oxidized Thioredoxin reduced by TrxR (M-1*s-1)
+        k[21] = 3.75e-04 # Production of NADPH by G6P-DH (M/s)
+        k[22] = 3e-3 # Permeability constant (peroxisomal membrane) (cm/s)
+        k[23] = 4.1e-7 # GSH synthesis (M/s)
+        k[24] = 1.2e-8 # GSSG efflux (M/s)
+        k[25] = 1.2e-7 # GSH + GSSG efflux (M/s)
+        k[26] = 7.45e-10 # Trx_SH efflux (M/s)
+        k[27] = 6.97e-10 # Trx_SH synthesis (M/s)
+        k[28] = 0#1e-5 # nox generation of superoxide () #Banfi B. et al, JBC 2002
+        k[29] = 0#4e9 # superoxide dismutase reduction and oxidation by superoxide (M-1*s-1), from Fee J.A. & Bull C. The journal of biological chemistry 1986
+        k[30] = 0 # intracellular superoxide production (M/s)
+        k[31] = 0 # nox h2o2 production (M/s)
+        k[32] = 5e-7 # nox 2 (M/s?)
+        k[33] = 1e-7 # km nox2 (M) for activation by h2o2
 
         # ---- Calcium & NOX5 block (as you requested) ----
         # IP3R-driven ER release, SERCA uptake, TRPM2 & SOCE influx
@@ -49,14 +47,14 @@ def get_k():
         k[36] = 4.0     # n_H (H2O2->IP3R)
         k[37] = 5e-7    # K_er (M) ER Ca scale
 
-        k[38] = 9e-7    # V_SERCA (M/s)
+        k[38] = 1e-9 # V_SERCA (M/s)
         k[39] = 0.46e-6    # K_ser (M), cyt Ca half-sat for SERCA    10.1074/jbc.M114.585604
         k[40] = 1e-5    # (unused here if you skip H2O2 inhibition)
         k[41] = 2.0     # (unused here)
 
-        k[42] = 1e-6    # P_TRPM2 base (1/s)
-        k[43] = 5e-7    # K_TRPM2_H (M)
-        k[44] = 2.0     # p_TRPM2 Hill
+        k[42] = 9e-7 # P_TRPM2 (1/s) effective permeability scale
+        k[43] = 5e-7 # K_TRPM2_H (M) H2O2 half-activation (~10–100 µM)
+        k[44] = 2.0 # p_TRPM2 (Hill exponent)
 
         k[45] = 1e-7    # P_SOCE (1/s)
         k[46] = 1e-5    # K_store (M)
@@ -77,7 +75,7 @@ def get_k():
         k[55] = 1.1e-4  # ER Ca max (M)
         k[56] = 1e-2    # overflow rate (1/s)
         k[57] = 5e-7    # K_IP3R_Ca (M) for Ca activation
-        k[58] = 1e-8   # Ca extrusion (1/s), saturable with small Km in ODE
+        k[58] = 4e-10 # 1/s (cytosolic Ca leak rate constant)
         
         # NOX5 NADPH Km
         k[62] = 13.67e-6                                     #  doi.org/10.1038/s41467-024-48467-y

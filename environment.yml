@@ -1,0 +1,25 @@
+#install environment with "conda env create -f environment.yml"
+
+name: rosabm
+
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.13
+  - pip=25.0
+  - setuptools=72.1.0
+  - wheel=0.45.1
+  - cython=3.0.11
+  - numpy=2.2.4
+  - scipy=1.18.0
+  - networkx=3.4.2
+  - matplotlib=3.10.0
+  - pillow=11.1.0
+  - pandas=2.2.3
+  - opencv=4.13.0
+  - ipykernel=6.29.5
+  - pip:
+      - torch==2.7.1
+      - vpython==7.6.5
