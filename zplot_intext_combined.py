@@ -385,14 +385,14 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
                                  c=cell_h2o2i, cmap=intracellular_cmap, norm=h2o2i_normalizer,
                                  s=marker_sizes, alpha=0.8, edgecolors='black', linewidths=0.1)
 
-            # Highlight specific cells if needed
-            for i, cell_id in enumerate(cell_ids):
-                if cell_id in [589, 766, 877]:  # Your cells of interest
-                    color = 'red' if cell_id == 589 else 'blue'
-                    ax.scatter(cell_positions[i, 0], cell_positions[i, 1],
-                            s=marker_size * 1.5, marker='*', color=color, edgecolors='black', 
-                            linewidths=2, zorder=10, alpha=0.8,
-                            label=f'Cell {cell_id}')
+            # # Highlight specific cells if needed
+            # for i, cell_id in enumerate(cell_ids):
+            #     if cell_id in [589, 766, 877]:  # Your cells of interest
+            #         color = 'red' if cell_id == 589 else 'blue'
+            #         ax.scatter(cell_positions[i, 0], cell_positions[i, 1],
+            #                 s=marker_size * 1.5, marker='*', color=color, edgecolors='black', 
+            #                 linewidths=2, zorder=10, alpha=0.8,
+            #                 label=f'Cell {cell_id}')
             
             # ...existing code...
             cbar_ax = fig.add_axes([pos.x0-0.03, pos.y0, 0.02, pos.height])  # left, bottom, width, height
@@ -892,9 +892,7 @@ def getCombinedH2O2Images3D(path, t0=0, tf=200, plot_2d=True, plot_3d=True, make
     # Generate combined images
     save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient, plot_2d, plot_3d, make_graph, squished)
 
-# ...existing code...
-
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/8.0/'
+    path = '/Users/huyunchen/Documents/PhD/test/33.0/'
     # Generate both 2D and 3D plots
     getCombinedH2O2Images3D(path, t0=0, tf=600, plot_2d=True, plot_3d=False, make_graph=True, squished=False)

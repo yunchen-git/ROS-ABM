@@ -20,9 +20,10 @@ import pickle
 import math as math
 import random as rand
 import time
+import pandas as pd
 from zread_gpickle import read_network
-from zgradient_Image import getGradientImages
-from ODEs import model, get_x0, get_k, model_noref
+from zgradient_images import getGradientImages
+from ODEs import get_x0, get_k, model_noref
 
 #create the time series class
 class TimeSeries(object):
@@ -404,71 +405,6 @@ class Simulation(object):
                 for j in range(len(clust)):
                     self.remove(clust[j])
         self.update_object_queue()
-    
-    def load_gene_expression_data(self):
-        """Load gene expression data for ROS-related genes and process for use in simulation"""
-        import pandas as pd
-        
-        print("Loading gene expression data...")
-        
-        # Define genes of interest
-        genes_of_interest = [
-            "GPX1", "GPX2", "GPX3", "GPX4", "GPX5", "GPX6", "GPX7", "GPX8",
-            "PRDX1", "PRDX2", "PRDX3", "PRDX6", "CAT", "TXN", "TXN2", "TXNRD1", "TXNRD2", "TXNRD3",
-            "GLRX", "GLRX2", "G6PD", "GLUD1", "GSR", "GSTP1", "POR", "NQO1", "SOD1", "SOD2", "SOD3",
-            "AQP3", "AQP8", "AQP9", "GCLC"
-        ]
-        
-        # Load metadata
-        #metadata_file = os.path.join(os.getcwd(), "2021-06-08_scrnaseqdata.csv")
-        metadata = pd.read_csv('/Users/huyunchen/Library/CloudStorage/OneDrive-GeorgiaInstituteofTechnology/Melissa Kemp Lab/Reference Models/kemplab github/Raddatz AD Antioxidants 2023/AntioxidantsODE-main/2021-06-08_scrnaseqdata.csv')
-
-        # Directory with expression data
-        files = os.path.join(os.getcwd(), "HNSCC_Broad_scRNAseq")
-        
-        gene_index = []
-        # Load first cell data to get gene indices
-        first_cell_file = os.path.join(files, f"{metadata['cell'].iloc[0]}.csv")
-        protein = pd.read_csv(first_cell_file)
-
-        # Find the index of each gene of interest in the protein table
-        for gene in genes_of_interest:
-            # Find indices where the first column matches the gene name
-            # Note: In pandas, we use boolean indexing instead of MATLAB's find()
-            matches = protein.iloc[:, 0] == gene
-            indices = matches[matches].index.tolist()
-            gene_index.extend(indices)
-        
-        protein_vals = np.zeros((33, len(metadata)))
-        # Loop through each cell in the metadata
-        for i in range(len(metadata)):
-            # Load the protein data for this cell
-            cell_file = os.path.join(files, f"{metadata['cell'].iloc[i]}.csv")
-            protein = pd.read_csv(cell_file)
-            # Extract expression values for genes of interest and store in protein_vals
-            # We use gene_index to select rows and column index 1 for values
-            protein_vals[:, i] = protein.iloc[gene_index, 1].values
-
-        # Convert from PPM to micromolar
-        protein_vals = protein_vals * 5.29e-4
-        protein_averages = np.mean(protein_vals, axis=1)
-
-        # # # check if same as matlab
-        # # Save gene indices with gene names
-        # gene_indices_df = pd.DataFrame({
-        #     'gene': genes_of_interest,
-        #     'index': gene_index
-        # })
-        # gene_indices_df.to_csv(os.path.join(os.getcwd(), "gene_indices.csv"), index=False)
-        # # Save protein values with gene names as rows and cell IDs as columns
-        # protein_vals_df = pd.DataFrame(
-        #     data=protein_vals,
-        #     index=genes_of_interest,
-        #     columns=metadata['cell']
-        # )
-        # protein_vals_df.to_csv(os.path.join(os.getcwd(), "protein_expression.csv"))
-
-        self.protein_vals = protein_vals
 
     def run(self,x,y,z):
         """ Runs the simulation until either the stopping criterio is reached
@@ -496,6 +432,14 @@ class Simulation(object):
         self._create_header_file()
         #save the inital state configuration
         self._set_gradient_inital_conditions()
+        k = get_k()
+        pd.DataFrame({
+            "parameter_index": range(len(k)),
+            "value": k
+        }).to_excel(
+            self.path + self._sep + self.name + self._sep + "ODE_parameters.xlsx",
+            index=False
+        )
         #self.save()
         #self.load_gene_expression_data()
         #nor run the loop
@@ -567,28 +511,6 @@ class Simulation(object):
             j=obj2.ID
             nbs1.append([i,j])
         nbs2=np.asarray(nbs1, dtype=np.int32)
-
-        # division_timer = []
-        # for i in range(len(self.objects)):
-        #     division_timer.append(self.objects[i].division_timer)
-
-        #define the sinks and sources
-        # if self.gradients[0].z_dim == 0:
-        #     temp_h2o2e_C = np.array([self.gradients[0].get_gradient_value_on_surface_shell(obj.location)
-        #                               for obj in self.objects])
-        # else:
-        #     temp_h2o2e_C = np.array([self.gradients[0].get_gradient_value_on_surface_shell(obj.location) 
-        #                                for obj in self.objects])
-        # locations = []
-        # for agent in agents:
-        #     locations.append(agent.location[0:2])
-        
-        # max_x, max_y = np.max(locations, axis=0)
-        # for i in range(len(self.gradients)):
-        #     self.gradients[i]._x = max_x + 0.1 * max_x
-        #     self.gradients[i]._y = max_y + 0.1 * max_y
-        # print(max_x,max_y)
-        
         t0=time.time()
         x0_baseline = get_x0()
         k = get_k()
@@ -602,16 +524,13 @@ class Simulation(object):
 
                     x0[0] = self.gradients[0].get_gradient_value_on_surface_shell(self.objects[j])
                     x0[1] = self.interC[i].get_C(j)
-                    x0[29] = self.interC[2].get_C(j)  # Ca
+                    x0[25] = self.interC[2].get_C(j)  # Ca
 
                     if self.time == 5 and j == 877:
                         x0[1] = 0.0012
                     if j == 877:
-                        print(self.time, x0[0], x0[1], x0[29], j)
+                        print(self.time, x0[0], x0[1], x0[25], j)
                     
-                    # if x0[1]>1e-8:
-                    #     k[31] = 1e-4
-
                     t = np.linspace(0, 1, 2)
                     solution = solve_ivp(
                                     lambda t, y: model_noref(y, t, k, x0_baseline),  # Remove x0 from lambda arguments
@@ -628,15 +547,15 @@ class Simulation(object):
                     #xnew = self.interC[i].update_Cflux(j, x0, 200) 
                     
                     self.interC[i].change_C(j, xnew[1])
-                    self.interC[2].change_C(j, xnew[29])
-                    #print(xnew[29])
+                    self.interC[2].change_C(j, xnew[25])
+                    #print(xnew[25])
                     h2o2e_add = (xnew[0] - x0[0])
 
                     self.objects[j].x0 = xnew
                     if j == 877:
-                        print(self.time, xnew[0], xnew[1], xnew[29], j, h2o2e_add)
+                        print(self.time, xnew[0], xnew[1], xnew[25], j, h2o2e_add)
                     # self.objects[j].C['H2O2i'] = float(xnew[1])
-                    # self.objects[j].C['Ca'] = float(xnew[29])
+                    # self.objects[j].C['Ca'] = float(xnew[25])
 
                     #self.gradients[0].set_gradient_value_at_point(self.objects[j].location, xnew[0]) #update H2O2e concentration
                     self.gradients[0].add_gradient_value_on_cell_surface(self.objects[j], h2o2e_add)

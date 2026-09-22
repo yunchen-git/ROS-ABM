@@ -15,6 +15,7 @@ cimport cython
 import math
 
 from cython.view cimport array as cvarray
+from libc.math cimport floor
 from libc.stdlib cimport abs
 from scipy.signal import convolve2d
 from scipy import ndimage
@@ -221,6 +222,32 @@ class ExtC_Diff(object):
             Assume the point is a distance vector representing the radius
             of the cell within the strutural aggregate
         """
+        cdef double gx, gy, gz, tx, ty, tz
+        cdef double c00, c01, c10, c11, c0, c1
+        cdef Py_ssize_t lx, ly, lz, ux, uy, uz
+        cdef const double[:, :, :] field
+
+        if self.z_dim > 0:
+            gx, gy, gz = self.get_object_position_on_grid(point)
+            field = self.C
+            lx = <Py_ssize_t>floor(gx)
+            ly = <Py_ssize_t>floor(gy)
+            lz = <Py_ssize_t>floor(gz)
+            ux = min(lx + 1, field.shape[0] - 1)
+            uy = min(ly + 1, field.shape[1] - 1)
+            uz = min(lz + 1, field.shape[2] - 1)
+            tx = gx - lx
+            ty = gy - ly
+            tz = gz - lz
+
+            c00 = field[lx, ly, lz]*(1 - tx) + field[ux, ly, lz]*tx
+            c01 = field[lx, ly, uz]*(1 - tx) + field[ux, ly, uz]*tx
+            c10 = field[lx, uy, lz]*(1 - tx) + field[ux, uy, lz]*tx
+            c11 = field[lx, uy, uz]*(1 - tx) + field[ux, uy, uz]*tx
+            c0 = c00*(1 - ty) + c10*ty
+            c1 = c01*(1 - ty) + c11*ty
+            return c0*(1 - tz) + c1*tz
+
         #get the indicies of the point
         x = int(point[0])
         y = int(point[1])
@@ -249,16 +276,6 @@ class ExtC_Diff(object):
         y0 = iy
         y1 = iy + 1
 
-        #z
-        """
-        if(z - iz > .5):
-            z0 = iz
-            z1 = iz + 1
-        else:
-            z0 = iz - 1
-            z1 = iz    
-        """
-
         #solve for xd, yd
         xd = (abs(x - (ix + .5))) / (x1 - x0)
         yd = (abs(y - (iy + .5))) / (y1 - y0)
@@ -269,17 +286,6 @@ class ExtC_Diff(object):
 
         # interpolate along the y-axis
         c = f0*(1 - yd) + f1*yd
-
-        """
-        # TODO: For future 3D trilinear interpolation, use:
-        c00 = self.C[x0, y0, z0]*(1 - xd) + self.C[x1, y0, z0]*xd
-        c01 = self.C[x0, y0, z1]*(1 - xd) + self.C[x1, y0, z1]*xd
-        c10 = self.C[x0, y1, z0]*(1 - xd) + self.C[x1, y1, z0]*xd
-        c11 = self.C[x0, y1, z1]*(1 - xd) + self.C[x1, y1, z1]*xd
-        c0 = c00*(1 - yd) + c10*yd
-        c1 = c01*(1 - yd) + c11*yd
-        c = c0*(1 - zd) + c1*zd
-        """
 
         #return the predicted value
         return c

@@ -19,9 +19,6 @@ from libc.stdlib cimport abs
 from libc.math cimport fabs
 #from libc.math cimport fmin
 
-import ODEs
-from ODEs import model, blap_ode_sys
-
 import gc, atexit
 
 #-----------------------------------------------------------------------
@@ -185,128 +182,6 @@ class IntC_Diff(object):
         cdef int i =ID
         #print(C[i,0], Cmod, C[i,0]+Cmod)
         C[i,0]=C[i,0]+Cmod
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.nonecheck(False)  
-    def update_Cflux(self, n, x0, te): #GSH, extraC, te):
-        cdef double[:,:] C = self.C
-        cdef long[:,:] state = self.state
-        cdef int tend = te
-        
-        #cdef np.ndarray x0 = np.copy(FBA_ode.get_x0())
-        cdef np.ndarray k = ODEs.get_k()
-        cdef np.ndarray x_0 = x0
-        
-        # Initialize x0 with extraC and self.C
-        #x0[0] = extraC
-        x_0[1] = C[n, 0]
-        #x0[5] = GSH
-        
-        #h2o2 scavenging rate constants
-        #k[2]=0          #
-        #k[5]=0
-        #k[7]=0
-        #k[8]=0
-        #k[13]=0
-        #k[17]=0
-        #k[22]=0
-
-        #h2o2 production
-        #k[1]=0
-
-        #if x_0[1] > 1e-7 or x_0[29] > 1e-19:
-        #k[32] = x_0[1] * 1e-6
-        if x_0[1] > 1e-7:
-            k[31] = 0#1e-4                #nox
-            #k[1] = 1.1e-5               #internal production
-        else:
-            k[31] = 0
-            #k[1] = k[1]
-            
-        # Create time points for integration (0 to te with te+1 points)
-        t = np.linspace(0, tend, tend+1)  # With te=3600, this gives 3601 points
-        
-        # Solve the ODE system across the whole interval
-        # result = scipy.integrate.odeint(model, x0, t, args=(k,x0))
-
-        try:
-            # Use more robust integration method with error control
-            result = scipy.integrate.solve_ivp(
-                lambda t, y: model(y, t, k, x_0),
-                [0, tend],
-                x_0,
-                method='Radau',
-                t_eval=t,
-                atol=1e-10,
-                rtol=1e-8
-            )
-            final_values = result.y[:, -1]  # Get the last time point values
-            #print(result.y.shape)  # Debugging: print the shape of the result
-            
-            # Update the cell's internal concentration with only the final value
-            C[n, 0] = final_values[1]  # Last time point, H2O2 cytosol concentration
-            #print(final_values[1], final_values[0])  # Debugging: print final concentrations
-            
-            # Return final internal and external concentrations
-            return final_values
-
-        except ValueError as e:
-            print(f"Error in cell {n}: {e}")
-            print(f"x0 = {x0}")
-            # Return current values if integration fails
-            return x_0
-
-        # Return final internal and external concentrations
-        #return final_values[5], final_values[0]
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.nonecheck(False)  
-    def update_scflux(self, n, extraC, te, protein_vals, GSH):
-        cdef double[:,:] C = self.C
-        cdef long[:,:] state = self.state
-        cdef int tend = te
-        cdef int timestep = 1
-        cdef double cell_density = 1.0e9
-        extraC = extraC
-
-        cdef np.ndarray x0 = np.copy(ODEs.get_blap_x(protein_vals, 3, extraC, C[n,0]))
-        cdef np.ndarray k = ODEs.get_blap_k(protein_vals, 3, extraC, C[n,0])
-        
-        t = np.linspace(0, tend, tend+1)  # With te=3600, this gives 3601 points
-
-        try:
-            result = scipy.integrate.solve_ivp(
-                lambda t, y: blap_ode_sys(y, t, k, x0, cell_density),
-                [0, tend],
-                x0,
-                method='Radau',
-                t_eval=t,
-                atol=1e-10,
-                rtol=1e-4
-            )
-            final_values = result.y[:, -1]  # Get the last time point values
-            C[n, 0] = final_values[1]  # Last time point, H2O2 cytosol concentration
-            return final_values[5], final_values[0]
-        except ValueError as e:
-            print(f"Error in cell {n}: {e}")
-            print(f"x0 = {x0}")
-            # Check which values might be causing issues in the result
-            if 'result' in locals():
-                if hasattr(result, 'y'):
-                    print("Result shape:", result.y.shape)
-                    for i in range(min(5, result.y.shape[0])):  # Print first few rows
-                        print(f"result.y[{i},:] = {result.y[i,:]}")
-                    
-                    # Find any NaN or infinity values in the result
-                    if np.any(~np.isfinite(result.y)):
-                        nan_indices = np.where(~np.isfinite(result.y))
-                        print(f"Non-finite values at indices: {nan_indices}")
-                        print(f"Values: {result.y[nan_indices]}")
-                        
-            # Return current values if integration fails
-            return x0[5], x0[0]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

@@ -3,20 +3,19 @@ from scipy.integrate import odeint, solve_ivp
 import random
 
 def get_k():
-        k = np.zeros(100)
-        # --- your original core parameters (kept as you used them) ---
-        k[0] = 2e-2 # Permeability constant (plasma membrane) (cm/s)
-        k[1] = 14.75e-7 # Intracellular peroxide production (M/s)
+        k = np.zeros(63)
+        k[0] = 2e-4 # Permeability constant (plasma membrane) (cm/s)
+        k[1] = 1.1e-7 # Intracellular peroxide production (M/s)
         k[2] = 2.1e7 # GPx_red reacting with H2O2in (M-1*s-1)
         k[3] = 4e4 # GPx_ox reacting with GSH (M-1*s-1)
         k[4] = 1e7 # GPx-SSG reacting with GSH (M-1*s-1)
         k[5] = 3.4e7 # Catalase reacts with H2O2 inside peroxisome (M-1*s-1)
         k[6] = 5.7e-5 # Km of NADP+ (M)
-        k[7] = 100e-6 # Peroxiredoxin is oxidized by H2O2 (M-1*s-1)
-        k[8] = 0.0049e-6 # Oxidized peroxiredoxin is over-oxidized by H2O2 (M-1*s-1)
+        k[7] = 4e7#100e-6 # Peroxiredoxin is oxidized by H2O2 (M-1*s-1)
+        k[8] = 7e4#0.0049e-6 # Oxidized peroxiredoxin is over-oxidized by H2O2 (M-1*s-1)
         k[9] = 3e-3 # Reduction of overoxidized Prx by Srx enzyme (s-1)
         k[10] = 15 # Self-catalyzed disulfide formation of Prx-SS from Prx-SOH (s-1)
-        k[11] = 2.1e-6 # Peroxiredoxin is reduced by Thioredoxin (M-1*s-1)
+        k[11] = 2.1e6 # Peroxiredoxin is reduced by Thioredoxin (M-1*s-1)
         k[12] = 7.4e-05 # Auto-oxidation of GSH (s-1)
         k[13] = 1e4 # Protein monothiol oxidized by H2O2 (M-1*s-1)
         k[14] = 1.2e5 # Oxidized Protein monothiol glutathionylated by GSH (M-1*s-1)
@@ -33,69 +32,64 @@ def get_k():
         k[25] = 1.2e-7 # GSH + GSSG efflux (M/s)
         k[26] = 7.45e-10 # Trx_SH efflux (M/s)
         k[27] = 6.97e-10 # Trx_SH synthesis (M/s)
-        k[28] = 0#1e-5 # nox generation of superoxide () #Banfi B. et al, JBC 2002
-        k[29] = 0#4e9 # superoxide dismutase reduction and oxidation by superoxide (M-1*s-1), from Fee J.A. & Bull C. The journal of biological chemistry 1986
-        k[30] = 0 # intracellular superoxide production (M/s)
-        k[31] = 0 # nox h2o2 production (M/s)
-        k[32] = 5e-7 # nox 2 (M/s?)
-        k[33] = 1e-7 # km nox2 (M) for activation by h2o2
 
-        # ---- Calcium & NOX5 block (as you requested) ----
-        # IP3R-driven ER release, SERCA uptake, TRPM2 & SOCE influx
-        k[34] = 1e-4    # V_IP3R (M/s)
-        k[35] = 1e-7    # K_IP3R_H (M) H2O2 half-act
-        k[36] = 4.0     # n_H (H2O2->IP3R)
-        k[37] = 5e-7    # K_er (M) ER Ca scale
+        # IP3R: passive ER calcium flux: k[28]–k[36]
+        k[28] = 0.038  # P_IP3R: passive flux coefficient (s^-1); Han et al. model benchmark, doi:10.1371/journal.pcbi.1005275
+        k[29] = 1e-7  # K_IP3R_H: H2O2 half-activation constant (M)
+        k[30] = 4.0  # n_IP3R_H: H2O2 activation Hill exponent (dimensionless)
+        k[31] = 5e-7  # K_IP3R_Ca: cytosolic Ca half-activation constant (M)
+        k[32] = 2.0  # n_IP3R_Ca: cytosolic Ca activation Hill exponent (dimensionless)
+        k[33] = 5e-7  # K_IP3R_H_inhib: H2O2 half-inhibition constant (M)
+        k[34] = 2.0  # m_IP3R_H_inhib: H2O2 inhibition Hill exponent (dimensionless)
+        k[35] = 5e-5  # K_IP3R_Ca_inhib: cytosolic Ca half-inhibition constant (M)
+        k[36] = 2.0  # m_IP3R_Ca_inhib: cytosolic Ca inhibition Hill exponent (dimensionless; R37)
 
-        k[38] = 1e-9 # V_SERCA (M/s)
-        k[39] = 0.46e-6    # K_ser (M), cyt Ca half-sat for SERCA    10.1074/jbc.M114.585604
-        k[40] = 1e-5    # (unused here if you skip H2O2 inhibition)
-        k[41] = 2.0     # (unused here)
+        # SERCA and ER capacity: k[37]–k[43]
+        k[37] = 1e-5  # V_SERCA: uptake-flux scale before ER-capacity gating (M/s)
+        k[38] = 0.23e-6  # K_ser: cytosolic Ca half-activation constant (M); doi:10.1074/jbc.M114.585604
+        k[39] = 2  # n_SERCA: cytosolic Ca activation Hill exponent (dimensionless)
+        k[40] = 1e-5  # K_SERCA_H: H2O2 half-inhibition constant (M)
+        k[41] = 2.0  # m_SERCA_H: H2O2 inhibition Hill exponent (dimensionless)
+        k[42] = 1.1e-4  # ER Ca capacity used to gate SERCA uptake (M)
+        k[43] = 1e-2  # Intended ER overflow-release rate constant (s^-1)
 
-        k[42] = 9e-7 # P_TRPM2 (1/s) effective permeability scale
-        k[43] = 5e-7 # K_TRPM2_H (M) H2O2 half-activation (~10–100 µM)
-        k[44] = 2.0 # p_TRPM2 (Hill exponent)
+        # TRPM2: plasma-membrane calcium influx: k[44]–k[48]
+        k[44] = 9e-7  # P_TRPM2: effective Ca-influx coefficient (s^-1)
+        k[45] = 5e-5  # K_TRPM2_H: H2O2 half-activation constant (M)
+        k[46] = 4.0  # p_TRPM2: H2O2 activation Hill exponent (dimensionless)
+        k[47] = 16.9e-6  # K_TRPM2_Ca: cytosolic Ca half-activation constant (M); doi:10.1073/pnas.0811725106
+        k[48] = 2  # n_TRPM2_Ca: cytosolic Ca activation Hill exponent (dimensionless)
 
-        k[45] = 1e-7    # P_SOCE (1/s)
-        k[46] = 1e-5    # K_store (M)
-        k[47] = 2.1     # SERCA Hill n
+        # SOCE: store-operated calcium influx: k[49]–k[50]
+        k[49] = 1e-7  # P_SOCE: effective Ca-influx coefficient (s^-1)
+        k[50] = 1e-5  # K_store: ER Ca concentration for half-maximal SOCE gating (M)
 
-        # NOX5 (Ca-dependent) with NADPH limitation
-        k[48] = 8.7e-3    # Vmax_NOX5 (M/s) — you tune                doi.org/10.1016/j.redox.2020.101656
-        k[49] = 0.71e-6 # K_Ca_NOX5 (M)                              doi.org/10.1038/s41467-024-48467-y
-        k[50] = 4.0     # m_NOX5 (Hill)
+        # Cytosolic calcium extrusion: k[51]
+        k[51] = 0.11  # V_out: maximum Ca-extrusion flux in J_out (M/s, as implemented)
 
-        # IP3R high-H2O2 / high-Ca inhibition (optional)
-        k[51] = 5e-7    # K_H2O2_inhib (M)
-        k[52] = 2.0     # m_H2O2_inhib
-        k[53] = 5e-6    # K_Ca_inhib (M)
-        k[54] = 2.0     # n_Ca_act
+        # NOX2: k[52]–k[53]
+        k[52] = 3.7e-5  # Maximum NOX2-associated extracellular H2O2 source (M/s)
+        k[53] = 1e-7  # Cytosolic H2O2 half-activation constant for NOX2 (M)
 
-        # ER capacity & overflow
-        k[55] = 1.1e-4  # ER Ca max (M)
-        k[56] = 1e-2    # overflow rate (1/s)
-        k[57] = 5e-7    # K_IP3R_Ca (M) for Ca activation
-        k[58] = 4e-10 # 1/s (cytosolic Ca leak rate constant)
-        
-        # NOX5 NADPH Km
-        k[62] = 13.67e-6                                     #  doi.org/10.1038/s41467-024-48467-y
+        # NOX5: calcium-dependent ROS production: k[54]–k[57]
+        # Original commented alternative: 8.7e-3
+        k[54] = 2.2e-4  # Vmax_NOX5: maximum cytosolic H2O2 source (M/s); doi:10.1016/j.redox.2020.101656
+        k[55] = 0.71e-6  # K_Ca_NOX5: Ca half-activation constant (M); doi:10.1038/s41467-024-48467-y
+        k[56] = 4.0  # m_NOX5: Ca activation Hill exponent (dimensionless)
+        k[57] = 13.67e-6  # Km_NOX5_NADPH: NADPH half-saturation constant (M); doi:10.1038/s41467-024-48467-y
 
-        # Duox1/2 (additional Ca-dependent ROS source)
-        k[63] = 1e-8                 # kcat_duox_low_Ca (s-1)  (tune 1e-8 to 1e-7)
-        k[64] = 0.87e-6                    # K_Duox_Ca (M) ~ 1 µM half-activation
-        k[65] = 4                           # m_duox (Hill exponent for Ca)
-        k[66] = 24.31e-6                    # Km_Duox_NADPH_low_Ca [M] (~14 µM)
-        k[67] = 11.52e-6                    # Km_Duox_NADPH_high_Ca [M] (~140 µM)
-
-        # TRPM2 Ca influx (you already have H2O2 gate) due to calcium
-        k[68] = 16.9e-6     # k_trpm2 ca (M) ca half-activation (~0.5 µM), doi.org/10.1073/pnas.0811725106
-        k[69] = 2                         # n (trpm2) ca
+        # DUOX: calcium-dependent NADPH affinity: k[58]–k[62]
+        k[58] = 1e-9  # Vmax_DUOX: maximum extracellular H2O2 source (M/s, as implemented)
+        k[59] = 0.87e-6  # K_DUOX_Ca: midpoint of the Ca-dependent NADPH-affinity switch (M)
+        k[60] = 4  # m_DUOX: Ca-dependent affinity-switch Hill exponent (dimensionless)
+        k[61] = 24.31e-6  # Km_DUOX_NADPH_low_Ca: positive low-Ca limit (M)
+        k[62] = 11.52e-6  # Km_DUOX_NADPH_high_Ca: high-Ca limit (M)
 
         return k
 
 def get_x0():
         # initial conditions
-        x0 = np.zeros(32)  # Defining the array, x0, that will house initial concentrations
+        x0 = np.zeros(28)  # Defining the array, x0, that will house initial concentrations
         # Cytoplasm
         x0[0] = 1e-9  # H2O2media 
         x0[1] = 1e-9  # H2O2cytosol
@@ -131,79 +125,72 @@ def get_x0():
         x0[22] = 3.0e-5  # NADPH 
         x0[23] = 3.0e-7  # NADP+
 
-        x0[24] = 0 # superoxide media
-        x0[25] = 0#1e-9 # superoxide cytosol
+        x0[24] = 1e-9 # steady state h2o2 intracellular
 
-        x0[26] = 0 # superoxide dismutase reduced
-        x0[27] = 0 # superoxide dismutase oxidized
-
-        x0[28] = 1e-9 # steady state h2o2 intracellular
-
-        x0[29] = 1e-7 # calcium intracellular
-        x0[30] = 1.5e-3 # calcium extracellular
-        x0[31] = 1.0e-4 # calcium ER [M] ~ 0.1 mM
-
+        x0[25] = 1e-7 # calcium intracellular
+        x0[26] = 1.5e-3 # calcium extracellular
+        x0[27] = 1.0e-4 # calcium ER [M] ~ 0.1 mM
 
         return x0
 
-# Define the parameterized model (copy your full ODEs here)
 def model_noref(x, t, k, x_base):
     dxdt = np.zeros_like(x)
 
-    # ===== Calcium–ROS crosstalk using k[...] and x[...] only =====
     H   = x[1]     # H2O2 cytosol
-    C   = x[29]    # Ca cytosol
-    Cext= x[30]    # Ca extracellular (constant ~1-2 mM)
-    Cer = x[31]    # Ca ER pool
+    C   = x[25]    # Ca cytosol
+    Cext= x[26]    # Ca extracellular (constant ~1-2 mM)
+    Cer = x[27]    # Ca ER pool
 
-    # --- Unpack from k ---
-    V_IP3R     = k[34]; K_IP3R_H = k[35]; nH = k[36]; K_er = k[37]
-    V_SERCA   = k[38]; K_ser    = k[39]; K_SERCA_H = k[40]; m_inhib = k[41]
-    P_TRPM2   = k[42]; K_TRPM2_H= k[43]; p_TRPM2 = k[44]
-    P_SOCE    = k[45]; K_store  = k[46]
-    k_out     = k[47]
-    Vmax_NOX5 = k[48]; K_Ca     = k[49]; m_nox = k[50]
+    # Unpack from k
+    P_IP3R     = k[28]; K_IP3R_H = k[29]; nH = k[30]
+    V_SERCA   = k[37]; K_ser    = k[38]; K_SERCA_H = k[40]; m_inhib = k[41]
+    P_TRPM2   = k[44]; K_TRPM2_H= k[45]; p_TRPM2 = k[46]
+    P_SOCE    = k[49]; K_store  = k[50]
+    k_out     = k[39]
+    Vmax_NOX5 = k[54]; K_Ca     = k[55]; m_nox = k[56]
 
-    ## --- Helper gates (pure functions of species & k) ---
-    Ca_gate_IP3R = (x[29])**k[54] / (k[57]**k[54] + (x[29])**k[54]) if x[29] > 0 else 0.0 # Activated by cyt Ca
-    Ca_IP3R_inhib = 1.0/(1.0 + (x[29]/k[53])**2) if x[29] > 0 else 0.0 # Inhibited by high Ca
+    ##  Helper gates (pure functions of species & k)
+    Ca_gate_IP3R = (x[25])**k[32] / (k[31]**k[32] + (x[25])**k[32]) if x[25] > 0 else 0.0 # Activated by cyt Ca
+    Ca_IP3R_inhib = 1.0/(1.0 + (x[25]/k[35])**k[36]) if x[25] > 0 else 0.0 # Inhibited by high Ca
     h2o2_gate_IP3R = (H**nH)/(K_IP3R_H**nH + H**nH) if H > 0 else 0.0 # activation by H2o2
-    H2O2_inhibit_IP3R = (k[51]**k[52]) / (k[51]**k[52] + H**k[52]) if H > 0 else 0.0 # inhibition by very high H2O2
+    H2O2_inhibit_IP3R = (k[33]**k[34]) / (k[33]**k[34] + H**k[34]) if H > 0 else 0.0 # inhibition by very high H2O2
+
     SERCA_inhb = 1.0/(1.0 + (H/K_SERCA_H)**m_inhib) if H > 0 else 1.0
     H2O2_gate_TRPM2 = (H**p_TRPM2)/(K_TRPM2_H**p_TRPM2 + H**p_TRPM2) if H > 0 else 0.0
-    Ca_gate_TRPM2 = (x[29]**k[69])/((k[68]**k[69]) + (x[29]**k[69])) if x[29] > 0 else 0.0
-    SOCE_drive = K_store/(K_store + Cer)       # ramps as ER depletes
+    Ca_gate_TRPM2 = (x[25]**k[48])/((k[47]**k[48]) + (x[25]**k[48])) if x[25] > 0 else 0.0
+    SOCE_drive = K_store/(K_store + Cer)       # ramps as ER calcium depletes
 
-    # --- Fluxes (units consistent with your H2O2 model scaling) ---
-    J_IP3R     = V_IP3R   * h2o2_gate_IP3R * Ca_gate_IP3R \
-        * Ca_IP3R_inhib * H2O2_inhibit_IP3R * (Cer - C) / (K_er + Cer) if (Cer - C) > 0 else 0.0 # ER -> cyt release via IP3R
-    #print(Ca_gate_IP3R,h2o2_gate_IP3R,Ca_IP3R_inhib,H2O2_inhibit_IP3R,J_IP3R)
-    J_SERCA   = V_SERCA * (C**k[47]/(k[39]**k[47] + C**k[47])) * SERCA_inhb if C > 0 else 0.0 # cyt -> ER uptake by SERCA
-    J_in_TRPM2= P_TRPM2 * H2O2_gate_TRPM2 * Ca_gate_TRPM2 * (x[30] - x[29]) if (x[30] - x[29]) > 0 else 0.0 # PM influx via TRPM2
-    J_in_SOCE = P_SOCE  * SOCE_drive * (x[30] - x[29]) if (x[30] - x[29]) > 0 else 0.0 # PM influx via SOCE to restore ER
+    # fluxes
+    # Signed passive flux (M/s): positive from ER to cytosol; reverses with the gradient.
+    J_IP3R = (P_IP3R * h2o2_gate_IP3R * Ca_gate_IP3R
+              * Ca_IP3R_inhib * H2O2_inhibit_IP3R * (Cer - C))
+
+    J_SERCA   = V_SERCA * (C**k[39]/(k[38]**k[39] + C**k[39])) * SERCA_inhb if C > 0 else 0.0 # cyt -> ER uptake by SERCA
+    J_in_TRPM2= P_TRPM2 * H2O2_gate_TRPM2 * Ca_gate_TRPM2 * (x[26] - x[25]) if (x[26] - x[25]) > 0 else 0.0 # PM influx via TRPM2
+    J_in_SOCE = P_SOCE  * SOCE_drive * (x[26] - x[25]) if (x[26] - x[25]) > 0 else 0.0 # PM influx via SOCE to restore ER
 
     # --- ER capacity gating for SERCA (prevents overfilling) ---
-    cap = 1.0 - (x[31] / k[55])         # linear headroom fraction
+    cap = 1.0 - (x[27] / k[42])         # linear headroom fraction
     cap = 0.0 if cap < 0.0 else cap   # clamp to [0, 1]
     J_SERCA *= cap                    # SERCA stops as ER approaches capacity
 
     # --- Overflow if ER exceeds the cap (hard push back to cytosol) ---
-    J_over = k[56] * cap * x[31] if cap < 0.0 else 0.0
-    J_out = k[58] * (x[29])/ (5e-6 + (x[29]))  if x[29] > 0 else 0.0 # cytosolic Ca extrusion (PMCA/NCX lumped)
+    J_over = k[43] * cap * x[27] if cap < 0.0 else 0.0
+    J_out = k[51] * (x[25])/ (5e-6 + (x[25]))  if x[25] > 0 else 0.0 # cytosolic Ca extrusion (PMCA/NCX lumped)
     # --- NOX5 Ca-dependent ROS production ---
-    nox2 = k[32] * (x[1]**6)/(k[33]**6 + x[1]**6) if x[1] > 0 else 0.0 #nox2
+    nox2 = k[52] * (x[1]**6)/(k[53]**6 + x[1]**6) if x[1] > 0 else 0.0 #nox2
     # NOX5 with NADPH limitation
-    nox5 = k[48] * (x[29]**k[50])/(k[49]**k[50] + x[29]**k[50]) \
-                * (x[22]/(k[62] + x[22])) if x[29] > 0 or x[22] > 0 else 0.0
+    nox5 = k[54] * (x[25]**k[56])/(k[55]**k[56] + x[25]**k[56]) \
+                * (x[22]/(k[57] + x[22])) if x[25] > 0 or x[22] > 0 else 0.0
 
-    km_duox = k[66] - (k[66] - k[67]) * (x[29]**k[65])/(k[64]**k[65] + x[29]**k[65]) if x[29] > 0 else k[67]
-    duox = k[63] * x[22]/(km_duox + x[22])
+    km_duox = k[61] - (k[61] - k[62]) * (x[25]**k[60])/(k[59]**k[60] + x[25]**k[60]) if x[25] > 0 else k[62]
+    duox = k[58] * x[22]/(km_duox + x[22])
 
-    dxdt[0] = (k[0]*(x[1] - x[0]) * 10e-3 * 5.3e-6 * (1e9)) + nox2 + duox   # extracellular peroxide
+    dxdt[0] = (k[0]*(x[1] - x[0]) * 1e-3 * 5.3e-6 * (1e9)) + nox2 + duox   # extracellular peroxide
 
-    dxdt[1] = (((k[0] * x[0] * 10e-3 * 5.3e-6) / (1.15e-12))
-               - ((k[0] * x[1] * 10e-3 * 5.3e-6) / (1.15e-12))
-               - 2 * (k[22] * x[1] * 10e-3 * 2.98e-9) / (1.53e-14)              # peroxisomal H2O2     
+    dxdt[1] = (((k[0] * x[0] * 1e-3 * 5.3e-6) / (1.15e-12))
+               - ((k[0] * x[1] * 1e-3 * 5.3e-6) / (1.15e-12))
+               - 2 * (k[22] * x[1] * 1e-3 * 2.98e-9) / (1.53e-14)              # peroxisomal H2O2     
                - k[2] * x[2] * x[1]                             # GPx reduction of H2O2
                - k[5] * x[7] * x[1]                                # catalase reaction
                - k[7] * x[9] * x[1]                                   # peroxiredoxin oxidation
@@ -225,7 +212,7 @@ def model_noref(x, t, k, x_base):
                - k[4] * x[4] * x[5]
                - 2 * k[12] * x[5]
                - k[14] * x[16] * x[5]
-               - k[16] * x[16] * x[5]
+               - k[16] * x[19] * x[5]
                + 2 * k[19] * x[6] * x[22]
                + k[23] 
                - k[25])
@@ -233,12 +220,12 @@ def model_noref(x, t, k, x_base):
     dxdt[6] = (k[4] * x[4]* x[5] 
                + k[12] * x[5] 
                + k[16] * x[19] * x[5] 
-               - k[19] * x[6] * x[22] if x[6] > 0 and x[22] > 0 else 0.0
-               - k[24] * x[6] / x_base[6] if x_base[6] > 0 else 0.0
-               - k[25] * x[6] / x_base[6] if x_base[6] > 0 else 0.0)
+               - (k[19] * x[6] * x[22] if x[6] > 0 and x[22] > 0 else 0.0)
+               - (k[24] * x[6] / x_base[6] if x_base[6] > 0 else 0.0)
+               - (k[25] * x[6] / x_base[6] if x_base[6] > 0 else 0.0))
 
     dxdt[7] = 0
-    dxdt[8] = ((k[22] * x[1] * 10e-3 * 2.98e-9) / (1.53e-14)            # peroxisomal H2O2
+    dxdt[8] = ((k[22] * x[1] * 1e-3 * 2.98e-9) / (1.53e-14)            # peroxisomal H2O2
                - k[5] * x[7] * x[8])
     
     #Prx-SH
@@ -283,562 +270,22 @@ def model_noref(x, t, k, x_base):
     #NADPH
     dxdt[22] = (- k[19] * x[6] * x[22] 
                 - k[20] * x[14] * x[22] 
-                #- k[28] * x[22]                                         # nox generation of superoxide
                 - (2 * nox2 if x[22] > 0 else 0.0)
                 - (2 * nox5 if x[22] > 0 else 0.0)
                 + (k[21] * x[23] / (k[6] + x[23]) if x[23] > 0 or x[22] > 0 else 0.0))
     #NADP+
     dxdt[23] = (k[19] * x[6] * x[22] 
                 + k[20] * x[14] * x[22] 
-                #+ k[28] * x[22]                                         # nox generation of superoxide and nadp+
                 + 2 * nox2
                 + 2 * nox5
                 - (k[21] * x[23] / (k[6] + x[23]) if x[23] > 0 else 0.0))
-    #superoxide media
+    # Steady-state intracellular H2O2 reference (constant)
     dxdt[24] = 0
-    #superoxide cytosol
-    dxdt[25] = 0
-    #SOD reduced
-    dxdt[26] = 0
-    #SOD oxidized
-    dxdt[27] = 0
 
     # --- Calcium balances --
-    dxdt[29] = J_IP3R + J_in_TRPM2 + J_in_SOCE + J_over - J_SERCA - J_out            # d[Ca_cyt]/dt
-    dxdt[30] = 0                                                     # d[Ca_ext]/dt
-    dxdt[31] = J_SERCA - J_IP3R - J_over                           # d[Ca_ER]/dt
-    #print(dxdt[29], dxdt[31])
+    dxdt[25] = J_IP3R + J_in_TRPM2 + J_in_SOCE + J_over - J_SERCA - J_out            # d[Ca_cyt]/dt
+    dxdt[26] = 0                                                     # d[Ca_ext]/dt
+    dxdt[27] = J_SERCA - J_IP3R - J_over                           # d[Ca_ER]/dt
+    #print(dxdt[25], dxdt[27])
 
-    return dxdt
-
-def model(x, t, k, x0):
-    # if x0 is None:
-    #     x0 = get_x0()
-    dxdt = np.zeros_like(x)
-    nox2 = k[32] * (x[1]**6)/(k[33]**6 + x[1]**6) if x[1] > 0 else 0.0 #nox2
-    dxdt[0] = (k[0] * (x[1] - x[0]) * 10e-3 * 1.02e-5 * (1e9)) + nox2
-    # --- Copy the rest of your ODEs from model_noref here ---
-
-    dxdt[1] = (((k[0] * x[0] * 10e-3 * 5.3e-6) / (1.15e-12))
-               - ((k[0] * x[1] * 10e-3 * 5.3e-6) / (1.15e-12))
-               - 2 * (k[22] * x[1] * 10e-3 * 2.98e-9) / (1.53e-14)              # peroxisomal H2O2     
-               - k[2] * x[2] * x[1]                             # GPx reduction of H2O2
-               - k[5] * x[7] * x[1]                                   # catalase reaction
-               - k[7] * x[9] * x[1]                                   # peroxiredoxin oxidation
-               - k[8] * x[10] * x[1]                                  # overoxidized peroxiredoxin
-               - k[13] * x[15] * x[1]                                 # Protein monothiol oxidation
-               - k[17] * x[20] * x[1]                                 # Protein dithiol oxidation
-               + k[1]                                                          # intracellular peroxide production
-               + k[29] * x[25] * x[27])                                      # superoxide dismutase reduction and oxidation by superoxide
-
-    dxdt[2] = (- k[2] * x[2] * x[1]
-               + k[4] * x[4] * x[5])
-    
-    dxdt[3] = k[2] * x[2] * x[1] - k[3] * x[3] * x[5]
-    dxdt[4] = k[3] * x[3] * x[5] - k[4] * x[4] * x[5]
-    dxdt[5] = (- k[3] * x[3] * x[5]
-               - k[4] * x[4] * x[5]
-               - 2 * k[12] * x[5]
-               - k[14] * x[16] * x[5]
-               - k[16] * x[16] * x[5]
-               + 2 * k[19] * x[6] * x[22]
-               + k[23] 
-               - k[25])
-    dxdt[6] = (k[4] * x[4] * x[5] + k[12] * x[5] +
-               k[16] * x[19] * x[5] - k[19] * x[6] * x[22] 
-               - k[24] * x[6] / x0[6]
-               - k[25] * x[6] / x0[6]
-               )
-    dxdt[7] = 0
-    dxdt[8] = (k[22] * x[1] * 10e-3 * 2.98e-9) / (1.53e-14) - k[5] * x[7] * x[8]
-    dxdt[9] = - k[7] * x[9] * x[1] + k[11] * x[12] * x[13]
-    dxdt[10] = (k[7] * x[9] * x[1] - k[8] * x[10] * x[1] +
-                k[9] * x[11] - k[10] * x[10])
-    dxdt[11] = k[8] * x[10] * x[1] - k[9] * x[11]
-    dxdt[12] = k[10] * x[10] - k[11] * x[12] * x[13]
-    dxdt[13] = (- k[11] * x[12] * x[13] 
-                - k[18] * x[21] * x[13] 
-                + k[20] * x[14] * x[22] 
-                - k[26] 
-                + k[27])
-    dxdt[14] = (k[11] * x[12] * x[13] + k[18] * x[21] * x[13] -
-                k[20] * x[14] * x[22])
-
-    dxdt[15] = (- k[13] * x[15] * (x[1])
-                + k[15] * x[18] * (x[17]))
-
-    dxdt[16] = k[13] * x[15] * x[1] - k[14] * x[16] * x[5]
-    dxdt[17] = k[14] * x[16] * x[5] - k[15] * x[18] * x[17]
-    dxdt[18] = k[16] * x[19] * x[5] - k[15] * x[18] * x[17]
-    
-    dxdt[19] = (k[15] * x[18] * x[17] 
-                - k[16] * x[19] * x[5])
-    
-    dxdt[20] = - k[17] * x[20] * x[1] + k[18] * x[21] * x[13]
-    dxdt[21] = k[17] * x[20] * x[1] - k[18] * x[21] * x[13]
-
-    #NADPH
-    dxdt[22] = (- k[19] * x[6] * x[22] 
-                - k[20] * x[14] * x[22] 
-                #- k[28] * x[22]                                         # nox generation of superoxide
-                + k[21] * x[23] / (k[6] + x[23]))
-    #NADP+
-    dxdt[23] = (k[19] * x[6] * x[22] 
-                + k[20] * x[14] * x[22] 
-                #+ k[28] * x[22]                                         # nox generation of superoxide and nadp+
-                - k[21] * x[23] / (k[6] + x[23]))
-
-    dxdt[24] = (k[0] * (x[25] - x[24]) * 10e-3 * 1.02e-5 * (1e9)               # superoxide media
-                + k[28] * x[22])
-    
-    dxdt[25] = (((k[0] * x[24] * 10e-3 * 1.02e-5) / (9.16e-13))                 # superoxide cytosol
-               - ((k[0] * x[25] * 10e-3 * 1.02e-5) / (9.16e-13))
-               - k[29] * x[25] * x[26]
-               - k[29] * x[25] * x[27]
-               + k[30])
-    
-    dxdt[26] = (k[29] * x[25] * x[27] 
-                - k[29] * x[25] * x[26])
-
-    dxdt[27] = (k[29] * x[25] * x[26] 
-                - k[29] * x[25] * x[27])
-    
-    dxdt[28] = 0#(((k[0] * x[29] * 10e-3 * 1.02e-5) / (9.16e-13))               # calcium cytosol
-               #- ((k[0] * x[28] * 10e-3 * 1.02e-5) / (9.16e-13)))
-               #+ (200e-6*(x[28]**2/(0.6e-6**2+x[28]**2))))
-    
-    #dxdt[29] = ((k[0] * 1e-3 * (x[28] - x[29]) * 10e-3 * 1.02e-5 * (1e9)) + k[32])               # calcium media
-    
-    return dxdt
-
-def calibrate_k1_for_steady_state(k, x0):
-    # geometry
-    A_cm2, Vcyt_L = 5.3e-6, 1.15e-12
-    J_perm = k[0] * (x0[0] - x0[1]) * (A_cm2 / Vcyt_L) * 1e-3  # membrane flux
-
-    # sinks
-    v_cat = k[5]*x0[7]*x0[1]
-    v_prx = k[7]*x0[9]*x0[1] + k[8]*x0[10]*x0[1]
-    v_gpx = k[2]*x0[2]*x0[1]
-    v_prot= k[13]*x0[15]*x0[1] + k[17]*x0[20]*x0[1]
-
-    # sources (at baseline)
-    v_nox5 = k[48] * (x0[29]**k[50])/(k[49]**k[50] + x0[29]**k[50])
-    v_mito = 0.0
-    v_nox2 = 0.0
-
-    sinks  = v_cat + v_prx + v_gpx + v_prot - J_perm
-    srcs   = v_nox5 + v_mito + v_nox2
-
-    k[1] = max(sinks - srcs, 0.0)   # M/s
-    return print(k)
-
-k = get_k()
-x0 = get_x0()
-#calibrate_k1_for_steady_state(k, x0)
-
-
-    
-def get_blap_k(protein_abund, blap_conc, extraC, intC, parameter_pctchange=None, species_pctchange=None):
-    """
-    Model for compartmentalized hydrogen peroxide consumption
-    
-    Parameters:
-    -----------
-    endtime : float
-        End time for simulation
-    step : float
-        Maximum step size for solver
-    celldens : float
-        Cell density
-    protein_abund : array-like
-        Protein abundance values
-    blap_conc : float
-        B-lap concentration
-    parameter_pctchange : array-like, optional
-        Percentage changes for parameters
-    species_pctchange : array-like, optional
-        Percentage changes for species
-    
-    Returns:
-    --------
-    time_series : ndarray
-        Array containing time points and state variables
-    """
-    # Establish genes of interest and index
-    genes = ["GPX1", "GPX2", "GPX3", "GPX4", "GPX5", "GPX6", "GPX7", "GPX8", "PRDX1", "PRDX2",
-             "PRDX2", "PRDX3", "PRDX6", "CAT", "TXN", "TXN2", "TXNRD1", "TXNRD2", "TXNRD3", "GLRX", 
-             "GLRX2", "G6PD", "GLUD1", "GSR", "GSTP1", "POR", "NQO1", "SOD1", "SOD2", "SOD3", 
-             "AQP3", "AQP8", "AQP9", "GCLC"]
-    
-    # Define parameter values
-    k = np.zeros(36)
-    
-    # Rxns (Cytosolic)
-    
-    # H2O2 Transport
-    # Permeability constant (plasma membrane)
-    # H2O2cyt -> H2O2out
-    k[0] = 2e-4 * protein_abund[29] / 0.0302  # cm/s
-    
-    # Mitochondrial production of H2O2in
-    k[1] = 4
-    
-    # GPx1_red reacting with H2O2in
-    # H2O2cyt + GPX1r -> GPX1o ; EC 1.11.1.9
-    # Updated 9/22 with Kassi Stein PLoS Comp Bio paper k2
-    k[2] = 60  # uM-1*s-1 (60 uM-1*s-1 Kassi paper)
-    
-    # GPx1_ox reacting with GSH
-    # GPX1o + GSH -> GPX1-SG
-    # Updated 9/22 with KS PLoS Comp Bio paper k3
-    k[3] = 0.04  # uM-1*s-1
-    
-    # GPx1-SG reacting with GSH
-    # GPX1-SG + GSH -> GPX1r + GSSG
-    # Updated 9/22 with KS PLoS Comp Bio Paper k4
-    k[4] = 10  # uM-1*s-1
-    
-    # Catalase reacts with H2O2 inside peroxisome
-    # H2O2p ->
-    # Updated 10/6
-    k[5] = 34  # uM-1*s-1
-    
-    # Km of NADP+
-    # Updated 9/22 with KS PLoS Comp Bio Paper k4
-    k[6] = 57  # uM
-    
-    # Peroxiredoxin is oxidized by H2O2
-    # Updated 10/6
-    k[7] = 40  # uM-1*s-1
-    
-    # Oxidized peroxiredoxin is over-oxidized by H2O2
-    # Updated 10/6
-    k[8] = 0.072  # uM-1*s-1
-    
-    # Reduction of overoxidized Prx by Srx enzyme
-    k[9] = 3e-3  # s-1
-    
-    # Self-catalyzed disulfide formation of Prx-SS from Prx-SOH
-    k[10] = 15  # s-1
-    
-    # Peroxiredoxin is reduced by Thioredoxin
-    # Updated 10/6
-    k[11] = 2.1  # uM-1*s-1
-    
-    # Auto-oxidation of GSH
-    k[12] = 7.4e-05  # s-1
-    
-    # Protein monothiol oxidized by H2O2
-    # Updated 10/6
-    k[13] = 0.01  # uM-1*s-1
-    
-    # Oxidized Protein monothiol glutathionylated by GSH
-    # Updated 10/6
-    k[14] = 0.12  # uM-1*s-1
-    
-    # Grx-SH de-glutathionylates Protein-SSG
-    # Updated 10/6
-    k[15] = 0.091  # uM-1*s-1
-    
-    # GSH de-glutathionylates Grx-SSG
-    # Updated 10/6
-    k[16] = 0.037  # uM-1*s-1
-    
-    # Protein dithiol oxidized by H2O2
-    # Updated 10/6
-    k[17] = 5e-1  # uM-1*s-1
-    
-    # Protein disulfide reduced by Trx1
-    # Updated 10/6
-    k[18] = 1e-1  # uM-1*s-1
-    
-    # GSSG reduced by GR
-    k[19] = 3.2 * protein_abund[22] / 0.1419  # uM-1*s-1
-    
-    # Oxidized Thioredoxin reduced by TrxR
-    k[20] = 2e1 * protein_abund[15] / 0.1816  # uM-1*s-1
-    
-    # Production of NADPH by G6P-DH
-    k[21] = 3.75e2 * (protein_abund[20] + protein_abund[21]) / (0.2581 + 0.5159)  # uM/s
-    
-    # Permeability constant (peroxisomal membrane)
-    k[22] = 3e-3  # cm/s
-    
-    # GSH synthesis
-    k[23] = 4.1e-1 * protein_abund[32] / .0075  # uM/s 4.1e-7
-    
-    # GSSG efflux
-    k[24] = 1.2e-2  # uM/s 1.2e-8
-    
-    # GSH + GSSG efflux
-    k[25] = 1.2e-1  # uM/s 1.2e-7
-    
-    # NQO1 Reaction; b-lap Q->HQ
-    k[28] = 161.5 * protein_abund[25] / .2905  # 1/uM-s
-    
-    # b-lap HQ->SQ
-    k[29] = 3e2  # 1/uM-s
-    
-    # b-lap SQ->Q
-    k[30] = 3e2  # 1/uM-s
-    
-    # SOD
-    k[31] = 6400.0 * protein_abund[26] / 1.6641  # 1/uM-s
-    
-    # CPR
-    k[32] = 1900 * protein_abund[24] / 0.2231  # 1/uM-s
-    
-    # blap perm
-    k[33] = 1e-6  # cm/s
-    
-    # blapHQ + GSH -> blapHQ-SG
-    k[34] = 0.05 * protein_abund[23] / 2.6052  # 1/uM-s
-    
-    # blapHQ-SG -> blapHQ-SG extracell
-    k[35] = 1e-6  # cm/s
-    
-    if parameter_pctchange is not None:
-        k = k * parameter_pctchange
-    
-    return k
-
-def get_blap_x(protein_abund, blap_conc, extraC, intC, parameter_pctchange=None, species_pctchange=None):
-    # Defining initial Conditions (Concentrations in uM = micromoles/Liter)
-    # Defining the array, x0, that will house initial concentrations
-    x0 = np.zeros(32)
-    
-    # H2O2media
-    x0[0] = extraC
-    
-    # H2O2cytosol
-    x0[1] = intC
-    
-    # GPXr
-    x0[2] = protein_abund[0]
-    
-    # GPXo
-    x0[3] = x0[2] / 5e9
-    
-    # GPX-SG
-    x0[4] = x0[2] / 5e9
-    
-    # GSH
-    x0[5] = 368
-    
-    # GSSG
-    x0[6] = x0[5] / 206
-    
-    # Catalase
-    x0[7] = protein_abund[12]
-    
-    # H2O2peroxisome
-    x0[8] = 1.0e-10
-    
-    # Prx1/2-SH
-    x0[9] = protein_abund[8] + protein_abund[9]
-    
-    # Prx1/2-SOH
-    x0[10] = x0[9] / 1.92e9
-    
-    # Prx1/2-SOOH
-    x0[11] = x0[9] / 1.92e9
-    
-    # Prx1/2-SS
-    x0[12] = x0[9] * (.5 / 100)
-    
-    # Trx1-SH
-    x0[13] = protein_abund[13]
-    
-    # Trx1-SS
-    x0[14] = x0[13] / 5.7
-    
-    # Pr-SH
-    x0[15] = 50  # 1.22e2
-    
-    # Pr-SOH
-    x0[16] = x0[15] * (.5 / 100)
-    
-    # Pr-SSG
-    x0[17] = x0[15] * (.5 / 100)
-    
-    # Grx-SH
-    x0[18] = protein_abund[18]
-    
-    # Grx-SSG
-    x0[19] = x0[18] * (.5 / 100)
-    
-    # Pr-(SH)2
-    x0[20] = 450
-    
-    # Pr-SS
-    x0[21] = x0[20] * (.5 / 100)
-    
-    # NADPH
-    x0[22] = 3.0e1
-    
-    # NADP+
-    x0[23] = x0[22] / 100
-    
-    # blap Q
-    x0[24] = 0
-    
-    # blap HQ
-    x0[25] = 0
-    
-    # blap SQ
-    x0[26] = 0
-    
-    # superO2
-    x0[27] = 0
-    
-    # oxygen
-    x0[28] = 2.6e2
-    
-    # blap extracell
-    x0[29] = blap_conc
-    
-    # blap-GSH
-    x0[30] = 0
-    
-    # blap-GSH extracell
-    x0[31] = 0
-    
-    if species_pctchange is not None:
-        x0 = x0 * species_pctchange
-        
-        x0[3] = x0[2] / 5e9  # GPXo
-        x0[4] = x0[2] / 5e9  # GPX-SG
-        x0[6] = x0[5] / 206  # GSSG
-        x0[10] = x0[9] / 1.92e9  # Prx-SOH
-        x0[11] = x0[9] / 1.92e9  # Prx-SOOH
-        x0[12] = x0[9] * (.5 / 100)  # Prx-SS
-        x0[14] = x0[13] / 5.7  # Trx1-SS
-        x0[16] = x0[15] * (.5 / 100)  # Pr-SOH
-        x0[17] = x0[15] * (.5 / 100)  # Pr-SSG
-        x0[19] = x0[18] * (.5 / 100)  # Grx-SSG
-        x0[21] = x0[20] * (.5 / 100)  # Pr-SS
-        x0[23] = x0[22] / 100  # NADP+
-    
-    return x0
-            
-def blap_ode_sys(x, t, k, x0, celldens):
-    # Apply bounds to state variables to prevent them from going too high/low
-    dxdt = np.zeros_like(x)
-    
-    x_area = celldens * 1 * 1000 * 4 * np.pi * .00001**2 * 10e-3 # in cm^-1, peroxisome area
-    c_area = celldens * 1 * 4 * np.pi * .001**2 * 10e-3 - x_area  # in cm^-1, # cell membrane area
-    x_vol = 1 * 1000 * 4/3 * np.pi * .00001**3  # in cm^3
-    c_vol = 1 * 4/3 * np.pi * .001**3 - x_vol  # in cm^3
-    m_vol = 1000 - x_vol - c_vol  # in cm^3
-    
-    # Cytosolic Dynamics
-    dxdt[0] = k[0] * c_area * (x[1] - x[0]) / m_vol  # H2O2 extracellular
-    
-    dxdt[1] = (k[0] * c_area * (x[0] - x[1]) / (c_vol) - 
-                k[22] * x_area * (x[1] - x[8]) / (c_vol) + 
-                k[1] - k[2] * x[2] * (x[1] - x0[1]) - 
-                k[7] * x[9] * (x[1] - x0[1]) - k[8] * x[10] * (x[1] - x0[1]) - 
-                k[13] * x[15] * (x[1] - x0[1]) - k[17] * x[20] * (x[1] - x0[1]) + 
-                k[31] * x[27]**2)  # H2O2 cytosol
-    
-    # dxdt[0] = k[0] * (x[1] - x[0]) * 10e-3 * 1.02e-5 * (1e9)
-
-    # dxdt[1] = (((k[0] * x[0] * 10e-3 * 1.02e-5) / (9.16e-13))
-    #            - ((k[0] * x[1] * 10e-3 * 1.02e-5) / (9.16e-13))
-    #            - 2 * (k[22] * (x[1]-x[8]) * 10e-3 * 2.98e-9) / (1.53e-14)              # peroxisomal H2O2     
-    #            - k[2] * x[2] * (x[1] - x0[1])                                   # GPx reduction of H2O2
-    #            - k[5] * x[7] * (x[1] - x0[1])                                   # catalase reaction
-    #            - k[7] * x[9] * (x[1] - x0[1])                                   # peroxiredoxin oxidation
-    #            - k[8] * x[10] * (x[1] - x0[1])                                  # overoxidized peroxiredoxin
-    #            - k[13] * x[15] * (x[1] - x0[1])                                 # Protein monothiol oxidation
-    #            - k[17] * x[20] * (x[1] - x0[1])                                 # Protein dithiol oxidation
-    #            + k[31] * x[27]**2                             
-    #            )
-    
-    dxdt[2] = -k[2] * x[2] * (x[1] - x0[1]) + k[4] * (x[4] - x0[4]) * x[5]  # GPXr
-    
-    dxdt[3] = k[2] * x[2] * (x[1] - x0[1]) - k[3] * (x[3] - x0[3]) * x[5]  # GPXo
-    
-    dxdt[4] = k[3] * (x[3] - x0[3]) * x[5] - k[4] * (x[4] - x0[4]) * x[5]  # GPX-SG
-    
-    dxdt[5] = (-k[3] * (x[3] - x0[3]) * x[5] - 
-                k[4] * (x[4] - x0[4]) * x[5] - 
-                2 * k[12] * x[5] - k[14] * (x[16] - x0[16]) * x[5] - 
-                k[34] * x[25] * x[5] - k[16] * (x[19] - x0[19]) * x[5] + 
-                2 * k[19] * (x[6] - x0[6]) * x[22] + 
-                k[23] - k[25] * x[5] * x[6])  # GSH
-    
-    dxdt[6] = (k[4] * (x[4] - x0[4]) * x[5] + k[12] * x[5] + 
-                k[16] * (x[19] - x0[19]) * x[5] - 
-                k[19] * (x[6] - x0[6]) * x[22] - 
-                k[24] - k[25] * x[5] * x[6])  # GSSG
-    
-    dxdt[7] = 0  # FeCat
-    
-    dxdt[8] = k[22] * x_area * (x[1] - x[8]) / x_vol - k[5] * x[7] * (x[8] - x0[8])  # H2O2 peroxisome
-    
-    dxdt[9] = -k[7] * x[9] * (x[1] - x0[1]) + k[11] * (x[12] - x0[12]) * x[13]  # Prx-SH
-    
-    dxdt[10] = (k[7] * x[9] * (x[1] - x0[1]) - k[8] * x[10] * (x[1] - x0[1]) + 
-                k[9] * (x[11] - x0[11]) - k[10] * x[10])  # Prx-SOH
-    
-    dxdt[11] = k[8] * x[10] * (x[1] - x0[1]) - k[9] * (x[11] - x0[11])  # Prx-SOOH
-    
-    dxdt[12] = k[10] * x[10] - k[11] * (x[12] - x0[12]) * x[13]  # Prx-SS
-    
-    dxdt[13] = (-k[11] * (x[12] - x0[12]) * x[13] - 
-                k[18] * (x[21] - x0[21]) * x[13] + 
-                k[20] * (x[14] - x0[14]) * x[22])  # Trx-SH
-    
-    dxdt[14] = (k[11] * (x[12] - x0[12]) * x[13] + 
-                k[18] * (x[21] - x0[21]) * x[13] - 
-                k[20] * (x[14] - x0[14]) * x[22])  # Trx-SS
-    
-    dxdt[15] = -k[13] * x[15] * (x[1] - x0[1]) + k[15] * x[18] * (x[17] - x0[17])  # Pr-SH
-    
-    dxdt[16] = k[13] * x[15] * (x[1] - x0[1]) - k[14] * (x[16] - x0[16]) * x[5]  # Pr-SOH
-    
-    dxdt[17] = k[14] * (x[16] - x0[16]) * x[5] - k[15] * x[18] * (x[17] - x0[17])  # Pr-SSG
-    
-    dxdt[18] = k[16] * (x[19] - x0[19]) * x[5] - k[15] * x[18] * (x[17] - x0[17])  # Grx-SH
-    
-    dxdt[19] = k[15] * x[18] * (x[17] - x0[17]) - k[16] * (x[19] - x0[19]) * x[5]  # Grx-SSG
-    
-    dxdt[20] = -k[17] * x[20] * (x[1] - x0[1]) + k[18] * (x[21] - x0[21]) * x[13]  # Pr-(SH)2
-    
-    dxdt[21] = k[17] * x[20] * (x[1] - x0[1]) - k[18] * (x[21] - x0[21]) * x[13]  # Pr-SS
-    
-    dxdt[22] = (-k[19] * (x[6] - x0[6]) * x[22] - 
-                k[20] * (x[14] - x0[14]) * x[22] - 
-                k[28] * x[24] * x[22] + 
-                k[21] * (x[23] - x0[23]) / (k[6] + x[23]))  # NADPH
-    
-    dxdt[23] = (k[19] * (x[6] - x0[6]) * x[22] + 
-                k[20] * (x[14] - x0[14]) * x[22] + 
-                k[28] * x[24] * x[22] - 
-                k[21] * (x[23] - x0[23]) / (k[6] + x[23]))  # NADP+
-    
-    dxdt[24] = (k[33] * c_area * (x[29] - x[24]) / c_vol + 
-                k[30] * x[26] * x[28] - k[28] * x[24] * x[22] - 
-                k[32] * x[24] * x[22])  # b-lap Q cyto
-    
-    dxdt[25] = (k[28] * x[24] * x[22] - k[29] * x[25] * x[28] - 
-                k[34] * x[25] * x[5] + k[32] * x[26] * x[22])  # b-lap HQ
-    
-    dxdt[26] = (k[29] * x[25] * x[28] - k[30] * x[26] * x[28] + 
-                k[32] * x[24] * x[22] - k[32] * x[26] * x[22])  # b-lap SQ
-    
-    dxdt[27] = (k[29] * x[25] * x[28] 
-                + k[30] * x[26] * x[28] 
-                - k[31] * x[27]**2)  # superO2
-    
-    dxdt[28] = -k[29] * x[25] * x[28] - k[30] * x[26] * x[28] + k[31] * x[27]**2  # O2
-    
-    dxdt[29] = -k[33] * (x[29] - x[24]) / m_vol  # b-lap Q extracellular
-    
-    dxdt[30] = k[34] * x[25] * x[5] - k[35] * c_area * (x[30] - x[31]) / c_vol  # b-lapHQ-GSH
-    
-    dxdt[31] = k[35] * c_area * (x[30] - x[31]) / m_vol  # b-lapHQ-GSH extracellular
-    
     return dxdt

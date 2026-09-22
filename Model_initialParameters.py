@@ -13,7 +13,7 @@ from zread_gpickle import network_radius
 def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     #Start time, end time, time step
     ts = 0
-    te = 300
+    te = 600
     dt = 1
 
     x = 750
@@ -102,7 +102,7 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
                     celltype_param,division_times,sync_time)
     sim.add_interC(H2O2i)
 
-    Ca = IntC_Diff("Ca",maxCells,D_Ca, ddim,Pmax,open_prob,              #create instance of IntC_Diff class
+    Ca = IntC_Diff("Ca",maxCells,D_Ca, ddim,10*Pmax,open_prob,              #create instance of IntC_Diff class
                     celltype_param,division_times,sync_time)
     sim.add_interC(Ca)
 
@@ -139,10 +139,7 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
             sim_obj.setC(1e-9,'H2O2i')
             sim_obj.setC(1,'cAMP')
             sim_obj.setC(1e-7,'Ca')
-            #sim_obj.set_gradient_source_sink_coeff("H2O2e", 2.08e-12, 0.0)
-            #sim.gradients[0].set_gradient_value_at_point(point, 5.25)
-            #sim_obj.set_gradient_source_sink_coeff("eCa", 1e-4, 0.0)
-            #H2O2i.change_C(ID, 1.0e-4)
+  
         else:
             sim_obj=StemCell(point,radius,ID,"U",inhib_value=inhib_value, division_set=div_set)   #create instance of StemCell class
             sim_obj.setC(1e-9,'H2O2i')

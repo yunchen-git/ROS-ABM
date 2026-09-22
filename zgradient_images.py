@@ -10,8 +10,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import math
 import os
-import zgradient_images as af
-import Simulation as sim
 import pickle as p
 
 import atexit,gc
@@ -148,11 +146,13 @@ def save_2D_gradient_images(name, save_path, data, axis):
     plt.close()
     
 def getGradientImages(path):
-    data=sim.TimeSeries(path)
-    grad_names=data._grad_names
-    
-    for i in range(0,len(grad_names)):
-        save_2D_gradient_images(grad_names[i],path,data,axis="xy")
+    import Simulation as sim
+
+    data = sim.TimeSeries(path)
+    grad_names = data._grad_names
+
+    for i in range(0, len(grad_names)):
+        save_2D_gradient_images(grad_names[i], path, data, axis="xy")
 
 if __name__=='__main__':
     path='/Users/huyunchen/Documents/PhD/test/8.0'
