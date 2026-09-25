@@ -280,8 +280,10 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
     h2o2i_normalizer = mcolors.Normalize(vmin=mn_h2o2i, vmax=mx_h2o2i)
     h2o2e_track_589 = []
     h2o2i_track_589 = []
+    Ca_track_589 = []
     h2o2e_track_877 = []
     h2o2i_track_877 = []
+    Ca_track_877 = []
 
     # Process each time point
     for time, plane_2d, gradient_3d, g, network in all_data:
@@ -290,6 +292,7 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
         # Collect cell data
         cell_positions = []
         cell_h2o2i = []
+        cell_ca = []
         cell_ids = []
         cell_radii = []
         
@@ -309,11 +312,13 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
             
             cell_positions.append([x_grid, y_grid, z_grid])
             cell_h2o2i.append(node.C.get('H2O2i', 0))
+            cell_ca.append(node.C.get('Ca', 0))
             cell_ids.append(node.ID)
             cell_radii.append(node.radius)
         
         cell_positions = np.array(cell_positions)
         cell_h2o2i = np.array(cell_h2o2i)
+        cell_ca = np.array(cell_ca)
         cell_radii = np.array(cell_radii)
         # Define consistent color scaling parameters at the beginning
         USE_LOG = True
@@ -643,6 +648,7 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
                     extracellular_h2o2 = g.get_gradient_value_at_point_circle(point)
                     h2o2e_track_589.append([time, extracellular_h2o2])
                     h2o2i_track_589.append([time, cell_h2o2i[i]])
+                    Ca_track_589.append([time, cell_ca[i]])
                 if cell_id == 877:
                     # if plot_2d:
                     #     extracellular_h2o2 = g.get_gradient_value_at_point_circle(point)
@@ -650,7 +656,7 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
                     extracellular_h2o2 = g.get_gradient_value_at_point_circle(point)
                     h2o2e_track_877.append([time, extracellular_h2o2])
                     h2o2i_track_877.append([time, cell_h2o2i[i]])
-        
+                    Ca_track_877.append([time, cell_ca[i]])
         #for slice plotting
         if plot_3d:
             # --- SLICE THROUGH A LINE THAT PASSES CELL 589 --------------------------------
@@ -824,10 +830,14 @@ def save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient_name, plot_2d
             plt.plot(*zip(*h2o2e_track_589), marker='o', color='tab:blue', linestyle='-', label='Extracellular H2O2 at Cell 589')
         if h2o2i_track_589:
             plt.plot(*zip(*h2o2i_track_589), marker='o', color='tab:orange', linestyle='-', label='Intracellular H2O2 in Cell 589')
+        #if Ca_track_589:
+        #    plt.plot(*zip(*Ca_track_589), marker='o', color='tab:green', linestyle='-', label='Intracellular Ca in Cell 589')
         if h2o2e_track_877:
             plt.plot(*zip(*h2o2e_track_877), marker='o', color='tab:blue', linestyle='--', label='Extracellular H2O2 at Cell 877')
         if h2o2i_track_877:
             plt.plot(*zip(*h2o2i_track_877), marker='o', color='tab:orange', linestyle='--', label='Intracellular H2O2 in Cell 877')
+        #if Ca_track_877:
+        #    plt.plot(*zip(*Ca_track_877), marker='o', color='tab:green', linestyle='--', label='Intracellular Ca in Cell 877')
 
         plt.xlabel('Time')
         plt.ylabel('H2O2 Concentration')
@@ -893,6 +903,6 @@ def getCombinedH2O2Images3D(path, t0=0, tf=200, plot_2d=True, plot_3d=True, make
     save_combined_h2o2_images_3d(path, data, t0, tf, h2o2_gradient, plot_2d, plot_3d, make_graph, squished)
 
 if __name__ == '__main__':
-    path = '/Users/huyunchen/Documents/PhD/test/33.0/'
+    path = '/Users/huyunchen/Documents/PhD/test/3.0/'
     # Generate both 2D and 3D plots
     getCombinedH2O2Images3D(path, t0=0, tf=600, plot_2d=True, plot_3d=False, make_graph=True, squished=False)

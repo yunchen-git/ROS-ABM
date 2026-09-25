@@ -283,7 +283,7 @@ class IntC_Diff(object):
             mj=state[j,1]
             ccei = 1/(1+(fabs(mi-(division_times[ni]/4.0))/(division_times[ni]/4.0))**2)+0.69*mi**6/(mi**6+division_times[ni]**6)
             ccej = 1/(1+(fabs(mj-(division_times[nj]/4.0))/(division_times[nj]/4.0))**2)+0.69*mj**6/(mj**6+division_times[nj]**6)
-            Peff[x]=vx*Pmax*(p_n[ni]*ccei)*(p_n[nj]*ccej)
+            Peff[x]=vx*Pmax#*(p_n[ni]*ccei)*(p_n[nj]*ccej)
 
         #print(np.array(np.min(Peff)))       #min is 1.187e-05
         #print(np.array(np.max(Peff)))       #max is 0.0002

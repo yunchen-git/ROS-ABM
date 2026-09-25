@@ -13,7 +13,7 @@ from zread_gpickle import network_radius
 def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
     #Start time, end time, time step
     ts = 0
-    te = 600
+    te = 60
     dt = 1
 
     x = 750
@@ -102,7 +102,7 @@ def main(n,path,inhib_value,inhib_type,inhib_time,inhib_time1, c):
                     celltype_param,division_times,sync_time)
     sim.add_interC(H2O2i)
 
-    Ca = IntC_Diff("Ca",maxCells,D_Ca, ddim,10*Pmax,open_prob,              #create instance of IntC_Diff class
+    Ca = IntC_Diff("Ca",maxCells,D_Ca, ddim,2*Pmax,open_prob,              #create instance of IntC_Diff class
                     celltype_param,division_times,sync_time)
     sim.add_interC(Ca)
 

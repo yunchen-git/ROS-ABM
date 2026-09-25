@@ -25344,7 +25344,7 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
   CYTHON_UNUSED __Pyx_memviewslice __pyx_v_dp = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_memviewslice __pyx_v_C = { 0, 0, { 0 }, { 0 }, { 0 } };
   CYTHON_UNUSED __Pyx_memviewslice __pyx_v_cce = { 0, 0, { 0 }, { 0 }, { 0 } };
-  __Pyx_memviewslice __pyx_v_p_n = { 0, 0, { 0 }, { 0 }, { 0 } };
+  CYTHON_UNUSED __Pyx_memviewslice __pyx_v_p_n = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_memviewslice __pyx_v_division_times = { 0, 0, { 0 }, { 0 }, { 0 } };
   CYTHON_UNUSED __Pyx_memviewslice __pyx_v_inh = { 0, 0, { 0 }, { 0 }, { 0 } };
   __Pyx_memviewslice __pyx_v_Peff = { 0, 0, { 0 }, { 0 }, { 0 } };
@@ -25361,8 +25361,8 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
   double __pyx_v_Pmax;
   double __pyx_v_vx;
   double __pyx_v_dt;
-  double __pyx_v_ccei;
-  double __pyx_v_ccej;
+  CYTHON_UNUSED double __pyx_v_ccei;
+  CYTHON_UNUSED double __pyx_v_ccej;
   PyObject *__pyx_r = NULL;
   __Pyx_RefNannyDeclarations
   int __pyx_t_1;
@@ -25382,8 +25382,8 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
   double __pyx_t_15;
   double __pyx_t_16;
   long __pyx_t_17;
-  Py_ssize_t __pyx_t_18;
-  int __pyx_t_19;
+  int __pyx_t_18;
+  Py_ssize_t __pyx_t_19;
   Py_ssize_t __pyx_t_20;
   Py_ssize_t __pyx_t_21;
   Py_ssize_t __pyx_t_22;
@@ -25706,7 +25706,7 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
  *             mj=state[j,1]
  *             ccei = 1/(1+(fabs(mi-(division_times[ni]/4.0))/(division_times[ni]/4.0))**2)+0.69*mi**6/(mi**6+division_times[ni]**6)             # <<<<<<<<<<<<<<
  *             ccej = 1/(1+(fabs(mj-(division_times[nj]/4.0))/(division_times[nj]/4.0))**2)+0.69*mj**6/(mj**6+division_times[nj]**6)
- *             Peff[x]=vx*Pmax*(p_n[ni]*ccei)*(p_n[nj]*ccej)
+ *             Peff[x]=vx*Pmax#*(p_n[ni]*ccei)*(p_n[nj]*ccej)
  */
     __pyx_t_13 = __pyx_v_ni;
     __pyx_t_10 = fabs((__pyx_v_mi - (((double)(*((int *) ( /* dim=0 */ (__pyx_v_division_times.data + __pyx_t_13 * __pyx_v_division_times.strides[0]) )))) / 4.0)));
@@ -25734,7 +25734,7 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
  *             mj=state[j,1]
  *             ccei = 1/(1+(fabs(mi-(division_times[ni]/4.0))/(division_times[ni]/4.0))**2)+0.69*mi**6/(mi**6+division_times[ni]**6)
  *             ccej = 1/(1+(fabs(mj-(division_times[nj]/4.0))/(division_times[nj]/4.0))**2)+0.69*mj**6/(mj**6+division_times[nj]**6)             # <<<<<<<<<<<<<<
- *             Peff[x]=vx*Pmax*(p_n[ni]*ccei)*(p_n[nj]*ccej)
+ *             Peff[x]=vx*Pmax#*(p_n[ni]*ccei)*(p_n[nj]*ccej)
  * 
  */
     __pyx_t_13 = __pyx_v_nj;
@@ -25762,14 +25762,12 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
     /* "IntC_diff.pyx":286
  *             ccei = 1/(1+(fabs(mi-(division_times[ni]/4.0))/(division_times[ni]/4.0))**2)+0.69*mi**6/(mi**6+division_times[ni]**6)
  *             ccej = 1/(1+(fabs(mj-(division_times[nj]/4.0))/(division_times[nj]/4.0))**2)+0.69*mj**6/(mj**6+division_times[nj]**6)
- *             Peff[x]=vx*Pmax*(p_n[ni]*ccei)*(p_n[nj]*ccej)             # <<<<<<<<<<<<<<
+ *             Peff[x]=vx*Pmax#*(p_n[ni]*ccei)*(p_n[nj]*ccej)             # <<<<<<<<<<<<<<
  * 
  *         #print(np.array(np.min(Peff)))       #min is 1.187e-05
  */
-    __pyx_t_13 = __pyx_v_ni;
-    __pyx_t_14 = __pyx_v_nj;
-    __pyx_t_18 = __pyx_v_x;
-    *((double *) ( /* dim=0 */ (__pyx_v_Peff.data + __pyx_t_18 * __pyx_v_Peff.strides[0]) )) = (((__pyx_v_vx * __pyx_v_Pmax) * ((*((double *) ( /* dim=0 */ (__pyx_v_p_n.data + __pyx_t_13 * __pyx_v_p_n.strides[0]) ))) * __pyx_v_ccei)) * ((*((double *) ( /* dim=0 */ (__pyx_v_p_n.data + __pyx_t_14 * __pyx_v_p_n.strides[0]) ))) * __pyx_v_ccej));
+    __pyx_t_13 = __pyx_v_x;
+    *((double *) ( /* dim=0 */ (__pyx_v_Peff.data + __pyx_t_13 * __pyx_v_Peff.strides[0]) )) = (__pyx_v_vx * __pyx_v_Pmax);
   }
 
   /* "IntC_diff.pyx":290
@@ -25780,8 +25778,8 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
  *                 i=nbs[x,0]
  */
   while (1) {
-    __pyx_t_19 = (__pyx_v_t < __pyx_v_tend);
-    if (!__pyx_t_19) break;
+    __pyx_t_18 = (__pyx_v_t < __pyx_v_tend);
+    if (!__pyx_t_18) break;
 
     /* "IntC_diff.pyx":291
  *         #print(np.array(np.max(Peff)))       #max is 0.0002
@@ -25802,9 +25800,9 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
  *                 j=nbs[x,1]
  *                 ni =state[i,0]
  */
-      __pyx_t_14 = __pyx_v_x;
-      __pyx_t_13 = 0;
-      __pyx_v_i = (*((int *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_nbs.data + __pyx_t_14 * __pyx_v_nbs.strides[0]) ) + __pyx_t_13 * __pyx_v_nbs.strides[1]) )));
+      __pyx_t_13 = __pyx_v_x;
+      __pyx_t_14 = 0;
+      __pyx_v_i = (*((int *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_nbs.data + __pyx_t_13 * __pyx_v_nbs.strides[0]) ) + __pyx_t_14 * __pyx_v_nbs.strides[1]) )));
 
       /* "IntC_diff.pyx":293
  *             for x in range(edges):
@@ -25813,9 +25811,9 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
  *                 ni =state[i,0]
  *                 C[i,1]=C[i,1]+Peff[x]*(C[j,0]-C[i,0])
  */
-      __pyx_t_13 = __pyx_v_x;
-      __pyx_t_14 = 1;
-      __pyx_v_j = (*((int *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_nbs.data + __pyx_t_13 * __pyx_v_nbs.strides[0]) ) + __pyx_t_14 * __pyx_v_nbs.strides[1]) )));
+      __pyx_t_14 = __pyx_v_x;
+      __pyx_t_13 = 1;
+      __pyx_v_j = (*((int *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_nbs.data + __pyx_t_14 * __pyx_v_nbs.strides[0]) ) + __pyx_t_13 * __pyx_v_nbs.strides[1]) )));
 
       /* "IntC_diff.pyx":294
  *                 i=nbs[x,0]
@@ -25824,9 +25822,9 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
  *                 C[i,1]=C[i,1]+Peff[x]*(C[j,0]-C[i,0])
  *                 C[j,1]=C[j,1]+Peff[x]*(C[i,0]-C[j,0])
  */
-      __pyx_t_14 = __pyx_v_i;
-      __pyx_t_13 = 0;
-      __pyx_v_ni = (*((long *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_state.data + __pyx_t_14 * __pyx_v_state.strides[0]) ) + __pyx_t_13 * __pyx_v_state.strides[1]) )));
+      __pyx_t_13 = __pyx_v_i;
+      __pyx_t_14 = 0;
+      __pyx_v_ni = (*((long *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_state.data + __pyx_t_13 * __pyx_v_state.strides[0]) ) + __pyx_t_14 * __pyx_v_state.strides[1]) )));
 
       /* "IntC_diff.pyx":295
  *                 j=nbs[x,1]
@@ -25835,16 +25833,16 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
  *                 C[j,1]=C[j,1]+Peff[x]*(C[i,0]-C[j,0])
  *                 #C[i,1]=C[i,1]+(C[j,0]-C[i,0])*vx
  */
-      __pyx_t_13 = __pyx_v_i;
-      __pyx_t_14 = 1;
-      __pyx_t_18 = __pyx_v_x;
+      __pyx_t_14 = __pyx_v_i;
+      __pyx_t_13 = 1;
+      __pyx_t_19 = __pyx_v_x;
       __pyx_t_20 = __pyx_v_j;
       __pyx_t_21 = 0;
       __pyx_t_22 = __pyx_v_i;
       __pyx_t_23 = 0;
       __pyx_t_24 = __pyx_v_i;
       __pyx_t_25 = 1;
-      *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_24 * __pyx_v_C.strides[0]) ) + __pyx_t_25 * __pyx_v_C.strides[1]) )) = ((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_13 * __pyx_v_C.strides[0]) ) + __pyx_t_14 * __pyx_v_C.strides[1]) ))) + ((*((double *) ( /* dim=0 */ (__pyx_v_Peff.data + __pyx_t_18 * __pyx_v_Peff.strides[0]) ))) * ((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_20 * __pyx_v_C.strides[0]) ) + __pyx_t_21 * __pyx_v_C.strides[1]) ))) - (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_22 * __pyx_v_C.strides[0]) ) + __pyx_t_23 * __pyx_v_C.strides[1]) ))))));
+      *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_24 * __pyx_v_C.strides[0]) ) + __pyx_t_25 * __pyx_v_C.strides[1]) )) = ((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_14 * __pyx_v_C.strides[0]) ) + __pyx_t_13 * __pyx_v_C.strides[1]) ))) + ((*((double *) ( /* dim=0 */ (__pyx_v_Peff.data + __pyx_t_19 * __pyx_v_Peff.strides[0]) ))) * ((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_20 * __pyx_v_C.strides[0]) ) + __pyx_t_21 * __pyx_v_C.strides[1]) ))) - (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_22 * __pyx_v_C.strides[0]) ) + __pyx_t_23 * __pyx_v_C.strides[1]) ))))));
 
       /* "IntC_diff.pyx":296
  *                 ni =state[i,0]
@@ -25857,12 +25855,12 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
       __pyx_t_22 = 1;
       __pyx_t_21 = __pyx_v_x;
       __pyx_t_20 = __pyx_v_i;
-      __pyx_t_18 = 0;
-      __pyx_t_14 = __pyx_v_j;
-      __pyx_t_13 = 0;
+      __pyx_t_19 = 0;
+      __pyx_t_13 = __pyx_v_j;
+      __pyx_t_14 = 0;
       __pyx_t_25 = __pyx_v_j;
       __pyx_t_24 = 1;
-      *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_25 * __pyx_v_C.strides[0]) ) + __pyx_t_24 * __pyx_v_C.strides[1]) )) = ((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_23 * __pyx_v_C.strides[0]) ) + __pyx_t_22 * __pyx_v_C.strides[1]) ))) + ((*((double *) ( /* dim=0 */ (__pyx_v_Peff.data + __pyx_t_21 * __pyx_v_Peff.strides[0]) ))) * ((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_20 * __pyx_v_C.strides[0]) ) + __pyx_t_18 * __pyx_v_C.strides[1]) ))) - (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_14 * __pyx_v_C.strides[0]) ) + __pyx_t_13 * __pyx_v_C.strides[1]) ))))));
+      *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_25 * __pyx_v_C.strides[0]) ) + __pyx_t_24 * __pyx_v_C.strides[1]) )) = ((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_23 * __pyx_v_C.strides[0]) ) + __pyx_t_22 * __pyx_v_C.strides[1]) ))) + ((*((double *) ( /* dim=0 */ (__pyx_v_Peff.data + __pyx_t_21 * __pyx_v_Peff.strides[0]) ))) * ((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_20 * __pyx_v_C.strides[0]) ) + __pyx_t_19 * __pyx_v_C.strides[1]) ))) - (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_13 * __pyx_v_C.strides[0]) ) + __pyx_t_14 * __pyx_v_C.strides[1]) ))))));
     }
 
     /* "IntC_diff.pyx":300
@@ -25884,9 +25882,9 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
  *                 if C[i,0]<0:
  *                     C[i,0]=0
  */
-      __pyx_t_13 = __pyx_v_i;
-      __pyx_t_14 = 0;
-      __pyx_v_ni = (*((long *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_state.data + __pyx_t_13 * __pyx_v_state.strides[0]) ) + __pyx_t_14 * __pyx_v_state.strides[1]) )));
+      __pyx_t_14 = __pyx_v_i;
+      __pyx_t_13 = 0;
+      __pyx_v_ni = (*((long *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_state.data + __pyx_t_14 * __pyx_v_state.strides[0]) ) + __pyx_t_13 * __pyx_v_state.strides[1]) )));
 
       /* "IntC_diff.pyx":302
  *             for i in range(dim):
@@ -25895,10 +25893,10 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
  *                     C[i,0]=0
  *                 elif math.isnan(C[i,0]):
  */
-      __pyx_t_14 = __pyx_v_i;
-      __pyx_t_13 = 0;
-      __pyx_t_19 = ((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_14 * __pyx_v_C.strides[0]) ) + __pyx_t_13 * __pyx_v_C.strides[1]) ))) < 0.0);
-      if (__pyx_t_19) {
+      __pyx_t_13 = __pyx_v_i;
+      __pyx_t_14 = 0;
+      __pyx_t_18 = ((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_13 * __pyx_v_C.strides[0]) ) + __pyx_t_14 * __pyx_v_C.strides[1]) ))) < 0.0);
+      if (__pyx_t_18) {
 
         /* "IntC_diff.pyx":303
  *                 ni =state[i,0]
@@ -25907,9 +25905,9 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
  *                 elif math.isnan(C[i,0]):
  *                     C[i,0]=0
  */
-        __pyx_t_13 = __pyx_v_i;
-        __pyx_t_14 = 0;
-        *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_13 * __pyx_v_C.strides[0]) ) + __pyx_t_14 * __pyx_v_C.strides[1]) )) = 0.0;
+        __pyx_t_14 = __pyx_v_i;
+        __pyx_t_13 = 0;
+        *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_14 * __pyx_v_C.strides[0]) ) + __pyx_t_13 * __pyx_v_C.strides[1]) )) = 0.0;
 
         /* "IntC_diff.pyx":302
  *             for i in range(dim):
@@ -25933,9 +25931,9 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
       __pyx_t_7 = __Pyx_PyObject_GetAttrStr(__pyx_t_3, __pyx_n_s_isnan); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 304, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_7);
       __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
-      __pyx_t_14 = __pyx_v_i;
-      __pyx_t_13 = 0;
-      __pyx_t_3 = PyFloat_FromDouble((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_14 * __pyx_v_C.strides[0]) ) + __pyx_t_13 * __pyx_v_C.strides[1]) )))); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 304, __pyx_L1_error)
+      __pyx_t_13 = __pyx_v_i;
+      __pyx_t_14 = 0;
+      __pyx_t_3 = PyFloat_FromDouble((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_13 * __pyx_v_C.strides[0]) ) + __pyx_t_14 * __pyx_v_C.strides[1]) )))); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 304, __pyx_L1_error)
       __Pyx_GOTREF(__pyx_t_3);
       __pyx_t_26 = NULL;
       __pyx_t_27 = 0;
@@ -25960,9 +25958,9 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
         __Pyx_GOTREF(__pyx_t_8);
         __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
       }
-      __pyx_t_19 = __Pyx_PyObject_IsTrue(__pyx_t_8); if (unlikely((__pyx_t_19 < 0))) __PYX_ERR(0, 304, __pyx_L1_error)
+      __pyx_t_18 = __Pyx_PyObject_IsTrue(__pyx_t_8); if (unlikely((__pyx_t_18 < 0))) __PYX_ERR(0, 304, __pyx_L1_error)
       __Pyx_DECREF(__pyx_t_8); __pyx_t_8 = 0;
-      if (__pyx_t_19) {
+      if (__pyx_t_18) {
 
         /* "IntC_diff.pyx":305
  *                     C[i,0]=0
@@ -25971,9 +25969,9 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
  * 
  *                 C[i,0]=C[i,0]+C[i,1]
  */
-        __pyx_t_13 = __pyx_v_i;
-        __pyx_t_14 = 0;
-        *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_13 * __pyx_v_C.strides[0]) ) + __pyx_t_14 * __pyx_v_C.strides[1]) )) = 0.0;
+        __pyx_t_14 = __pyx_v_i;
+        __pyx_t_13 = 0;
+        *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_14 * __pyx_v_C.strides[0]) ) + __pyx_t_13 * __pyx_v_C.strides[1]) )) = 0.0;
 
         /* "IntC_diff.pyx":304
  *                 if C[i,0]<0:
@@ -25992,13 +25990,13 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
  *                 #print(C[i,1]*tend/dt, C[i,0], dt, vx, Pmax)
  *                 C[i,1]=0.0
  */
-      __pyx_t_14 = __pyx_v_i;
-      __pyx_t_13 = 0;
-      __pyx_t_18 = __pyx_v_i;
+      __pyx_t_13 = __pyx_v_i;
+      __pyx_t_14 = 0;
+      __pyx_t_19 = __pyx_v_i;
       __pyx_t_20 = 1;
       __pyx_t_21 = __pyx_v_i;
       __pyx_t_22 = 0;
-      *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_21 * __pyx_v_C.strides[0]) ) + __pyx_t_22 * __pyx_v_C.strides[1]) )) = ((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_14 * __pyx_v_C.strides[0]) ) + __pyx_t_13 * __pyx_v_C.strides[1]) ))) + (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_18 * __pyx_v_C.strides[0]) ) + __pyx_t_20 * __pyx_v_C.strides[1]) ))));
+      *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_21 * __pyx_v_C.strides[0]) ) + __pyx_t_22 * __pyx_v_C.strides[1]) )) = ((*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_13 * __pyx_v_C.strides[0]) ) + __pyx_t_14 * __pyx_v_C.strides[1]) ))) + (*((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_19 * __pyx_v_C.strides[0]) ) + __pyx_t_20 * __pyx_v_C.strides[1]) ))));
 
       /* "IntC_diff.pyx":309
  *                 C[i,0]=C[i,0]+C[i,1]
@@ -26008,8 +26006,8 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
  * 
  */
       __pyx_t_20 = __pyx_v_i;
-      __pyx_t_18 = 1;
-      *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_20 * __pyx_v_C.strides[0]) ) + __pyx_t_18 * __pyx_v_C.strides[1]) )) = 0.0;
+      __pyx_t_19 = 1;
+      *((double *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_C.data + __pyx_t_20 * __pyx_v_C.strides[0]) ) + __pyx_t_19 * __pyx_v_C.strides[1]) )) = 0.0;
     }
 
     /* "IntC_diff.pyx":310
@@ -26041,9 +26039,9 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
  * 
  *     @cython.boundscheck(False)
  */
-    __pyx_t_18 = __pyx_v_i;
+    __pyx_t_19 = __pyx_v_i;
     __pyx_t_20 = 1;
-    __pyx_t_8 = __Pyx_PyInt_From_long((*((long *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_state.data + __pyx_t_18 * __pyx_v_state.strides[0]) ) + __pyx_t_20 * __pyx_v_state.strides[1]) )))); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 313, __pyx_L1_error)
+    __pyx_t_8 = __Pyx_PyInt_From_long((*((long *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_state.data + __pyx_t_19 * __pyx_v_state.strides[0]) ) + __pyx_t_20 * __pyx_v_state.strides[1]) )))); if (unlikely(!__pyx_t_8)) __PYX_ERR(0, 313, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_8);
     __pyx_t_7 = PyNumber_Add(__pyx_t_8, __pyx_v_te); if (unlikely(!__pyx_t_7)) __PYX_ERR(0, 313, __pyx_L1_error)
     __Pyx_GOTREF(__pyx_t_7);
@@ -26051,8 +26049,8 @@ static PyObject *__pyx_pf_9IntC_diff_9IntC_Diff_22update_C1(CYTHON_UNUSED PyObje
     __pyx_t_17 = __Pyx_PyInt_As_long(__pyx_t_7); if (unlikely((__pyx_t_17 == (long)-1) && PyErr_Occurred())) __PYX_ERR(0, 313, __pyx_L1_error)
     __Pyx_DECREF(__pyx_t_7); __pyx_t_7 = 0;
     __pyx_t_20 = __pyx_v_i;
-    __pyx_t_18 = 1;
-    *((long *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_state.data + __pyx_t_20 * __pyx_v_state.strides[0]) ) + __pyx_t_18 * __pyx_v_state.strides[1]) )) = __pyx_t_17;
+    __pyx_t_19 = 1;
+    *((long *) ( /* dim=1 */ (( /* dim=0 */ (__pyx_v_state.data + __pyx_t_20 * __pyx_v_state.strides[0]) ) + __pyx_t_19 * __pyx_v_state.strides[1]) )) = __pyx_t_17;
   }
 
   /* "IntC_diff.pyx":251

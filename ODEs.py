@@ -3,7 +3,7 @@ from scipy.integrate import odeint, solve_ivp
 import random
 
 def get_k():
-        k = np.zeros(63)
+        k = np.zeros(61)
         k[0] = 2e-4 # Permeability constant (plasma membrane) (cm/s)
         k[1] = 1.1e-7 # Intracellular peroxide production (M/s)
         k[2] = 2.1e7 # GPx_red reacting with H2O2in (M-1*s-1)
@@ -33,57 +33,54 @@ def get_k():
         k[26] = 7.45e-10 # Trx_SH efflux (M/s)
         k[27] = 6.97e-10 # Trx_SH synthesis (M/s)
 
-        # IP3R: passive ER calcium flux: k[28]–k[36]
-        k[28] = 0.038  # P_IP3R: passive flux coefficient (s^-1); Han et al. model benchmark, doi:10.1371/journal.pcbi.1005275
-        k[29] = 1e-7  # K_IP3R_H: H2O2 half-activation constant (M)
-        k[30] = 4.0  # n_IP3R_H: H2O2 activation Hill exponent (dimensionless)
-        k[31] = 5e-7  # K_IP3R_Ca: cytosolic Ca half-activation constant (M)
-        k[32] = 2.0  # n_IP3R_Ca: cytosolic Ca activation Hill exponent (dimensionless)
-        k[33] = 5e-7  # K_IP3R_H_inhib: H2O2 half-inhibition constant (M)
-        k[34] = 2.0  # m_IP3R_H_inhib: H2O2 inhibition Hill exponent (dimensionless)
-        k[35] = 5e-5  # K_IP3R_Ca_inhib: cytosolic Ca half-inhibition constant (M)
-        k[36] = 2.0  # m_IP3R_Ca_inhib: cytosolic Ca inhibition Hill exponent (dimensionless; R37)
+        # IP3R: passive ER calcium flux: k[28]–k[33]
+        k[28] = 0.222  # P_IP3R: passive flux coefficient (s^-1); Han et al. model benchmark, doi:10.1371/journal.pcbi.1005275
+        k[29] = 2e-7 # K_IP3R_H: H2O2 half-activation constant (M)
+        k[30] = 2.1e-7  # K_IP3R_Ca: cytosolic Ca half-activation constant (M)
+        k[31] = 2.0  # n_IP3R_Ca: cytosolic Ca activation Hill exponent (dimensionless)
+        k[32] = 5.4e-5  # K_IP3R_Ca_inhib: cytosolic Ca half-inhibition constant (M)
+        k[33] = 4.0  # m_IP3R_Ca_inhib: cytosolic Ca inhibition Hill exponent (dimensionless; R34)
 
-        # SERCA and ER capacity: k[37]–k[43]
-        k[37] = 1e-5  # V_SERCA: uptake-flux scale before ER-capacity gating (M/s)
-        k[38] = 0.23e-6  # K_ser: cytosolic Ca half-activation constant (M); doi:10.1074/jbc.M114.585604
-        k[39] = 2  # n_SERCA: cytosolic Ca activation Hill exponent (dimensionless)
-        k[40] = 1e-5  # K_SERCA_H: H2O2 half-inhibition constant (M)
-        k[41] = 2.0  # m_SERCA_H: H2O2 inhibition Hill exponent (dimensionless)
-        k[42] = 1.1e-4  # ER Ca capacity used to gate SERCA uptake (M)
-        k[43] = 1e-2  # Intended ER overflow-release rate constant (s^-1)
+        # SERCA and ER capacity: k[34]–k[39]
+        k[34] = 9e-7  # V_SERCA: uptake-flux scale before ER-capacity gating (M/s)
+        k[35] = 0.17e-6  # K_ser: cytosolic Ca half-activation constant (M); doi:10.1074/jbc.M114.585604
+        k[36] = 1.75  # n_SERCA: cytosolic Ca activation Hill exponent (dimensionless)
+        k[37] = 6.9e-5  # K_SERCA_H: H2O2 half-inhibition constant (M)
+        k[38] = 7.4e-4  # ER Ca capacity used to gate SERCA uptake (M)
+        k[39] = 1e-2  # Intended ER overflow-release rate constant (s^-1)
 
-        # TRPM2: plasma-membrane calcium influx: k[44]–k[48]
-        k[44] = 9e-7  # P_TRPM2: effective Ca-influx coefficient (s^-1)
-        k[45] = 5e-5  # K_TRPM2_H: H2O2 half-activation constant (M)
-        k[46] = 4.0  # p_TRPM2: H2O2 activation Hill exponent (dimensionless)
-        k[47] = 16.9e-6  # K_TRPM2_Ca: cytosolic Ca half-activation constant (M); doi:10.1073/pnas.0811725106
-        k[48] = 2  # n_TRPM2_Ca: cytosolic Ca activation Hill exponent (dimensionless)
+        # TRPM2: plasma-membrane calcium influx: k[40]–k[44]
+        k[40] = 0.03  # P_TRPM2: effective Ca-influx coefficient (s^-1)
+        k[41] = 5e-5  # K_TRPM2_H: H2O2 half-activation constant (M)
+        k[42] = 4.0  # p_TRPM2: H2O2 activation Hill exponent (dimensionless)
+        k[43] = 16.9e-6  # K_TRPM2_Ca: cytosolic Ca half-activation constant (M); doi:10.1073/pnas.0811725106
+        k[44] = 1.3  # n_TRPM2_Ca: cytosolic Ca activation Hill exponent (dimensionless)
 
-        # SOCE: store-operated calcium influx: k[49]–k[50]
-        k[49] = 1e-7  # P_SOCE: effective Ca-influx coefficient (s^-1)
-        k[50] = 1e-5  # K_store: ER Ca concentration for half-maximal SOCE gating (M)
+        # SOCE: store-operated calcium influx: k[45]–k[46]
+        k[45] = 3e-7  # P_SOCE: effective Ca-influx coefficient (M/s)
+        k[46] = 1.69e-4  # K_store: ER Ca concentration for half-maximal SOCE gating (M)
 
-        # Cytosolic calcium extrusion: k[51]
-        k[51] = 0.11  # V_out: maximum Ca-extrusion flux in J_out (M/s, as implemented)
+        # PMCA: cytosolic calcium extrusion: k[47]–k[48]
+        k[47] = 3.3e-8  # Vmax_PMCA: maximum PMCA Ca-extrusion flux (M/s)
+        k[48] = 0.45e-6  # K_PMCA_Ca: cytosolic Ca concentration for half-maximal PMCA activation (M)
 
-        # NOX2: k[52]–k[53]
-        k[52] = 3.7e-5  # Maximum NOX2-associated extracellular H2O2 source (M/s)
-        k[53] = 1e-7  # Cytosolic H2O2 half-activation constant for NOX2 (M)
+        # NOX2: H2O2 activation with NADPH limitation: k[49]–k[51]
+        k[49] = 3.7e-5  # Maximum NOX2-associated extracellular H2O2 source (M/s)
+        k[50] = 1e-4  # Cytosolic H2O2 half-activation constant for NOX2 (M)
+        k[51] = 4e-5  # Km_NOX2_NADPH: NADPH half-saturation constant (M); adopted from human neutrophils, Clark et al. (1987), PMID:3031060
 
-        # NOX5: calcium-dependent ROS production: k[54]–k[57]
-        # Original commented alternative: 8.7e-3
-        k[54] = 2.2e-4  # Vmax_NOX5: maximum cytosolic H2O2 source (M/s); doi:10.1016/j.redox.2020.101656
-        k[55] = 0.71e-6  # K_Ca_NOX5: Ca half-activation constant (M); doi:10.1038/s41467-024-48467-y
-        k[56] = 4.0  # m_NOX5: Ca activation Hill exponent (dimensionless)
-        k[57] = 13.67e-6  # Km_NOX5_NADPH: NADPH half-saturation constant (M); doi:10.1038/s41467-024-48467-y
+        # NOX5: calcium-dependent ROS production: k[52]–k[55]
+        k[52] = 2.2e-4  # Vmax_NOX5: maximum cytosolic H2O2 source (M/s); doi:10.1016/j.redox.2020.101656
+        k[53] = 0.71e-6  # K_Ca_NOX5: Ca half-activation constant (M); doi:10.1038/s41467-024-48467-y
+        k[54] = 2.0  # m_NOX5: Ca activation Hill exponent (dimensionless)
+        k[55] = 13.67e-6  # Km_NOX5_NADPH: NADPH half-saturation constant (M); doi:10.1038/s41467-024-48467-y
 
-        # DUOX: calcium-dependent NADPH affinity: k[58]–k[62]
-        k[58] = 1e-9  # Vmax_DUOX: maximum extracellular H2O2 source (M/s, as implemented)
-        k[59] = 0.87e-6  # K_DUOX_Ca: midpoint of the Ca-dependent NADPH-affinity switch (M)
-        k[60] = 4  # m_DUOX: Ca-dependent affinity-switch Hill exponent (dimensionless)
-        k[61] = 24.31e-6  # Km_DUOX_NADPH_low_Ca: positive low-Ca limit (M)
-        k[62] = 11.52e-6  # Km_DUOX_NADPH_high_Ca: high-Ca limit (M)
+        # DUOX: calcium-dependent NADPH affinity: k[56]–k[60]
+        k[56] = 1e-9  # Vmax_DUOX: maximum extracellular H2O2 source (M/s, as implemented)
+        k[57] = 0.38e-6  # K_DUOX_Ca: midpoint of the Ca-dependent NADPH-affinity switch (M)
+        k[58] = 4  # m_DUOX: Ca-dependent affinity-switch Hill exponent (dimensionless)
+        k[59] = 24.31e-6  # Km_DUOX_NADPH_low_Ca: positive low-Ca limit (M)
+        k[60] = 11.52e-6  # Km_DUOX_NADPH_high_Ca: high-Ca limit (M)
 
         return k
 
@@ -142,51 +139,52 @@ def model_noref(x, t, k, x_base):
     Cer = x[27]    # Ca ER pool
 
     # Unpack from k
-    P_IP3R     = k[28]; K_IP3R_H = k[29]; nH = k[30]
-    V_SERCA   = k[37]; K_ser    = k[38]; K_SERCA_H = k[40]; m_inhib = k[41]
-    P_TRPM2   = k[44]; K_TRPM2_H= k[45]; p_TRPM2 = k[46]
-    P_SOCE    = k[49]; K_store  = k[50]
-    k_out     = k[39]
-    Vmax_NOX5 = k[54]; K_Ca     = k[55]; m_nox = k[56]
+    P_IP3R     = k[28]; K_IP3R_H = k[29]
+    V_SERCA   = k[34]; K_ser    = k[35]; K_SERCA_H = k[37]
+    P_TRPM2   = k[40]; K_TRPM2_H= k[41]; p_TRPM2 = k[42]
+    V_SOCE    = k[45]; K_store  = k[46]
+    Vmax_NOX5 = k[52]; K_Ca     = k[53]; m_nox = k[54]
 
     ##  Helper gates (pure functions of species & k)
-    Ca_gate_IP3R = (x[25])**k[32] / (k[31]**k[32] + (x[25])**k[32]) if x[25] > 0 else 0.0 # Activated by cyt Ca
-    Ca_IP3R_inhib = 1.0/(1.0 + (x[25]/k[35])**k[36]) if x[25] > 0 else 0.0 # Inhibited by high Ca
-    h2o2_gate_IP3R = (H**nH)/(K_IP3R_H**nH + H**nH) if H > 0 else 0.0 # activation by H2o2
-    H2O2_inhibit_IP3R = (k[33]**k[34]) / (k[33]**k[34] + H**k[34]) if H > 0 else 0.0 # inhibition by very high H2O2
+    Ca_gate_IP3R = (x[25])**k[31] / (k[30]**k[31] + (x[25])**k[31]) if x[25] > 0 else 0.0 # Activated by cyt Ca
+    Ca_IP3R_inhib = 1.0/(1.0 + (x[25]/k[32])**k[33]) if x[25] > 0 else 0.0 # Inhibited by high Ca
+    h2o2_gate_IP3R = H / (K_IP3R_H + H) if H > 0 else 0.0 # activation by H2o2
 
-    SERCA_inhb = 1.0/(1.0 + (H/K_SERCA_H)**m_inhib) if H > 0 else 1.0
+    SERCA_inhb = 1.0 / (1.0 + H / K_SERCA_H) if H > 0 else 1.0
     H2O2_gate_TRPM2 = (H**p_TRPM2)/(K_TRPM2_H**p_TRPM2 + H**p_TRPM2) if H > 0 else 0.0
-    Ca_gate_TRPM2 = (x[25]**k[48])/((k[47]**k[48]) + (x[25]**k[48])) if x[25] > 0 else 0.0
+    Ca_gate_TRPM2 = (x[25]**k[44])/((k[43]**k[44]) + (x[25]**k[44])) if x[25] > 0 else 0.0
     SOCE_drive = K_store/(K_store + Cer)       # ramps as ER calcium depletes
 
     # fluxes
     # Signed passive flux (M/s): positive from ER to cytosol; reverses with the gradient.
     J_IP3R = (P_IP3R * h2o2_gate_IP3R * Ca_gate_IP3R
-              * Ca_IP3R_inhib * H2O2_inhibit_IP3R * (Cer - C))
+              * Ca_IP3R_inhib * (Cer - C))
 
-    J_SERCA   = V_SERCA * (C**k[39]/(k[38]**k[39] + C**k[39])) * SERCA_inhb if C > 0 else 0.0 # cyt -> ER uptake by SERCA
+    J_SERCA   = V_SERCA * (C**k[36]/(k[35]**k[36] + C**k[36])) * SERCA_inhb if C > 0 else 0.0 # cyt -> ER uptake by SERCA
     J_in_TRPM2= P_TRPM2 * H2O2_gate_TRPM2 * Ca_gate_TRPM2 * (x[26] - x[25]) if (x[26] - x[25]) > 0 else 0.0 # PM influx via TRPM2
-    J_in_SOCE = P_SOCE  * SOCE_drive * (x[26] - x[25]) if (x[26] - x[25]) > 0 else 0.0 # PM influx via SOCE to restore ER
+    J_in_SOCE = V_SOCE  * SOCE_drive
 
     # --- ER capacity gating for SERCA (prevents overfilling) ---
-    cap = 1.0 - (x[27] / k[42])         # linear headroom fraction
+    cap = 1.0 - (x[27] / k[38])         # linear headroom fraction
     cap = 0.0 if cap < 0.0 else cap   # clamp to [0, 1]
     J_SERCA *= cap                    # SERCA stops as ER approaches capacity
 
-    # --- Overflow if ER exceeds the cap (hard push back to cytosol) ---
-    J_over = k[43] * cap * x[27] if cap < 0.0 else 0.0
-    J_out = k[51] * (x[25])/ (5e-6 + (x[25]))  if x[25] > 0 else 0.0 # cytosolic Ca extrusion (PMCA/NCX lumped)
-    # --- NOX5 Ca-dependent ROS production ---
-    nox2 = k[52] * (x[1]**6)/(k[53]**6 + x[1]**6) if x[1] > 0 else 0.0 #nox2
+    # Overflow if ER exceeds the cap (hard push back to cytosol)
+    J_over = k[39] * max(x[27] - k[38], 0.0)
+    J_out = k[47] * x[25] / (k[48] + x[25]) if x[25] > 0 else 0.0 # PMCA-mediated cytosolic Ca extrusion (M/s)
+    # NOX2 with H2O2 activation and NADPH limitation
+    nox2 = (k[49] * x[1]/(k[50] + x[1])
+            * x[22]/(k[51] + x[22])) if x[1] > 0 and x[22] > 0 else 0.0
     # NOX5 with NADPH limitation
-    nox5 = k[54] * (x[25]**k[56])/(k[55]**k[56] + x[25]**k[56]) \
-                * (x[22]/(k[57] + x[22])) if x[25] > 0 or x[22] > 0 else 0.0
+    nox5 = k[52] * (x[25]**k[54])/(k[53]**k[54] + x[25]**k[54]) \
+                * (x[22]/(k[55] + x[22])) if x[25] > 0 or x[22] > 0 else 0.0
 
-    km_duox = k[61] - (k[61] - k[62]) * (x[25]**k[60])/(k[59]**k[60] + x[25]**k[60]) if x[25] > 0 else k[62]
-    duox = k[58] * x[22]/(km_duox + x[22])
+    km_duox = k[59] - (k[59] - k[60]) * (x[25]**k[58])/(k[57]**k[58] + x[25]**k[58]) if x[25] > 0 else k[60]
+    duox = k[56] * x[22]/(km_duox + x[22])
 
-    dxdt[0] = (k[0]*(x[1] - x[0]) * 1e-3 * 5.3e-6 * (1e9)) + nox2 + duox   # extracellular peroxide
+    # --- ODEs ---
+
+    dxdt[0] = (k[0]*(x[1] - x[0]) * 1e-3 * 5.3e-6 * (1e9)) + duox + nox2  # extracellular peroxide
 
     dxdt[1] = (((k[0] * x[0] * 1e-3 * 5.3e-6) / (1.15e-12))
                - ((k[0] * x[1] * 1e-3 * 5.3e-6) / (1.15e-12))
@@ -220,7 +218,7 @@ def model_noref(x, t, k, x_base):
     dxdt[6] = (k[4] * x[4]* x[5] 
                + k[12] * x[5] 
                + k[16] * x[19] * x[5] 
-               - (k[19] * x[6] * x[22] if x[6] > 0 and x[22] > 0 else 0.0)
+               - k[19] * x[6] * x[22]
                - (k[24] * x[6] / x_base[6] if x_base[6] > 0 else 0.0)
                - (k[25] * x[6] / x_base[6] if x_base[6] > 0 else 0.0))
 

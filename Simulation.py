@@ -554,6 +554,7 @@ class Simulation(object):
                     self.objects[j].x0 = xnew
                     if j == 877:
                         print(self.time, xnew[0], xnew[1], xnew[25], j, h2o2e_add)
+
                     # self.objects[j].C['H2O2i'] = float(xnew[1])
                     # self.objects[j].C['Ca'] = float(xnew[25])
 
@@ -572,7 +573,6 @@ class Simulation(object):
             sources, sinks = self._define_sinks_and_sources()
         #print(self.objects)
         #update the gradients
-        #print(f"gradients length {len(self.gradients)}")
         for i in range(0, len(self.gradients)):
             t0_1 = time.time()
             self.gradients[i].update(1, sinks[i], sources[i]) #flux between in and out
